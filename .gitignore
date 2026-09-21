@@ -1,0 +1,255 @@
+# ==============================================================================
+# OS & System Junk Files
+# ==============================================================================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ==============================================================================
+# Editor & IDE Files
+# ==============================================================================
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# JetBrains (IntelliJ, WebStorm, PyCharm, etc.)
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Sublime Text / Eclipse / NetBeans / Vim / Emacs
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+
+# ==============================================================================
+# Environment Variables, Secrets & Keys
+# ==============================================================================
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.kdbx
+id_rsa
+id_ed25519
+
+# ==============================================================================
+# Video & Audio Files (Large Media)
+# ==============================================================================
+# Video formats
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.m4v
+*.3gp
+*.mpeg
+*.mpg
+*.ts
+*.vob
+
+# Audio formats
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.m4a
+*.wma
+*.aiff
+*.alac
+*.opus
+
+# ==============================================================================
+# Large Binary Files, Archives & Disk Images
+# ==============================================================================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.tar.bz2
+*.tbz2
+*.tar.xz
+*.txz
+*.rar
+*.7z
+*.iso
+*.dmg
+*.bin
+*.img
+*.vmdk
+
+# Executables & Compiled Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.obj
+*.class
+
+# Machine Learning & Large Dataset models
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.parquet
+
+# Design raw large files
+*.psd
+*.ai
+*.sketch
+*.fig
+*.blend
+*.fbx
+*.max
+*.3ds
+
+# Database files & Local storage
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.sql.gz
+
+# ==============================================================================
+# Logs, Temporary Files & Caches
+# ==============================================================================
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.tmp
+*.temp
+*.bak
+*.old
+*.swp
+.cache/
+tmp/
+temp/
+
+# ==============================================================================
+# Common Development Dependencies & Build Artifacts
+# ==============================================================================
+# Node.js / JavaScript / TypeScript
+node_modules/
+jspm_packages/
+.npm/
+.yarn/
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.output/
+.turbo/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Java / Kotlin / Gradle / Maven
+target/
+.gradle/
+build/
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Go
+/bin/
+/pkg/
