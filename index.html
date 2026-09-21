@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vẽ Ngôi Sao 5 Cánh Từng Cánh Một - Animation</title>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --gold-light: #fff2a8;
+      --gold-primary: #ffd700;
+      --gold-dark: #b8860b;
+      --gold-glow: rgba(255, 215, 0, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at center, #172033 0%, #080b12 100%);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Background starfield */
+    #space-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff3b0 0%, #ffd700 50%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 2px 10px rgba(255, 215, 0, 0.3));
+    }
+
+    p.subtitle {
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+
+    /* Star Stage */
+    .stage {
+      position: relative;
+      width: 440px;
+      height: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 25px 0;
+    }
+
+    @media (max-width: 480px) {
+      .stage {
+        width: 320px;
+        height: 320px;
+      }
+      h1 {
+        font-size: 1.6rem;
+      }
+    }
+
+    .halo {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.18) 0%, rgba(255, 215, 0, 0) 70%);
+      opacity: 0;
+      transition: opacity 1.5s ease;
+      pointer-events: none;
+    }
+
+    .halo.active {
+      opacity: 1;
+      animation: pulseHalo 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseHalo {
+      0% { transform: scale(0.95); opacity: 0.6; }
+      100% { transform: scale(1.15); opacity: 1; }
+    }
+
+    svg#star-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4));
+    }
+
+    /* Particle Canvas overlay */
+    #sparkle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Wing polygon elements */
+    .wing {
+      opacity: 0;
+      transform-origin: 250px 250px;
+      transform: scale(0.3);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .wing.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Wing outline stroke */
+    .wing-stroke {
+      stroke-dasharray: 600;
+      stroke-dashoffset: 600;
+      transition: stroke-dashoffset 0.85s ease-out;
+    }
+
+    .wing-stroke.drawn {
+      stroke-dashoffset: 0;
+    }
+
+    /* Continuous pen mode lines */
+    .pentagram-line {
+      fill: none;
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke: url(#lineGradient);
+      stroke-dasharray: 450;
+      stroke-dashoffset: 450;
+      transition: stroke-dashoffset 0.8s ease-in-out;
+      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+    }
+
+    .pentagram-line.drawn {
+      stroke-dashoffset: 0;
+    }
+
+    /* Center jewel/core */
+    .star-core {
+      opacity: 0;
+      transform-origin: 250px 250px;
+      transform: scale(0);
+      transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .star-core.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Wing status tag */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      backdrop-filter: blur(10px);
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 0.95rem;
+      color: #f1f5f9;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #ffd700;
+      box-shadow: 0 0 10px #ffd700;
+      animation: blinkDot 1s infinite alternate;
+    }
+
+    @keyframes blinkDot {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* Control Panel */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      padding: 14px 22px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #ffd700 0%, #f59e0b 100%);
+      color: #0f172a;
+      border: none;
+      outline: none;
+      font-weight: 600;
+      padding: 10px 22px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(245, 158, 11, 0.45);
+      filter: brightness(1.1);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffd700;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .select-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
+    select {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    /* Tip box */
+    .legend {
+      margin-top: 20px;
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Starry universe background -->
+  <canvas id="space-canvas"></canvas>
+
+  <div class="container">
+    <header>
+      <h1>Ngôi Sao 5 Cánh</h1>
+      <p class="subtitle">Hiệu ứng chuyển động vẽ từng cánh sao nghệ thuật</p>
+    </header>
+
+    <div class="status-badge" id="status-badge">
+      <span class="status-dot"></span>
+      <span id="status-text">Đang chuẩn bị vẽ cánh 1...</span>
+    </div>
+
+    <!-- Animation Stage -->
+    <div class="stage">
+      <div class="halo" id="halo"></div>
+
+      <!-- SVG Drawing -->
+      <svg id="star-svg" viewBox="0 0 500 500">
+        <defs>
+          <!-- Gradients for 3D bevel faceted wings -->
+          <!-- Gold Theme -->
+          <linearGradient id="goldLight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fffbeb" />
+            <stop offset="50%" stop-color="#fde047" />
+            <stop offset="100%" stop-color="#eab308" />
+          </linearGradient>
+
+          <linearGradient id="goldDark" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#facc15" />
+            <stop offset="50%" stop-color="#ca8a04" />
+            <stop offset="100%" stop-color="#854d0e" />
+          </linearGradient>
+
+          <!-- Red & Gold Vietnam Flag Theme -->
+          <linearGradient id="redGoldLight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fff066" />
+            <stop offset="60%" stop-color="#ffd700" />
+            <stop offset="100%" stop-color="#ffb703" />
+          </linearGradient>
+          <linearGradient id="redGoldDark" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffb703" />
+            <stop offset="60%" stop-color="#e63946" />
+            <stop offset="100%" stop-color="#9b2226" />
+          </linearGradient>
+
+          <!-- Neon Cyan Theme -->
+          <linearGradient id="cyanLight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#e0f2fe" />
+            <stop offset="50%" stop-color="#38bdf8" />
+            <stop offset="100%" stop-color="#0284c7" />
+          </linearGradient>
+          <linearGradient id="cyanDark" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0ea5e9" />
+            <stop offset="50%" stop-color="#0369a1" />
+            <stop offset="100%" stop-color="#082f49" />
+          </linearGradient>
+
+          <!-- Stroke gradient -->
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="50%" stop-color="#ffd700" />
+            <stop offset="100%" stop-color="#ff9900" />
+          </linearGradient>
+
+          <!-- Glow Filter -->
+          <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- Group 1: 5 Faceted 3D Wings -->
+        <g id="faceted-wings-group">
+          <!-- Wing 1: Top (Đỉnh trên) -->
+          <g id="wing-0" class="wing">
+            <polygon class="wing-face left" points="250,250 209.59,194.38 250,70" fill="url(#goldLight)" />
+            <polygon class="wing-face right" points="250,250 250,70 290.41,194.38" fill="url(#goldDark)" />
+            <polyline class="wing-stroke" points="209.59,194.38 250,70 290.41,194.38" fill="none" stroke="#fff7a1" stroke-width="2.5" />
+          </g>
+
+          <!-- Wing 2: Top-Right (Cánh phải trên) -->
+          <g id="wing-1" class="wing">
+            <polygon class="wing-face left" points="250,250 290.41,194.38 421.19,194.38" fill="url(#goldLight)" />
+            <polygon class="wing-face right" points="250,250 421.19,194.38 315.38,271.25" fill="url(#goldDark)" />
+            <polyline class="wing-stroke" points="290.41,194.38 421.19,194.38 315.38,271.25" fill="none" stroke="#fff7a1" stroke-width="2.5" />
+          </g>
+
+          <!-- Wing 3: Bottom-Right (Cánh phải dưới) -->
+          <g id="wing-2" class="wing">
+            <polygon class="wing-face left" points="250,250 315.38,271.25 355.80,395.62" fill="url(#goldLight)" />
+            <polygon class="wing-face right" points="250,250 355.80,395.62 250,318.75" fill="url(#goldDark)" />
+            <polyline class="wing-stroke" points="315.38,271.25 355.80,395.62 250,318.75" fill="none" stroke="#fff7a1" stroke-width="2.5" />
+          </g>
+
+          <!-- Wing 4: Bottom-Left (Cánh trái dưới) -->
+          <g id="wing-3" class="wing">
+            <polygon class="wing-face left" points="250,250 250,318.75 144.20,395.62" fill="url(#goldLight)" />
+            <polygon class="wing-face right" points="250,250 144.20,395.62 184.62,271.25" fill="url(#goldDark)" />
+            <polyline class="wing-stroke" points="250,318.75 144.20,395.62 184.62,271.25" fill="none" stroke="#fff7a1" stroke-width="2.5" />
+          </g>
+
+          <!-- Wing 5: Top-Left (Cánh trái trên) -->
+          <g id="wing-4" class="wing">
+            <polygon class="wing-face left" points="250,250 184.62,271.25 78.81,194.38" fill="url(#goldLight)" />
+            <polygon class="wing-face right" points="250,250 78.81,194.38 209.59,194.38" fill="url(#goldDark)" />
+            <polyline class="wing-stroke" points="184.62,271.25 78.81,194.38 209.59,194.38" fill="none" stroke="#fff7a1" stroke-width="2.5" />
+          </g>
+
+          <!-- Star Center Core -->
+          <circle id="star-core" class="star-core" cx="250" cy="250" r="14" fill="#ffffff" filter="url(#glow)" />
+        </g>
+
+        <!-- Group 2: Continuous Pentagram Lines (Mode 2) -->
+        <g id="pentagram-lines-group" style="display: none;">
+          <!-- Line 1: V0 (250, 70) -> V2 (355.80, 395.62) -->
+          <line id="pline-0" class="pentagram-line" x1="250" y1="70" x2="355.80" y2="395.62" />
+          <!-- Line 2: V2 (355.80, 395.62) -> V4 (78.81, 194.38) -->
+          <line id="pline-1" class="pentagram-line" x1="355.80" y1="395.62" x2="78.81" y2="194.38" />
+          <!-- Line 3: V4 (78.81, 194.38) -> V1 (421.19, 194.38) -->
+          <line id="pline-2" class="pentagram-line" x1="78.81" y1="194.38" x2="421.19" y2="194.38" />
+          <!-- Line 4: V1 (421.19, 194.38) -> V3 (144.20, 395.62) -->
+          <line id="pline-3" class="pentagram-line" x1="421.19" y1="194.38" x2="144.20" y2="395.62" />
+          <!-- Line 5: V3 (144.20, 395.62) -> V0 (250, 70) -->
+          <line id="pline-4" class="pentagram-line" x1="144.20" y1="395.62" x2="250" y2="70" />
+        </g>
+      </svg>
+
+      <!-- Sparkle particle overlay canvas -->
+      <canvas id="sparkle-canvas"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn" id="btn-replay">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        Vẽ Lại
+      </button>
+
+      <div class="select-group">
+        <label for="mode-select">Chế độ:</label>
+        <select id="mode-select">
+          <option value="wings">Từng cánh 3D nở rộ</option>
+          <option value="lines">Nét bút liền cổ điển</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label for="theme-select">Màu sắc:</label>
+        <select id="theme-select">
+          <option value="gold">Vàng Hoàng Kim</option>
+          <option value="vietnam">Sao Vàng Rực Rỡ</option>
+          <option value="cyan">Xanh Neon Vũ Trụ</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label for="speed-select">Tốc độ:</label>
+        <select id="speed-select">
+          <option value="1200">Chậm rãi (1.2s)</option>
+          <option value="800" selected>Vừa phải (0.8s)</option>
+          <option value="450">Nhanh (0.45s)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-secondary" id="btn-sound" title="Bật/Tắt âm thanh chuông ngân">
+        <span id="sound-icon">🔔</span> Âm thanh: Bật
+      </button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">✨ 5 đỉnh cân xứng chuẩn tỷ lệ vàng</div>
+      <div class="legend-item">• Âm thanh đa âm Web Audio API</div>
+    </div>
+  </div>
+
+  <script>
+    // Audio synthesizer using Web Audio API (chime / bell effect)
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        // Pentatonic scale frequencies for 5 wings (C5, D5, E5, G5, A5, C6)
+        this.notes = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playWingNote(index) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const freq = this.notes[index] || 600;
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        // Bell envelope: fast attack, exponential decay
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.25, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 1.3);
+
+        // Add a soft harmonic overtone
+        const overtone = this.ctx.createOscillator();
+        const overtoneGain = this.ctx.createGain();
+        overtone.type = 'triangle';
+        overtone.frequency.setValueAtTime(freq * 2, now);
+        overtoneGain.gain.setValueAtTime(0, now);
+        overtoneGain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+        overtoneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+
+        overtone.connect(overtoneGain);
+        overtoneGain.connect(this.ctx.destination);
+        overtone.start(now);
+        overtone.stop(now + 0.9);
+      }
+
+      playCompleteChord() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const chord = [523.25, 659.25, 783.99, 1046.50];
+        chord.forEach((f, i) => {
+          setTimeout(() => {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(f, now);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 2.6);
+          }, i * 60);
+        });
+      }
+    }
+
+    const sound = new SoundFX();
+
+    // Coordinates of 5 star tips on the 500x500 stage
+    const TIP_COORDS = [
+      { x: 250, y: 70 },       // Wing 1 (Top)
+      { x: 421.19, y: 194.38 },// Wing 2 (Top-Right)
+      { x: 355.80, y: 395.62 },// Wing 3 (Bottom-Right)
+      { x: 144.20, y: 395.62 },// Wing 4 (Bottom-Left)
+      { x: 78.81, y: 194.38 }  // Wing 5 (Top-Left)
+    ];
+
+    const WING_NAMES = [
+      "Cánh 1 (Đỉnh Trên)",
+      "Cánh 2 (Góc Phải Trên)",
+      "Cánh 3 (Góc Phải Dưới)",
+      "Cánh 4 (Góc Trái Dưới)",
+      "Cánh 5 (Góc Trái Trên)"
+    ];
+
+    // Background cosmic particles
+    const spaceCanvas = document.getElementById('space-canvas');
+    const spaceCtx = spaceCanvas.getContext('2d');
+    let starsBg = [];
+
+    function resizeSpace() {
+      spaceCanvas.width = window.innerWidth;
+      spaceCanvas.height = window.innerHeight;
+      starsBg = [];
+      for (let i = 0; i < 120; i++) {
+        starsBg.push({
+          x: Math.random() * spaceCanvas.width,
+          y: Math.random() * spaceCanvas.height,
+          radius: Math.random() * 1.5 + 0.5,
+          alpha: Math.random(),
+          speed: Math.random() * 0.01 + 0.003
+        });
+      }
+    }
+
+    window.addEventListener('resize', resizeSpace);
+    resizeSpace();
+
+    function renderSpace() {
+      spaceCtx.clearRect(0, 0, spaceCanvas.width, spaceCanvas.height);
+      for (const s of starsBg) {
+        s.alpha += s.speed;
+        const currentAlpha = (Math.sin(s.alpha) + 1) / 2 * 0.7 + 0.1;
+        spaceCtx.fillStyle = `rgba(255, 255, 255, ${currentAlpha})`;
+        spaceCtx.beginPath();
+        spaceCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        spaceCtx.fill();
+      }
+      requestAnimationFrame(renderSpace);
+    }
+    renderSpace();
+
+    // Sparkles burst on stage overlay
+    const sparkleCanvas = document.getElementById('sparkle-canvas');
+    const sCtx = sparkleCanvas.getContext('2d');
+    let particles = [];
+
+    function resizeSparkleCanvas() {
+      const rect = sparkleCanvas.parentElement.getBoundingClientRect();
+      sparkleCanvas.width = rect.width;
+      sparkleCanvas.height = rect.height;
+    }
+    resizeSparkleCanvas();
+    window.addEventListener('resize', resizeSparkleCanvas);
+
+    function createSparkleBurst(svgX, svgY, count = 28) {
+      const rect = sparkleCanvas.parentElement.getBoundingClientRect();
+      const scaleX = rect.width / 500;
+      const scaleY = rect.height / 500;
+      const originX = svgX * scaleX;
+      const originY = svgY * scaleY;
+
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4.5 + 1.2;
+        particles.push({
+          x: originX,
+          y: originY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 3.5 + 1.5,
+          color: Math.random() > 0.3 ? '#ffd700' : '#ffffff',
+          alpha: 1,
+          decay: Math.random() * 0.025 + 0.015
+        });
+      }
+    }
+
+    function renderSparkles() {
+      sCtx.clearRect(0, 0, sparkleCanvas.width, sparkleCanvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        p.size *= 0.98;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        sCtx.save();
+        sCtx.globalAlpha = p.alpha;
+        sCtx.fillStyle = p.color;
+        sCtx.shadowColor = p.color;
+        sCtx.shadowBlur = 8;
+        sCtx.beginPath();
+        sCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        sCtx.fill();
+        sCtx.restore();
+      }
+      requestAnimationFrame(renderSparkles);
+    }
+    renderSparkles();
+
+    // Star Drawing Animation Logic
+    let currentAnimationTimer = null;
+    let isAnimating = false;
+
+    const statusText = document.getElementById('status-text');
+    const halo = document.getElementById('halo');
+    const core = document.getElementById('star-core');
+    const modeSelect = document.getElementById('mode-select');
+    const speedSelect = document.getElementById('speed-select');
+    const themeSelect = document.getElementById('theme-select');
+    const facetedGroup = document.getElementById('faceted-wings-group');
+    const pentagramGroup = document.getElementById('pentagram-lines-group');
+    const btnSound = document.getElementById('btn-sound');
+    const soundIcon = document.getElementById('sound-icon');
+
+    function resetStar() {
+      if (currentAnimationTimer) {
+        clearTimeout(currentAnimationTimer);
+        currentAnimationTimer = null;
+      }
+      isAnimating = false;
+
+      // Reset faceted wings
+      for (let i = 0; i < 5; i++) {
+        const wing = document.getElementById(`wing-${i}`);
+        const stroke = wing.querySelector('.wing-stroke');
+        wing.classList.remove('visible');
+        stroke.classList.remove('drawn');
+      }
+
+      // Reset pentagram lines
+      for (let i = 0; i < 5; i++) {
+        const line = document.getElementById(`pline-${i}`);
+        line.classList.remove('drawn');
+      }
+
+      halo.classList.remove('active');
+      core.classList.remove('visible');
+    }
+
+    function applyTheme() {
+      const theme = themeSelect.value;
+      const leftFaces = document.querySelectorAll('.wing-face.left');
+      const rightFaces = document.querySelectorAll('.wing-face.right');
+
+      let leftFill = 'url(#goldLight)';
+      let rightFill = 'url(#goldDark)';
+
+      if (theme === 'vietnam') {
+        leftFill = 'url(#redGoldLight)';
+        rightFill = 'url(#redGoldDark)';
+      } else if (theme === 'cyan') {
+        leftFill = 'url(#cyanLight)';
+        rightFill = 'url(#cyanDark)';
+      }
+
+      leftFaces.forEach(el => el.setAttribute('fill', leftFill));
+      rightFaces.forEach(el => el.setAttribute('fill', rightFill));
+    }
+
+    function startAnimation() {
+      resetStar();
+      applyTheme();
+      isAnimating = true;
+
+      const mode = modeSelect.value;
+      const delayBetweenWings = parseInt(speedSelect.value, 10);
+
+      if (mode === 'wings') {
+        facetedGroup.style.display = 'block';
+        pentagramGroup.style.display = 'none';
+        animateWingsSequential(0, delayBetweenWings);
+      } else {
+        facetedGroup.style.display = 'none';
+        pentagramGroup.style.display = 'block';
+        animateLinesSequential(0, delayBetweenWings);
+      }
+    }
+
+    // Mode 1: 5 Faceted 3D Wings
+    function animateWingsSequential(index, stepDelay) {
+      if (index >= 5) {
+        // All 5 wings finished
+        core.classList.add('visible');
+        halo.classList.add('active');
+        createSparkleBurst(250, 250, 45);
+        sound.playCompleteChord();
+        statusText.textContent = "Hoàn thành! Ngôi sao 5 cánh tỏa sáng rực rỡ ✨";
+        isAnimating = false;
+        return;
+      }
+
+      statusText.textContent = `Đang hiện ${WING_NAMES[index]}... (${index + 1}/5)`;
+
+      const wing = document.getElementById(`wing-${index}`);
+      const stroke = wing.querySelector('.wing-stroke');
+
+      // Make wing bloom & stroke draw
+      wing.classList.add('visible');
+      stroke.classList.add('drawn');
+
+      // Tip sparkle & chime
+      const tip = TIP_COORDS[index];
+      createSparkleBurst(tip.x, tip.y, 22);
+      sound.playWingNote(index);
+
+      currentAnimationTimer = setTimeout(() => {
+        animateWingsSequential(index + 1, stepDelay);
+      }, stepDelay);
+    }
+
+    // Mode 2: Continuous Pentagram Lines
+    function animateLinesSequential(index, stepDelay) {
+      if (index >= 5) {
+        halo.classList.add('active');
+        createSparkleBurst(250, 250, 45);
+        sound.playCompleteChord();
+        statusText.textContent = "Hoàn thành 5 nét vẽ ngôi sao liền mạch! 🌟";
+        isAnimating = false;
+        return;
+      }
+
+      statusText.textContent = `Đang vẽ nét ${index + 1}/5...`;
+
+      const line = document.getElementById(`pline-${index}`);
+      line.classList.add('drawn');
+
+      const tip = TIP_COORDS[index];
+      createSparkleBurst(tip.x, tip.y, 20);
+      sound.playWingNote(index);
+
+      currentAnimationTimer = setTimeout(() => {
+        animateLinesSequential(index + 1, stepDelay);
+      }, stepDelay);
+    }
+
+    // Event Listeners
+    document.getElementById('btn-replay').addEventListener('click', () => {
+      sound.init();
+      startAnimation();
+    });
+
+    modeSelect.addEventListener('change', () => {
+      startAnimation();
+    });
+
+    themeSelect.addEventListener('change', () => {
+      applyTheme();
+    });
+
+    speedSelect.addEventListener('change', () => {
+      startAnimation();
+    });
+
+    btnSound.addEventListener('click', () => {
+      sound.init();
+      sound.enabled = !sound.enabled;
+      if (sound.enabled) {
+        btnSound.innerHTML = `<span>🔔</span> Âm thanh: Bật`;
+      } else {
+        btnSound.innerHTML = `<span>🔕</span> Âm thanh: Tắt`;
+      }
+    });
+
+    // Start on initial page load with a slight delay for smooth entrance
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        startAnimation();
+      }, 400);
+    });
+  </script>
+</body>
+</html>
