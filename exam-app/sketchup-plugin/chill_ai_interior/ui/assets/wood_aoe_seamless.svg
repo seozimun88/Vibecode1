@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="120" viewBox="0 0 600 120">
+  <defs>
+    <!-- Plank 1 Gradient: Aged Golden Teak -->
+    <linearGradient id="aoePlank1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8c5f32"/>
+      <stop offset="8%" stop-color="#9d6f3e"/>
+      <stop offset="50%" stop-color="#835529"/>
+      <stop offset="88%" stop-color="#6e421c"/>
+      <stop offset="100%" stop-color="#4a2a10"/>
+    </linearGradient>
+
+    <!-- Plank 2 Gradient: Rich Cedar Oak -->
+    <linearGradient id="aoePlank2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#85582c"/>
+      <stop offset="10%" stop-color="#966636"/>
+      <stop offset="52%" stop-color="#7c4e24"/>
+      <stop offset="90%" stop-color="#673c17"/>
+      <stop offset="100%" stop-color="#44250c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ================= PLANK 1 (0 to 60px) ================= -->
+  <rect x="0" y="0" width="600" height="60" fill="url(#aoePlank1)"/>
+
+  <!-- Coarse Horizontal Wood Grain (Vân gỗ ngang thô mộc) -->
+  <!-- Grain 1: Bold upper grain streak -->
+  <path d="M0,14 C150,20 300,8 450,18 C525,23 570,11 600,14" stroke="#46260c" stroke-width="4.2" fill="none" opacity="0.4"/>
+  <path d="M0,16.5 C150,22.5 300,10.5 450,20.5 C525,25.5 570,13.5 600,16.5" stroke="#caa067" stroke-width="2.2" fill="none" opacity="0.25"/>
+
+  <!-- Grain 2: Center flowing heartwood band -->
+  <path d="M0,30 C120,24 280,36 420,27 C510,21 565,34 600,30" stroke="#3b1d07" stroke-width="5.5" fill="none" opacity="0.45"/>
+  <path d="M0,33 C120,27 280,39 420,30 C510,24 565,37 600,33" stroke="#d5ad74" stroke-width="2.8" fill="none" opacity="0.3"/>
+
+  <!-- Grain 3: Lower subtle flow -->
+  <path d="M0,45 C180,51 380,41 490,47 C550,50 580,43 600,45" stroke="#4a290d" stroke-width="3.5" fill="none" opacity="0.35"/>
+  <path d="M0,47 C180,53 380,43 490,49 C550,52 580,45 600,47" stroke="#caa067" stroke-width="1.8" fill="none" opacity="0.2"/>
+
+  <!-- Horizontal Fine Striations (Sợi gỗ ngang dài) -->
+  <line x1="0" y1="8" x2="600" y2="8" stroke="#3d2008" stroke-width="1.2" opacity="0.25"/>
+  <line x1="0" y1="22" x2="600" y2="22" stroke="#caa067" stroke-width="1" opacity="0.2"/>
+  <line x1="0" y1="38" x2="600" y2="38" stroke="#3d2008" stroke-width="1.2" opacity="0.25"/>
+  <line x1="0" y1="52" x2="600" y2="52" stroke="#caa067" stroke-width="1" opacity="0.18"/>
+
+  <!-- Plank Seam 1 (y=60) - Beveled Timber Join Line -->
+  <line x1="0" y1="59" x2="600" y2="59" stroke="#1d0c03" stroke-width="2.5"/>
+  <line x1="0" y1="61" x2="600" y2="61" stroke="#d9ad74" stroke-width="1.4" opacity="0.45"/>
+
+  <!-- ================= PLANK 2 (60 to 120px) ================= -->
+  <rect x="0" y="60" width="600" height="60" fill="url(#aoePlank2)"/>
+
+  <!-- Grain 4: Upper flowing wave -->
+  <path d="M0,74 C160,67 320,79 480,71 C540,67 575,78 600,74" stroke="#3d1e07" stroke-width="4.8" fill="none" opacity="0.42"/>
+  <path d="M0,76.5 C160,69.5 320,81.5 480,73.5 C540,69.5 575,80.5 600,76.5" stroke="#d3aa70" stroke-width="2.4" fill="none" opacity="0.28"/>
+
+  <!-- Grain 5: Wide organic wave -->
+  <path d="M0,92 C140,99 280,87 430,95 C515,99 565,88 600,92" stroke="#341805" stroke-width="5.8" fill="none" opacity="0.45"/>
+  <path d="M0,95 C140,102 280,90 430,98 C515,102 565,91 600,95" stroke="#dcb47d" stroke-width="3" fill="none" opacity="0.32"/>
+
+  <!-- Grain 6: Lower wave -->
+  <path d="M0,107 C200,103 400,111 510,105 C560,103 585,109 600,107" stroke="#46250b" stroke-width="3.8" fill="none" opacity="0.38"/>
+  <path d="M0,109 C200,105 400,113 510,107 C560,105 585,111 600,109" stroke="#caa067" stroke-width="1.8" fill="none" opacity="0.2"/>
+
+  <!-- Horizontal Fine Striations Plank 2 -->
+  <line x1="0" y1="67" x2="600" y2="67" stroke="#3d2008" stroke-width="1.2" opacity="0.25"/>
+  <line x1="0" y1="83" x2="600" y2="83" stroke="#caa067" stroke-width="1" opacity="0.2"/>
+  <line x1="0" y1="100" x2="600" y2="100" stroke="#3d2008" stroke-width="1.2" opacity="0.25"/>
+  <line x1="0" y1="114" x2="600" y2="114" stroke="#caa067" stroke-width="1" opacity="0.18"/>
+
+  <!-- Bottom Seam (y=120) for Vertical Seamless Tiling -->
+  <line x1="0" y1="119" x2="600" y2="119" stroke="#1d0c03" stroke-width="2.5"/>
+  <line x1="0" y1="121" x2="600" y2="121" stroke="#d9ad74" stroke-width="1.4" opacity="0.45"/>
+</svg>

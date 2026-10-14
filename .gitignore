@@ -162,6 +162,8 @@ id_ed25519
 *.fbx
 *.max
 *.3ds
+*.skp
+*.skb
 
 # Database files & Local storage
 *.db
@@ -190,6 +192,7 @@ lerna-debug.log*
 .cache/
 tmp/
 temp/
+scratch/
 
 # ==============================================================================
 # Common Development Dependencies & Build Artifacts

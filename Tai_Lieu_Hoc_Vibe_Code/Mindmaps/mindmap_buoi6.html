@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body {
+    width: 1600px;
+    height: 1050px;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 35px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 30px;
+    color: #06b6d4;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .header p {
+    font-size: 15px;
+    color: #94a3b8;
+  }
+  .mindmap-container {
+    display: grid;
+    grid-template-columns: 1fr 350px 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+    align-items: center;
+  }
+  
+  /* Central Node */
+  .center-node {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    background: linear-gradient(135deg, #0e7490, #0f172a);
+    border: 3px solid #06b6d4;
+    border-radius: 20px;
+    padding: 30px 20px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(6, 182, 212, 0.4), inset 0 0 15px rgba(6, 182, 212, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  .center-node .badge {
+    background: #06b6d4;
+    color: #042f2e;
+    font-weight: 800;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .center-node h2 {
+    font-size: 24px;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 10px;
+  }
+  .center-node p {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+  .center-node .duration {
+    margin-top: 15px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.1);
+    padding: 6px 14px;
+    border-radius: 8px;
+    color: #38bdf8;
+    font-weight: bold;
+  }
+
+  /* Branch Cards */
+  .card {
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    position: relative;
+    border-left: 6px solid #64748b;
+  }
+  
+  .card-top-left {
+    border-left-color: #38bdf8;
+  }
+  .card-bottom-left {
+    border-left-color: #10b981;
+  }
+  .card-top-right {
+    border-left-color: #f59e0b;
+  }
+  .card-bottom-right {
+    border-left-color: #ec4899;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 8px;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-top-left .card-title { color: #38bdf8; }
+  .card-bottom-left .card-title { color: #10b981; }
+  .card-top-right .card-title { color: #f59e0b; }
+  .card-bottom-right .card-title { color: #ec4899; }
+
+  .traffic-light {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+  }
+  .light-green { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+  .light-yellow { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+
+  .branch-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .branch-item {
+    font-size: 13px;
+    line-height: 1.45;
+    background: #0f172a;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+  }
+  .branch-item strong {
+    color: #f8fafc;
+  }
+  .branch-item span.desc {
+    color: #94a3b8;
+    display: block;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #334155;
+    padding-top: 15px;
+    font-size: 13px;
+    color: #64748b;
+  }
+  .footer-legend {
+    display: flex;
+    gap: 20px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>📱 SƠ ĐỒ TƯ DUY VIBE CODE BUỔI 6: MOBILE APP & REALTIME SYNC</h1>
+    <p>Biên dịch Web thành Ứng dụng Di động Native (Capacitor) • Đồng bộ thời gian thực Supabase CDC • Remote Debugging</p>
+  </div>
+
+  <div class="mindmap-container">
+    
+    <!-- GÓC TRÊN TRÁI: NHÁNH 1 -->
+    <div class="card card-top-left">
+      <div class="card-header">
+        <div class="card-title">🌐 1. TỔNG QUAN ĐA NỀN TẢNG</div>
+        <span class="traffic-light light-green">🟢 ĐÈN XANH (00:15 - 00:55)</span>
+      </div>
+      <ul class="branch-list">
+        <li class="branch-item">
+          <strong>Write Once, Run Everywhere:</strong>
+          <span class="desc">Xây 1 bộ mã nguồn Web (HTML/CSS/JS) chạy khắp Web, Android, iOS.</span>
+        </li>
+        <li class="branch-item">
+          <strong>PWA vs Capacitor vs Native:</strong>
+          <span class="desc">PWA: 0$ phí store, offline cache. Capacitor: Gói APK/IPA, gọi phần cứng native.</span>
+        </li>
+        <li class="branch-item">
+          <strong>Tư duy Mobile UX (Thumb Zone & Safe Area):</strong>
+          <span class="desc">Nút bấm đặt ở nửa dưới màn hình (dễ với ngón cái), padding tránh tai thỏ & dynamic island.</span>
+        </li>
+        <li class="branch-item">
+          <strong>Haptic Feedback:</strong>
+          <span class="desc">Rung phản hồi 15ms khi chạm nút, tạo cảm giác thỏa mãn như bấm phím vật lý.</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- GÓC DƯỚI TRÁI: NHÁNH 2 -->
+    <div class="card card-bottom-left">
+      <div class="card-header">
+        <div class="card-title">📦 2. BIÊN DỊCH BẰNG CAPACITOR</div>
+        <span class="traffic-light light-green">🟢 ĐÈN XANH (00:55 - 01:50)</span>
+      </div>
+      <ul class="branch-list">
+        <li class="branch-item">
+          <strong>Khởi tạo & Cấu hình (B1-B2):</strong>
+          <span class="desc">npm i @capacitor/core @capacitor/cli → npx cap init (Tên app + App ID).</span>
+        </li>
+        <li class="branch-item">
+          <strong>Sinh Assets tự động (B3):</strong>
+          <span class="desc">Chỉ cần 1 icon.png + 1 splash.png → npx @capacitor/assets sinh mọi cỡ ảnh.</span>
+        </li>
+        <li class="branch-item">
+          <strong>Đồng bộ mã nguồn (B4-B5):</strong>
+          <span class="desc">npx cap add android → npx cap sync (Lệnh sống còn mỗi khi sửa web).</span>
+        </li>
+        <li class="branch-item">
+          <strong>Xuất file APK & Cài máy thật:</strong>
+          <span class="desc">Build APK debug gửi qua Zalo/Drive; Chạy máy thật qua Cáp USB / Wi-Fi QR Code.</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- NODE TRUNG TÂM -->
+    <div class="center-node">
+      <div class="badge">VIBE CODE BUỔI 6</div>
+      <h2>MOBILE APP &<br/>ĐỒNG BỘ REALTIME</h2>
+      <p>VietIS Education • Lớp Vibe Code Non-IT<br/>Học viên: Nguyễn Văn Huy (The Architect)</p>
+      <div class="duration">⏱️ 03 giờ 25 phút 41 giây • 52 Slides</div>
+      <p style="margin-top: 15px; font-size: 11px; color: #a5f3fc; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 10px;">
+        Triết lý cốt lõi:<br/>
+        <strong>"Biến Web thành App Native trong 6 bước — Dữ liệu nhảy số Realtime không cần F5"</strong>
+      </p>
+    </div>
+
+    <!-- GÓC TRÊN PHẢI: NHÁNH 3 -->
+    <div class="card card-top-right">
+      <div class="card-header">
+        <div class="card-title">⚡ 3. ĐỒNG BỘ REALTIME (PUB/SUB)</div>
+        <span class="traffic-light light-green">🟢 ĐÈN XANH (02:05 - 02:45)</span>
+      </div>
+      <ul class="branch-list">
+        <li class="branch-item">
+          <strong>Tiến hóa: Polling → SSE → CDC:</strong>
+          <span class="desc">Bỏ Polling (hỏi dồn dập tốn pin) → Dùng Supabase CDC bắt biến động DB tức thì.</span>
+        </li>
+        <li class="branch-item">
+          <strong>Mô hình Pub/Sub (5 Dòng Code):</strong>
+          <span class="desc">supabase.channel('...').on('postgres_changes', {event:'INSERT'}).subscribe().</span>
+        </li>
+        <li class="branch-item">
+          <strong>Optimistic UI (Cập nhật lạc quan):</strong>
+          <span class="desc">Đổi màu giao diện mili-giây thứ 0, gửi ngầm dữ liệu lên server. Trải nghiệm tức thì!</span>
+        </li>
+        <li class="branch-item">
+          <strong>Giải quyết tranh chấp (Last-Write-Wins):</strong>
+          <span class="desc">Sử dụng Timestamp để ưu tiên thao tác mới nhất khi nhiều máy cùng sửa dữ liệu.</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- GÓC DƯỚI PHẢI: NHÁNH 4 -->
+    <div class="card card-bottom-right">
+      <div class="card-header">
+        <div class="card-title">🔍 4. MÁY ẢO & ĐỌC VỊ BẮT LỖI</div>
+        <span class="traffic-light light-green">🟢 ĐÈN XANH (02:45 - 03:25)</span>
+      </div>
+      <ul class="branch-list">
+        <li class="branch-item">
+          <strong>Máy ảo AVD Android:</strong>
+          <span class="desc">Tạo Pixel 8 (API 34/35) trên Android Studio để test cảm ứng, xoay màn hình 0 đồng.</span>
+        </li>
+        <li class="branch-item">
+          <strong>Vũ khí Chrome Remote Debugging:</strong>
+          <span class="desc">Gõ chrome://inspect/#devices → Bấm Inspect soi trọn Console, Elements, Network trên app!</span>
+        </li>
+        <li class="branch-item">
+          <strong>Bắt 3 ca bệnh kinh điển:</strong>
+          <span class="desc">Trắng màn hình (lỗi link tương đối); Lỗi nạp Supabase (sai thứ tự script); Sập mảng index.</span>
+        </li>
+        <li class="branch-item">
+          <strong>Bí kíp Prompt AI sửa lỗi:</strong>
+          <span class="desc">Dán nguyên văn [Tên lỗi + Stack Trace + Dòng code] để AI viết defensive code dứt điểm.</span>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-legend">
+      <span class="legend-item" style="color: #34d399;">🟢 ĐÈN XANH: Cốt lõi (Xem kỹ, thực hành ngay)</span>
+      <span class="legend-item" style="color: #fbbf24;">🟡 ĐÈN VÀNG: Q&A thảo luận (Xem lướt)</span>
+      <span class="legend-item" style="color: #f87171;">🔴 ĐÈN ĐỎ: Điểm danh, nghỉ giải lao (TUA GẤP)</span>
+    </div>
+    <div>Tổng hợp: Trợ lý AI Lan • Bản quyền dự án Vibe Code 2026</div>
+  </div>
+
+</body>
+</html>

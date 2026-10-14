@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body {
+    width: 1600px;
+    height: 1050px;
+    background: #0b1329;
+    color: #f8fafc;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  .header h1 {
+    font-size: 32px;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .header p {
+    font-size: 16px;
+    color: #94a3b8;
+  }
+  .mindmap-container {
+    display: grid;
+    grid-template-columns: 1fr 360px 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 25px;
+    flex: 1;
+    align-items: center;
+  }
+  
+  /* Central Node */
+  .center-node {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 3px solid #38bdf8;
+    border-radius: 20px;
+    padding: 30px 20px;
+    text-align: center;
+    box-shadow: 0 0 35px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  .center-node .badge {
+    background: #0284c7;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .center-node h2 {
+    font-size: 25px;
+    color: #f8fafc;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .center-node .subtitle {
+    font-size: 13.5px;
+    color: #38bdf8;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .center-node .avatar-duo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .avatar-item {
+    text-align: center;
+  }
+  .avatar-item .role {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+  }
+  .avatar-item .name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+  }
+
+  /* Branch Cards */
+  .branch-card {
+    background: rgba(30, 41, 59, 0.85);
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    position: relative;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .branch-card h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .branch-card ul {
+    list-style: none;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #cbd5e1;
+  }
+  .branch-card ul li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .branch-card ul li strong {
+    color: #f8fafc;
+  }
+  .bullet {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+
+  /* Specific Branch Themes */
+  .branch-debug {
+    grid-column: 1;
+    grid-row: 1;
+    border-left: 6px solid #38bdf8;
+  }
+  .branch-debug h3 { color: #38bdf8; }
+  .branch-debug .bullet { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+
+  .branch-learn {
+    grid-column: 3;
+    grid-row: 1;
+    border-left: 6px solid #a855f7;
+  }
+  .branch-learn h3 { color: #c084fc; }
+  .branch-learn .bullet { background: #a855f7; box-shadow: 0 0 6px #a855f7; }
+
+  .branch-role {
+    grid-column: 1;
+    grid-row: 2;
+    border-left: 6px solid #f59e0b;
+  }
+  .branch-role h3 { color: #fbbf24; }
+  .branch-role .bullet { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+
+  .branch-delivery {
+    grid-column: 3;
+    grid-row: 2;
+    border-left: 6px solid #10b981;
+  }
+  .branch-delivery h3 { color: #34d399; }
+  .branch-delivery .bullet { background: #10b981; box-shadow: 0 0 6px #10b981; }
+
+  .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .tag-blue { background: #0284c7; color: white; }
+  .tag-purple { background: #7e22ce; color: white; }
+  .tag-amber { background: #b45309; color: white; }
+  .tag-green { background: #047857; color: white; }
+
+  /* Footer */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    padding-top: 15px;
+    font-size: 13px;
+    color: #64748b;
+  }
+  .footer-left span { color: #38bdf8; font-weight: 600; }
+  .footer-right span { color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🤝 SƠ ĐỒ TƯ DUY: QUY TRÌNH PHỐI HỢP LÀM VIỆC TỐI ƯU</h1>
+    <p>Cẩm nang cộng tác kỹ thuật, nghiên cứu học tập & phát triển dự án giữa Trợ lý AI Lan & Anh Huy</p>
+  </div>
+
+  <div class="mindmap-container">
+    
+    <!-- BRANCH 1: DEBUG & GIAO TIẾP KỸ THUẬT -->
+    <div class="branch-card branch-debug">
+      <h3>🔍 1. GIAO TIẾP & DEBUG TỨC THÌ (4 PHƯƠNG PHÁP)</h3>
+      <ul>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Soi lỗi F12 (Console):</strong> Chuột phải -> Inspect -> Console -> Copy chữ đỏ. Lan bắt đúng lỗi và sửa dứt điểm sau 30 giây <span class="tag tag-blue">Zero Guesswork</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Test nhanh qua Google Chrome:</strong> Mở trực tiếp file HTML để chỉnh sửa giao diện, màu sắc, avatar mà không cần mở SketchUp nặng nề <span class="tag tag-blue">Tiết kiệm 90% time</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Công thức 3 bước đời thường:</strong> "Khi tôi làm gì -> Nó bị thế nào -> Ý tôi muốn là". Diễn đạt tự nhiên, không cần thuật ngữ lập trình <span class="tag tag-blue">Chuẩn xác 100%</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Kế hoạch trước - Dứt điểm sau:</strong> Lan giải thích trước phương án -> Tự test trường hợp biên -> Xong dứt điểm từng mục mới sang mục mới.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- CENTER NODE -->
+    <div class="center-node">
+      <div class="badge">🤝 COLLABORATION STANDARD</div>
+      <h2>QUY TRÌNH PHỐI HỢP<br/>LAN & ANH HUY</h2>
+      <div class="subtitle">Đồng Bộ 100% Ý Muốn • Triệt Tiêu Thử Sai</div>
+      <div class="avatar-duo">
+        <div class="avatar-item">
+          <div class="role">The Architect</div>
+          <div class="name">👑 Anh Huy</div>
+        </div>
+        <div style="color: #38bdf8; font-size: 18px;">⇄</div>
+        <div class="avatar-item">
+          <div class="role">Chief AI Co-Pilot</div>
+          <div class="name">🌸 Trợ Lý Lan</div>
+        </div>
+      </div>
+      <div style="margin-top: 15px; font-size: 11.5px; color: #94a3b8; line-height: 1.4;">
+        Chill AI Interior Project<br/>Vibe Code System 2026
+      </div>
+    </div>
+
+    <!-- BRANCH 2: HỌC TẬP & ĐÚC KẾT VIDEO -->
+    <div class="branch-card branch-learn">
+      <h3>🎓 2. TIÊU CHUẨN ĐÚC KẾT BÀI HỌC & VIDEO (7 TIÊU CHUẨN VÀNG)</h3>
+      <ul>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Timestamps chính xác:</strong> Bóc tách chi tiết mốc giờ, phút bắt đầu và kết thúc từng tiểu mục kiến thức <span class="tag tag-purple">Zero Loss</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Hệ thống đèn giao thông:</strong><br/>
+            &bull; 🟢 <strong>Đèn Xanh:</strong> Kiến thức cốt lõi (Tập trung 100%)<br/>
+            &bull; 🟡 <strong>Đèn Vàng:</strong> Mở rộng, kinh nghiệm (Xem lướt)<br/>
+            &bull; 🔴 <strong>Đèn Đỏ:</strong> Lỗi máy học viên khác, giải lao (Tua gấp chống buồn ngủ)
+          </div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Lọc chướng ngại vật & Nhiễu:</strong> Nhận diện câu hỏi chen ngang ngoài lề, sự cố kỹ thuật để giữ bài giảng cô đọng.</div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Quy đổi giá trị thực tế:</strong> Liên kết ngay kiến thức buổi học vào sản phẩm plugin Chill AI của anh Huy.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- BRANCH 3: PHÂN VAI & BẢO MẬT -->
+    <div class="branch-card branch-role">
+      <h3>👑 3. PHÂN VAI VẬN HÀNH & BẢO MẬT DỰ ÁN</h3>
+      <ul>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Anh Huy (Kiến trúc sư trưởng):</strong> Định hướng sản phẩm, nêu ý tưởng trải nghiệm, ra đề bài và kiểm duyệt chất lượng <span class="tag tag-amber">The Architect</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Lan (Cộng sự kỹ thuật số):</strong> Nghiên cứu sâu, triển khai code, tự động kiểm thử, tạo tài liệu và giải quyết sự cố <span class="tag tag-amber">The Co-Pilot</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Kỷ luật bảo mật tuyệt đối:</strong> Bảo vệ API Key, bảo vệ file .env, cấu hình .gitignore chặt chẽ, không để lộ dữ liệu nhạy cảm.</div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Nguyên tắc tôn trọng tài nguyên:</strong> Chạy nền thông minh, dọn dẹp tiến trình rác, tối ưu hiệu năng máy tính.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- BRANCH 4: ĐÓNG GÓI & BÀN GIAO -->
+    <div class="branch-card branch-delivery">
+      <h3>📦 4. CHUẨN ĐÓNG GÓI & BÀN GIAO BÀI BẢN</h3>
+      <ul>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Đa định dạng chuyên nghiệp:</strong> Luôn xuất đồng thời file Word (.docx) để ghi chú và file PDF (.pdf) chuẩn in ấn <span class="tag tag-green">Word + PDF</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Sơ đồ tư duy trực quan (Mindmap HD):</strong> Luôn có ảnh đồ họa sắc nét tóm lược nội dung trong 30 giây <span class="tag tag-green">Mindmap HD</span></div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Quy hoạch thư mục khoa học:</strong> Lưu trữ tập trung tại thư mục Tai_Lieu_Hoc_Vibe_Code giúp tra cứu tức thì bất cứ lúc nào.</div>
+        </li>
+        <li>
+          <span class="bullet"></span>
+          <div><strong>Đồng hành lâu dài:</strong> Hỗ trợ anh Huy mọi lúc mọi nơi trên hành trình làm chủ Vibe Coding và phát triển sản phẩm.</div>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">
+      Dự án: <span>Chill AI Interior</span> &bull; Không gian phối hợp làm việc cá nhân hóa
+    </div>
+    <div class="footer-right">
+      Phiên bản: <span>Chuẩn hóa 2.0</span> &bull; Trợ lý: <span>Lan</span> &bull; Đồng hành cùng: <span>Anh Huy</span>
+    </div>
+  </div>
+
+</body>
+</html>

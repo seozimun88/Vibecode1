@@ -1,0 +1,570 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chill AI Interior - SketchUp Plugin & CNC Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Three.js for Interactive 3D Realtime Preview -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="dark-theme">
+  <div class="app-layout">
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-badge">ðŸ¤– AI</div>
+        <div class="logo-text">
+          <h1>Chill AI Interior</h1>
+          <span class="sub-text">Sketchup Plugin & BÃ³c TÃ¡ch CNC G-Code</span>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <span id="bridge-status-indicator" class="status-pill status-ready">
+          <span class="dot"></span>
+          <span id="bridge-status-text">Äang káº¿t ná»‘i SketchUp...</span>
+        </span>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" id="btn-api-settings" title="CÃ i Ä‘áº·t Google Gemma 4 / Gemini API Key">
+          ðŸ”‘ Gemma 4 AI
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-open-projects" title="Xem danh sÃ¡ch dá»± Ã¡n">
+          ðŸ“ Dá»± Ã¡n
+        </button>
+        <div class="user-profile-badge" id="btn-user-modal">
+          <div class="avatar-circle">KTS</div>
+          <span class="username">NhÃ  Thiáº¿t Káº¿</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-ai-scan">
+        <span class="tab-icon">ðŸ“¸</span>
+        <span>1. QuÃ©t áº¢nh & Táº¡o 3D</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-dynamic-comp">
+        <span class="tab-icon">ðŸ“</span>
+        <span>2. Dynamic Component</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-cam-cnc">
+        <span class="tab-icon">âš¡</span>
+        <span>3. BÃ³c TÃ¡ch & G-Code CNC</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-ai-avatar">
+        <span class="tab-icon">ðŸ’¬</span>
+        <span>4. Trá»£ LÃ½ áº¢o 2D</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-marketplace">
+        <span class="tab-icon">ðŸª</span>
+        <span>5. Marketplace</span>
+      </button>
+    </nav>
+
+    <!-- MAIN WORKSPACE (SPLIT VIEW) -->
+    <main class="main-content">
+      <!-- LEFT PANEL: TABS CONTENT -->
+      <section class="left-panel">
+        
+        <!-- TAB 1: AI SCAN & IMAGE-TO-3D -->
+        <div class="tab-pane active" id="tab-ai-scan">
+          <div class="card">
+            <div class="card-header">
+              <h2>ðŸ“¸ QuÃ©t áº£nh mÃ³n Ä‘á»“ ná»™i tháº¥t (Image-to-3D)</h2>
+              <span class="badge badge-ai">TrÃ­ Tuá»‡ NhÃ¢n Táº¡o</span>
+            </div>
+            <p class="description">Táº£i áº£nh chá»¥p tá»« Ä‘iá»‡n thoáº¡i hoáº·c áº£nh sÆ°u táº§m trÃªn Pinterest/Google. AI sáº½ tá»± Ä‘á»™ng nháº­n diá»‡n káº¿t cáº¥u vÃ  dá»±ng mÃ´ hÃ¬nh 3D trong SketchUp.</p>
+            
+            <!-- API STATUS BANNER -->
+            <div class="api-status-banner" id="api-status-banner">
+              <div class="api-status-left">
+                <span class="api-status-dot" id="api-status-dot"></span>
+                <div>
+                  <strong id="api-status-label">Cháº¿ Ä‘á»™ AI: Google Gemma 4 Multimodal Vision</strong>
+                  <p id="api-status-desc">MÃ´ hÃ¬nh AI mÃ£ nguá»“n má»Ÿ tiÃªn tiáº¿n nháº¥t cá»§a Google. Báº¥m cÃ i Ä‘áº·t Ä‘á»ƒ nháº­p API Key.</p>
+                </div>
+              </div>
+              <button class="btn btn-outline btn-sm" id="btn-config-key">âš™ï¸ CÃ i Ä‘áº·t Key</button>
+            </div>
+            
+            <!-- DROP ZONE -->
+            <div class="upload-dropzone" id="drop-zone">
+              <input type="file" id="file-input" accept="image/*" style="display: none;">
+              
+              <!-- SCANNING LOADING SPINNER -->
+              <div class="scan-loading-spinner" id="scan-loading-spinner" style="display: none;">
+                <div class="spinner-circle"></div>
+                <p class="spinner-text">âœ¨ Google Gemma 4 AI Ä‘ang phÃ¢n tÃ­ch áº£nh vÃ  tÃ­nh toÃ¡n kÃ­ch thÆ°á»›c 3D...</p>
+              </div>
+
+              <div id="drop-zone-content">
+                <div class="drop-icon">ðŸ–¼ï¸</div>
+                <p class="drop-title">KÃ©o tháº£ áº£nh ná»™i tháº¥t vÃ o Ä‘Ã¢y hoáº·c <strong>nháº¥p Ä‘á»ƒ chá»n áº£nh</strong></p>
+                <p class="drop-hint">Há»— trá»£: JPG, PNG, WEBP (BÃ n, Gháº¿, Tá»§ Ã¡o, Ká»‡ tivi, GiÆ°á»ng ngá»§...)</p>
+                <div class="sample-images-row">
+                  <span>áº¢nh máº«u test nhanh:</span>
+                  <button type="button" class="btn-sample" data-sample="desk">BÃ n lÃ m viá»‡c</button>
+                  <button type="button" class="btn-sample" data-sample="cabinet">Tá»§ quáº§n Ã¡o</button>
+                  <button type="button" class="btn-sample" data-sample="shelf">Ká»‡ sÃ¡ch</button>
+                  <button type="button" class="btn-sample" data-sample="bed">GiÆ°á»ng ngá»§</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCAN RESULT & SELECTION (2 BUTTONS CHOICE) -->
+            <div class="ai-detected-box" id="ai-detected-box" style="display: none;">
+              <div class="detected-header">
+                <span class="detected-badge">âœ¨ AI Nháº­n diá»‡n thÃ nh cÃ´ng:</span>
+                <strong id="detected-object-name">BÃ n lÃ m viá»‡c gá»— chÃ¢n sáº¯t hiá»‡n Ä‘áº¡i</strong>
+              </div>
+
+              <div class="preview-thumb-row">
+                <img id="scanned-image-preview" src="" alt="Scanned Furniture" class="scanned-thumb">
+                <div class="detected-specs">
+                  <p><strong>Loáº¡i váº­t thá»ƒ:</strong> <span id="detected-category">BÃ n lÃ m viá»‡c (Desk)</span></p>
+                  <p><strong>Váº­t liá»‡u gá»£i Ã½:</strong> Gá»— sá»“i tá»± nhiÃªn / MDF chá»‘ng áº©m An CÆ°á»ng</p>
+                  <p><strong>Äá»™ tin cáº­y AI:</strong> 98.6%</p>
+                </div>
+              </div>
+
+              <!-- 2 OPTION BUTTONS AS REQUESTED -->
+              <div class="choice-container">
+                <div class="choice-title">ðŸ‘‰ Chá»n cháº¿ Ä‘á»™ táº¡o kÃ­ch thÆ°á»›c vÃ o SketchUp:</div>
+                <div class="choice-grid">
+                  <!-- OPTION A: DEFAULT -->
+                  <div class="choice-card active" id="card-choice-default">
+                    <div class="choice-radio">
+                      <input type="radio" name="dimension_mode" id="mode-default" value="default" checked>
+                    </div>
+                    <div class="choice-body">
+                      <h3>a) Máº·c Ä‘á»‹nh thÃ´ng thÆ°á»ng</h3>
+                      <p class="choice-desc">Ãp dá»¥ng kÃ­ch thÆ°á»›c tiÃªu chuáº©n nhÃ¢n tráº¯c há»c Ä‘Ã£ náº¡p sáºµn:</p>
+                      <div class="default-specs-tag" id="default-specs-display">
+                        DÃ i: 1200mm | Rá»™ng: 600mm | Cao: 750mm
+                      </div>
+                      <span class="badge-hint">Tá»‘i Æ°u cho ngÆ°á»i Viá»‡t Nam</span>
+                    </div>
+                  </div>
+
+                  <!-- OPTION B: CUSTOM -->
+                  <div class="choice-card" id="card-choice-custom">
+                    <div class="choice-radio">
+                      <input type="radio" name="dimension_mode" id="mode-custom" value="custom">
+                    </div>
+                    <div class="choice-body">
+                      <h3>b) TÃ¹y chá»‰nh chi tiáº¿t</h3>
+                      <p class="choice-desc">Äiá»n báº£ng sá»‘ Ä‘o thá»±c táº¿ theo khÃ´ng gian phÃ²ng vÃ  tinh chá»‰nh phá»¥ kiá»‡n.</p>
+                      <span class="badge-hint">Tá»± do thay Ä‘á»•i sá»‘ Ä‘o & váº­t liá»‡u</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CUSTOM PARAMETERS FORM -->
+                <div class="custom-params-form" id="custom-params-section" style="display: none;">
+                  <h4>ðŸ“‹ Báº£ng Ä‘iá»n thÃ´ng sá»‘ & Phá»¥ kiá»‡n tÃ¹y chá»‰nh:</h4>
+                  <div class="form-grid-3">
+                    <div class="form-group">
+                      <label>Chiá»u DÃ i (L - mm):</label>
+                      <input type="number" id="input-length" value="1200" min="400" max="3000" step="10">
+                    </div>
+                    <div class="form-group">
+                      <label>Chiá»u Rá»™ng (W - mm):</label>
+                      <input type="number" id="input-width" value="600" min="300" max="2000" step="10">
+                    </div>
+                    <div class="form-group">
+                      <label>Chiá»u Cao (H - mm):</label>
+                      <input type="number" id="input-height" value="750" min="300" max="2800" step="10">
+                    </div>
+                  </div>
+
+                  <div class="form-grid-3">
+                    <div class="form-group">
+                      <label>Äá»™ dÃ y vÃ¡n:</label>
+                      <select id="select-thickness">
+                        <option value="18" selected>18 mm (VÃ¡n tiÃªu chuáº©n)</option>
+                        <option value="17">17 mm (MDF Chá»‘ng áº©m An CÆ°á»ng)</option>
+                        <option value="25">25 mm (Máº·t bÃ n dÃ y cao cáº¥p)</option>
+                        <option value="12">12 mm (VÃ¡n há»™c kÃ©o/háº­u tá»§)</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Cháº¥t liá»‡u gá»— / Bá» máº·t:</label>
+                      <select id="select-material">
+                        <option value="oak" selected>Gá»— Sá»“i VÃ ng (Oak Wood)</option>
+                        <option value="walnut">Gá»— Ã“c ChÃ³ (Walnut Wood)</option>
+                        <option value="white_melamine">Melamine Tráº¯ng Má»</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Kiá»ƒu chÃ¢n / Phá»¥ kiá»‡n:</label>
+                      <select id="select-leg-style">
+                        <option value="metal_frame" selected>Khung sáº¯t há»™p sÆ¡n tÄ©nh Ä‘iá»‡n</option>
+                        <option value="wooden_legs">4 ChÃ¢n gá»— tiá»‡n tá»± nhiÃªn</option>
+                        <option value="panel_legs">ChÃ¢n vÃ¡n liá»n khá»‘i (Panel)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-3">
+                    <div class="form-group">
+                      <label>Sá»‘ cÃ¡nh tá»§ (Ná»™i tháº¥t tá»§):</label>
+                      <input type="number" id="input-doors" value="3" min="1" max="6">
+                    </div>
+                    <div class="form-group">
+                      <label>Sá»‘ ngÄƒn kÃ©o / Há»™c tá»§:</label>
+                      <input type="number" id="input-drawers" value="2" min="0" max="6">
+                    </div>
+                    <div class="form-group">
+                      <label>MÃ u cÃ¡nh tá»§ / Máº·t há»™c:</label>
+                      <select id="select-door-material">
+                        <option value="same_as_body" selected>CÃ¹ng mÃ u thÃ¢n tá»§ (Gá»— Sá»“i/Ã“c ChÃ³)</option>
+                        <option value="white_melamine">Melamine Tráº¯ng Má» (Phá»‘i 2 mÃ u)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="action-row">
+                  <button class="btn btn-primary btn-lg" id="btn-build-3d">
+                    ðŸš€ Xuáº¥t MÃ´ HÃ¬nh 3D VÃ o SketchUp
+                  </button>
+                  <button class="btn btn-accent btn-lg" id="btn-generate-dc">
+                    âš™ï¸ Táº¡o HÃ m Dynamic Component AI
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: DYNAMIC COMPONENT FORMULAS -->
+        <div class="tab-pane" id="tab-dynamic-comp">
+          <div class="card">
+            <div class="card-header">
+              <h2>ðŸ“ TrÃ¬nh táº¡o HÃ m Dynamic Component AI</h2>
+              <span class="badge badge-success">Smart Parametric</span>
+            </div>
+            <p class="description">AI tá»± Ä‘á»™ng biÃªn dá»‹ch cáº¥u táº¡o hÃ¬nh há»c thÃ nh cÃ¡c hÃ m tham sá»‘ Ä‘á»™ng trong SketchUp, giÃºp linh kiá»‡n co giÃ£n tá»± do mÃ  khÃ´ng lÃ m mÃ©o tá»· lá»‡.</p>
+
+            <div class="dc-feature-box">
+              <h3>CÃ¡c hÃ m toÃ¡n há»c AI Ä‘Ã£ tá»± Ä‘á»™ng gÃ¡n vÃ o Component:</h3>
+              <div class="code-preview-box">
+                <pre><code>// 1. CÃ´ng thá»©c kÃ­ch thÆ°á»›c liÃªn káº¿t cáº¥p cha - con
+Mat_Ban!LenX = Parent!LenX
+Mat_Ban!LenY = Parent!LenY
+Mat_Ban!LenZ = Parent!Thickness
+Chan_Trai!LenZ = Parent!LenZ - Parent!Thickness
+
+// 2. TÆ°Æ¡ng tÃ¡c chuyá»ƒn Ä‘á»™ng chuá»™t (OnClick Animation)
+Canh_Tu!OnClick = ANIMATE("RotZ", 0, 90)
+Ngan_Keo!OnClick = ANIMATE("PosY", 0, 350)
+
+// 3. Quy chuáº©n lá»— khoan cam chá»‘t & má»™ng ghÃ©p
+Cam_Chot_Offset = 32mm * Floor(Parent!LenY / 32mm)</code></pre>
+              </div>
+
+              <div class="interactive-slider-box">
+                <h4>Thá»­ nghiá»‡m co giÃ£n Dynamic Component trá»±c tiáº¿p:</h4>
+                <div class="slider-row">
+                  <label>Chiá»u DÃ i (LenX): <span id="val-dc-lenx">1200</span> mm</label>
+                  <input type="range" id="slider-dc-lenx" min="800" max="2200" value="1200" step="50">
+                </div>
+                <div class="slider-row">
+                  <label>Chiá»u Cao (LenZ): <span id="val-dc-lenz">750</span> mm</label>
+                  <input type="range" id="slider-dc-lenz" min="600" max="1100" value="750" step="25">
+                </div>
+                <button class="btn btn-primary" id="btn-send-dc-to-su">
+                  Cáº­p nháº­t Dynamic Component vÃ o SketchUp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: CAM 2D NESTING & G-CODE -->
+        <div class="tab-pane" id="tab-cam-cnc">
+          <div class="card">
+            <div class="card-header">
+              <h2>âš¡ BÃ³c tÃ¡ch táº¥m 2D (Nesting) & Xuáº¥t File Cáº¯t CNC (G-Code)</h2>
+              <span class="badge badge-cam">CAM Engine</span>
+            </div>
+            <p class="description">Tá»± Ä‘á»™ng tráº£i pháº³ng cÃ¡c chi tiáº¿t 3D thÃ nh báº£n váº½ cáº¯t 2D, tá»‘i Æ°u xáº¿p vÃ¡n trÃªn khá»• tiÃªu chuáº©n 1220 x 2440 mm vÃ  xuáº¥t file G-Code cáº¯m USB cháº¡y trá»±c tiáº¿p trÃªn mÃ¡y CNC.</p>
+
+            <!-- STATS ROW -->
+            <div class="cam-stats-grid">
+              <div class="stat-card">
+                <span class="stat-label">Sá»‘ táº¥m vÃ¡n cÃ´ng nghiá»‡p:</span>
+                <span class="stat-value" id="cam-sheet-count">1 Táº¥m</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Hiá»‡u suáº¥t xáº¿p vÃ¡n:</span>
+                <span class="stat-value text-accent" id="cam-utilization">86.4%</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Tá»•ng chiá»u dÃ i Ä‘Æ°á»ng cáº¯t:</span>
+                <span class="stat-value" id="cam-cut-length">18.6 m</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Thá»i gian cáº¯t Æ°á»›c tÃ­nh:</span>
+                <span class="stat-value" id="cam-cut-time">9.5 phÃºt</span>
+              </div>
+            </div>
+
+            <!-- 2D NESTING CANVAS PREVIEW -->
+            <div class="nesting-canvas-wrapper">
+              <div class="nesting-toolbar">
+                <span>ðŸ“ Khá»• vÃ¡n tiÃªu chuáº©n: <strong>1220 x 2440 mm</strong> (MDF 18mm)</span>
+                <span class="badge">MÅ©i phay: Endmill D6 (6mm)</span>
+              </div>
+              <canvas id="nesting-canvas" width="600" height="300"></canvas>
+              <div class="nesting-legend" id="nesting-legend">
+                <!-- Dynamic legend pills inserted here -->
+              </div>
+            </div>
+
+            <!-- G-CODE PREVIEW & EXPORT BUTTONS -->
+            <div class="gcode-action-box">
+              <div class="gcode-header">
+                <h4>MÃ£ G-Code (Chuáº©n ISO Fanuc / Mach3 / NC-Studio):</h4>
+                <button class="btn btn-outline btn-sm" id="btn-copy-gcode">ðŸ“‹ Sao chÃ©p mÃ£</button>
+              </div>
+              <textarea id="gcode-output-area" readonly spellcheck="false" class="gcode-textarea"></textarea>
+              
+              <div class="export-buttons-row">
+                <button class="btn btn-success btn-lg" id="btn-save-gcode">
+                  ðŸ’¾ LÆ°u File G-Code VÃ o USB (Cáº¯m MÃ¡y CNC)
+                </button>
+                <button class="btn btn-secondary btn-lg" id="btn-re-nest">
+                  ðŸ”„ TÃ­nh ToÃ¡n Xáº¿p VÃ¡n Láº¡i
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: 2D AI AVATAR & STORY CONSULTANT -->
+        <div class="tab-pane" id="tab-ai-avatar">
+          <div class="card">
+            <div class="card-header">
+              <h2>ðŸ’¬ Trá»£ LÃ½ áº¢o AI 2D - ChuyÃªn Gia Ká»ƒ Chuyá»‡n & TÆ° Váº¥n Ná»™i Tháº¥t</h2>
+              <span class="badge badge-ai">Visual Novel Mode</span>
+            </div>
+            <p class="description">TrÃ² chuyá»‡n vá»›i nhÃ¢n váº­t áº£o 2D Lyly Ä‘á»ƒ Ä‘Æ°á»£c tÆ° váº¥n phong cÃ¡ch, váº­t liá»‡u, bá»‘ trÃ­ cÄƒn nhÃ  vÃ  tá»± Ä‘á»™ng táº¡o sáº£n pháº©m chá»‘t vÃ o SketchUp.</p>
+
+            <div class="chat-container">
+              <!-- CHAT MESSAGES STREAM -->
+              <div class="chat-messages" id="chat-messages">
+                <!-- Messages populated dynamically -->
+              </div>
+
+              <!-- SUGGESTION CHIPS -->
+              <div class="suggestion-chips" id="suggestion-chips">
+                <button class="chip" data-msg="Ká»ƒ cho tÃ´i quy trÃ¬nh lÃ m 1 cÃ´ng trÃ¬nh ná»™i tháº¥t tá»« A-Z?">ðŸ“– Quy trÃ¬nh lÃ m ná»™i tháº¥t</button>
+                <button class="chip" data-msg="TÆ° váº¥n phong cÃ¡ch thiáº¿t káº¿ phÃ²ng ngá»§ 15m2">ðŸŽ¨ TÆ° váº¥n phong cÃ¡ch phÃ²ng ngá»§</button>
+                <button class="chip" data-msg="NÃªn chá»n gá»— MDF An CÆ°á»ng hay Gá»— sá»“i tá»± nhiÃªn?">ðŸªµ So sÃ¡nh váº­t liá»‡u vÃ¡n</button>
+                <button class="chip" data-msg="Táº¡o máº«u bÃ n lÃ m viá»‡c tá»‘i giáº£n chuáº©n cÃ´ng thÃ¡i há»c">âœ¨ Táº¡o bÃ n cÃ´ng thÃ¡i há»c</button>
+              </div>
+
+              <!-- CHAT INPUT -->
+              <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="Há»i Lyly vá» phong cÃ¡ch, váº­t liá»‡u, kÃ­ch thÆ°á»›c hoáº·c yÃªu cáº§u táº¡o Ä‘á»“..." />
+                <button class="btn btn-primary" id="btn-send-chat">Gá»­i</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: MARKETPLACE -->
+        <div class="tab-pane" id="tab-marketplace">
+          <div class="card">
+            <div class="card-header">
+              <h2>ðŸª SÃ n Giao Dá»‹ch Ná»™i Tháº¥t & Káº¿t Ná»‘i XÆ°á»Ÿng CNC</h2>
+              <span class="badge badge-accent">Marketplace</span>
+            </div>
+            <p class="description">Kho thÆ° viá»‡n 3D Dynamic Components Ä‘á»™c quyá»n, gÃ³i file G-Code cáº¯t sáºµn vÃ  máº¡ng lÆ°á»›i xÆ°á»Ÿng CNC nháº­n gia cÃ´ng cho ngÆ°á»i dÃ¹ng DIY.</p>
+
+            <div class="market-grid">
+              <div class="market-card">
+                <div class="market-thumb">ðŸª‘</div>
+                <div class="market-info">
+                  <h4>Bá»™ BÃ n Ä‚n ThÃ´ng Minh Gáº¥p Gá»n</h4>
+                  <p class="market-meta">File 3D Dynamic + G-Code CNC hoÃ n chá»‰nh</p>
+                  <div class="market-price-row">
+                    <span class="price">150.000 VNÄ</span>
+                    <button class="btn btn-sm btn-primary btn-buy" data-item="BÃ n Ä‚n Gáº¥p Gá»n">Mua ngay</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="market-card">
+                <div class="market-thumb">ðŸšª</div>
+                <div class="market-info">
+                  <h4>Há»‡ Tá»§ Ão CÃ¡nh KÃ­nh ÄÃ¨n Led Hiá»‡n Äáº¡i</h4>
+                  <p class="market-meta">BÃ³c tÃ¡ch sáºµn 4 táº¥m vÃ¡n MDF Melamine</p>
+                  <div class="market-price-row">
+                    <span class="price">250.000 VNÄ</span>
+                    <button class="btn btn-sm btn-primary btn-buy" data-item="Tá»§ Ão CÃ¡nh KÃ­nh">Mua ngay</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="market-card">
+                <div class="market-thumb">ðŸ­</div>
+                <div class="market-info">
+                  <h4>XÆ°á»Ÿng Gá»— Chill CNC Decor - HÃ  Ná»™i</h4>
+                  <p class="market-meta">Nháº­n cáº¯t vÃ¡n theo file G-Code, giao táº­n nÆ¡i</p>
+                  <div class="market-price-row">
+                    <span class="price">120.000Ä‘ / Táº¥m</span>
+                    <button class="btn btn-sm btn-accent btn-contact-workshop">Äáº·t cáº¯t</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT PANEL: INTERACTIVE 3D VIEWPORT & 2D AVATAR -->
+      <section class="right-panel">
+        <!-- 3D REALTIME VIEWPORT -->
+        <div class="viewport-card">
+          <div class="viewport-header">
+            <h3>ðŸ‘ï¸ Xem TrÆ°á»›c 3D Thá»i Gian Thá»±c</h3>
+            <div class="viewport-tools">
+              <button class="btn-icon" id="btn-reset-cam" title="Äáº·t láº¡i gÃ³c nhÃ¬n">ðŸ”„</button>
+              <button class="btn-icon" id="btn-toggle-wireframe" title="Báº­t/Táº¯t lÆ°á»›i khung dÃ¢y">ðŸŒ</button>
+            </div>
+          </div>
+          <div id="threejs-canvas-container" class="three-container"></div>
+          <div class="viewport-footer">
+            <span id="viewport-model-title">MÃ´ hÃ¬nh: BÃ n LÃ m Viá»‡c TiÃªu Chuáº©n (1200 x 600 x 750 mm)</span>
+            <span class="ctrl-hint">Chuá»™t trÃ¡i: Xoay | Chuá»™t pháº£i: Di chuyá»ƒn | Cuá»™n: Thu phÃ³ng</span>
+          </div>
+        </div>
+
+        <!-- 2D VIRTUAL AVATAR CHARACTER COMPANION -->
+        <div class="avatar-card" id="avatar-companion-box">
+          <div class="avatar-display">
+            <!-- 2D SVG Character Artwork with Expressions -->
+            <div class="character-visual-wrapper">
+              <div class="avatar-speech-bubble" id="avatar-speech-bubble">
+                "ChÃ o báº¡n! MÃ¬nh lÃ  <strong>Lyly</strong>, trá»£ lÃ½ kiáº¿n trÃºc 2D Ä‘á»“ng hÃ nh cÃ¹ng báº¡n táº¡o ra nhá»¯ng cÃ´ng trÃ¬nh ná»™i tháº¥t tuyá»‡t Ä‘áº¹p!"
+              </div>
+              <div class="character-figure" id="character-figure">
+                <!-- SVG Avatar Drawing -->
+                <svg viewBox="0 0 200 240" class="avatar-svg" id="avatar-svg-art">
+                  <defs>
+                    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#4a3728"/>
+                      <stop offset="100%" stop-color="#2a1f18"/>
+                    </linearGradient>
+                    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#ffeedd"/>
+                      <stop offset="100%" stop-color="#fcd7b6"/>
+                    </linearGradient>
+                    <linearGradient id="clothGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#2563eb"/>
+                      <stop offset="100%" stop-color="#1d4ed8"/>
+                    </linearGradient>
+                  </defs>
+                  <!-- Body / Clothes -->
+                  <path d="M40 240 C45 170 80 150 100 150 C120 150 155 170 160 240 Z" fill="url(#clothGrad)"/>
+                  <path d="M85 150 L100 180 L115 150 Z" fill="#ffffff"/>
+                  <circle cx="100" cy="195" r="4" fill="#ffd700"/>
+                  <!-- Neck -->
+                  <rect x="90" y="130" width="20" height="25" fill="url(#skinGrad)" rx="5"/>
+                  <!-- Head -->
+                  <circle cx="100" cy="95" r="45" fill="url(#skinGrad)"/>
+                  <!-- Hair Back -->
+                  <path d="M50 90 C45 35 155 35 150 90 C155 130 145 150 140 160 C130 140 135 110 130 100 C110 105 90 105 70 100 C65 110 70 140 60 160 C55 150 45 130 50 90 Z" fill="url(#hairGrad)"/>
+                  <!-- Hair Bangs Front -->
+                  <path d="M55 75 C80 60 120 60 145 75 C135 95 125 90 115 92 C105 95 95 95 85 92 C75 90 65 95 55 75 Z" fill="url(#hairGrad)"/>
+                  <!-- Eyes -->
+                  <g id="avatar-eyes">
+                    <circle cx="83" cy="92" r="6" fill="#1e293b"/>
+                    <circle cx="85" cy="90" r="2.5" fill="#ffffff"/>
+                    <circle cx="117" cy="92" r="6" fill="#1e293b"/>
+                    <circle cx="119" cy="90" r="2.5" fill="#ffffff"/>
+                  </g>
+                  <!-- Cheeks / Blush -->
+                  <ellipse cx="75" cy="103" rx="7" ry="4" fill="#ff7675" opacity="0.4"/>
+                  <ellipse cx="125" cy="103" rx="7" ry="4" fill="#ff7675" opacity="0.4"/>
+                  <!-- Mouth -->
+                  <path id="avatar-mouth" d="M94 112 Q100 120 106 112" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-linecap="round"/>
+                  <!-- Eyebrows -->
+                  <path d="M75 82 Q83 78 90 82" fill="none" stroke="#2a1f18" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M110 82 Q117 78 125 82" fill="none" stroke="#2a1f18" stroke-width="2" stroke-linecap="round"/>
+                  <!-- Architect glasses / accessory -->
+                  <circle cx="83" cy="92" r="14" fill="none" stroke="#d97706" stroke-width="2"/>
+                  <circle cx="117" cy="92" r="14" fill="none" stroke="#d97706" stroke-width="2"/>
+                  <line x1="97" y1="92" x2="103" y2="92" stroke="#d97706" stroke-width="2"/>
+                </svg>
+              </div>
+            </div>
+            <div class="avatar-badge-name">
+              <span>Trá»£ lÃ½ 2D: <strong>Lyly (Interior Architect AI)</strong></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- PROJECT MODAL -->
+    <div class="modal-backdrop" id="modal-projects" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>ðŸ“ Danh SÃ¡ch Dá»± Ãn ÄÃ£ LÆ°u</h3>
+          <button class="btn-close" id="btn-close-projects">âœ•</button>
+        </div>
+        <div class="modal-body">
+          <ul class="project-list" id="project-list-items">
+            <!-- Dynamic project list -->
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="btn-new-project">+ Táº¡o Dá»± Ãn Má»›i</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GEMINI / GEMMA 4 API KEY MODAL -->
+    <div class="modal-backdrop" id="modal-api-key" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>ðŸ”‘ Cáº¥u HÃ¬nh Google AI (Gemma 4) API Key</h3>
+          <button class="btn-close" id="btn-close-api-modal">âœ•</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">
+            Google Gemma 4 Vision xá»­ lÃ½ áº£nh siÃªu tá»‘c (dÆ°á»›i 1 giÃ¢y), nháº­n diá»‡n Ä‘a phÆ°Æ¡ng thá»©c chuáº©n xÃ¡c vÃ  <strong>hoÃ n toÃ n miá»…n phÃ­</strong>. KhÃ³a API sáº½ Ä‘Æ°á»£c lÆ°u an toÃ n trá»±c tiáº¿p trÃªn trÃ¬nh duyá»‡t/SketchUp cá»§a báº¡n.
+          </p>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label style="font-weight: 600; color: #fff;">Nháº­p Google AI (Gemma 4) API Key:</label>
+            <input type="password" id="input-gemini-key" placeholder="AIzaSy..." style="width: 100%; font-family: monospace; font-size: 13px;">
+          </div>
+          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 8px 12px; border-radius: 6px; font-size: 11px; margin-bottom: 14px;">
+            ðŸ’¡ <strong>ChÆ°a cÃ³ mÃ£ Key?</strong> 
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #60a5fa; text-decoration: underline; margin-left: 4px;">
+              Báº¥m vÃ o Ä‘Ã¢y Ä‘á»ƒ táº¡o mÃ£ miá»…n phÃ­ táº¡i Google AI Studio (30 giÃ¢y)
+            </a>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: space-between;">
+          <button class="btn btn-outline btn-sm" id="btn-clear-gemini-key">XÃ³a Key (DÃ¹ng Demo)</button>
+          <button class="btn btn-primary" id="btn-save-gemini-key">ðŸ’¾ LÆ°u KhÃ³a API</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="three_preview.js"></script>
+  <script src="avatar.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chill AI Interior - Game HUD Edition</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game_hud.css"> <!-- New CSS for Game HUD -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="dark-theme game-theme dock-mode">
+
+  <!-- ============================================================================== -->
+  <!-- VIEW MODE 1: CHẾ ĐỘ TOÀN CẢNH STUDIO (STUDIO RTS FULL VIEW - 1180x780)        -->
+  <!-- ============================================================================== -->
+  <div id="view-studio-mode" class="view-mode-container studio-full-app">
+<!-- ==================== TOP BAR ==================== -->
+  <header class="game-top-bar">
+    <div class="game-logo">🏰 Chill AI RTS</div>
+    <div class="game-resources">
+       <button id="btn-toggle-dock-mode" class="btn-game-sys btn-toggle-dock" title="Chuyển chế độ Khay Đứng SketchUp (Tỉ lệ chuẩn Default Tray)">
+         <span id="dock-btn-icon">📐</span>
+         <span id="dock-btn-label">Khay Đứng SU</span>
+       </button>
+       <div class="account-widget" id="account-widget">
+         <button id="btn-open-account-modal" class="btn-account-pill" title="Quản lý Tài khoản & Phân quyền Bản quyền">
+           <span class="account-avatar-mini" id="account-avatar-mini">👑</span>
+           <span class="account-name" id="account-name-badge">KTS. Nguyễn Văn Huy</span>
+           <span class="account-tier-badge tier-vip_pro" id="account-tier-badge">VIP PRO</span>
+         </button>
+       </div>
+       <div class="res-item api-status" id="gemini-api-status">
+         <span class="api-dot no-key"></span> Chờ API Key
+       </div>
+       <button id="btn-open-api-modal" class="btn-game-sys">⚙️ API Config</button>
+       <button id="btn-open-projects" class="btn-game-sys">📁 Save/Load</button>
+       <button id="btn-scan-camera" class="btn-game-sys">📷 Camera</button>
+    </div>
+  </header>
+
+  <!-- ==================== GAME WORLD (3D VIEWPORT) ==================== -->
+  <main class="game-world-container" id="game-world">
+    <!-- ThreeJS Canvas -->
+    <div id="threejs-canvas-container" class="game-canvas"></div>
+    
+    <!-- Viewport Overlays -->
+    <div class="game-world-ui">
+       <div class="world-title" id="viewport-model-title">Mô hình: Chưa có dữ liệu</div>
+       <div class="world-tools">
+          <button id="btn-reset-cam" class="btn-game-tool" title="Đặt lại góc nhìn">🔄 Reset Cam</button>
+          <button id="btn-toggle-wireframe" class="btn-game-tool" title="Lưới khung dây">🕸️ Lưới</button>
+       </div>
+    </div>
+
+    <!-- Floating Technical Custom Panel (VÙNG 1: Nổi góc trên bên phải 3D) -->
+    <div class="hud-floating-panel" id="floating-custom-panel" style="display: none;">
+       <div class="floating-panel-header">
+          <div class="floating-title">
+             <span class="floating-icon">🛠️</span>
+             <span>TÙY CHỈNH KỸ THUẬT 3D</span>
+          </div>
+          <div class="floating-actions">
+             <button id="btn-dock-to-hud" class="btn-floating-icon" title="Thu gọn về thẻ Tùy Chỉnh Kỹ Thuật dưới HUD">🗕 Thu về HUD</button>
+             <button id="btn-close-floating" class="btn-floating-icon" title="Đóng panel nổi">✕</button>
+          </div>
+       </div>
+       <div class="floating-panel-body">
+          <div class="floating-form-grid">
+             <div class="form-group-f"><label>Dài (X)</label><input type="number" id="f-input-length" value="1200" step="10"></div>
+             <div class="form-group-f"><label>Rộng (Y)</label><input type="number" id="f-input-width" value="600" step="10"></div>
+             <div class="form-group-f"><label>Cao (Z)</label><input type="number" id="f-input-height" value="750" step="10"></div>
+             <div class="form-group-f">
+                <label>Ván Dày</label>
+                <select id="f-select-thickness">
+                   <option value="17">17mm</option>
+                   <option value="18" selected>18mm</option>
+                   <option value="25">25mm</option>
+                   <option value="36">36mm</option>
+                </select>
+             </div>
+             <div class="form-group-f"><label>Cánh</label><input type="number" id="f-input-doors" value="2" min="0" max="6"></div>
+             <div class="form-group-f"><label>Hộc kéo</label><input type="number" id="f-input-drawers" value="0" min="0" max="6"></div>
+             <div class="form-group-f">
+                <label>Vật liệu</label>
+                <select id="f-select-material">
+                   <option value="oak">Sồi (Oak)</option>
+                   <option value="walnut">Óc Chó</option>
+                   <option value="white_melamine">Trắng</option>
+                </select>
+             </div>
+             <div class="form-group-f">
+                <label>Kiểu chân</label>
+                <select id="f-select-leg-style">
+                   <option value="metal_frame">Sắt Hộp</option>
+                   <option value="wooden_legs">Chân Gỗ</option>
+                   <option value="panel_legs">Ván Hông</option>
+                </select>
+             </div>
+          </div>
+          <div class="floating-sliders">
+             <div class="slider-row-f">
+                <label>Co giãn Dài (X): <span id="f-val-lenx">1200</span>mm</label>
+                <input type="range" id="f-slider-lenx" min="400" max="3000" step="10" value="1200">
+             </div>
+             <div class="slider-row-f">
+                <label>Co giãn Cao (Z): <span id="f-val-lenz">750</span>mm</label>
+                <input type="range" id="f-slider-lenz" min="400" max="3000" step="10" value="750">
+             </div>
+          </div>
+          <div class="floating-panel-footer">
+             <button id="f-btn-save-default" class="btn-hud-small" title="Lưu số đo này làm Mặc Định mới">💾 Lưu Mặc Định</button>
+             <button id="f-btn-build-3d" class="btn-game-accent" title="Xây 3D vào SketchUp ngay">🔨 Dựng 3D</button>
+          </div>
+       </div>
+    </div>
+  </main>
+
+  <!-- ==================== BOTTOM HUD ==================== -->
+  <footer class="game-bottom-hud" id="game-bottom-hud">
+       <div id="hud-resizer" class="hud-resizer" title="Kéo để thay đổi kích thước"></div>
+     
+     <!-- HUD LEFT: PORTRAIT -->
+     <div class="hud-portrait" id="avatar-companion-box">
+       <!-- Speech Bubble (pops up on interaction) -->
+       <div class="avatar-speech-bubble" id="avatar-speech-bubble" style="opacity:1;">
+                    <div class="speech-bubble-header">
+            <span class="speech-bubble-title" id="speech-bubble-title">🪵 Anh Thợ Mộc (Tin Tin AI)</span>
+            <div class="speech-bubble-btns">
+              <button id="btn-min-speech" class="btn-bubble-action" title="Thu nhỏ / Xẹp lại">➖</button>
+              <button id="btn-expand-speech" class="btn-bubble-action" title="Mở rộng / Toàn cảnh">🗖</button>
+              <button id="btn-close-speech" class="btn-bubble-action" title="Đóng bong bóng thoại">✕</button>
+            </div>
+          </div>
+          <div class="speech-bubble-content" id="avatar-speech-text">
+            "Chào anh Huy! Anh Thợ Mộc Tin Tin đây ạ. Anh Huy chỉ cần nói hoặc gõ yêu cầu, Tin Tin sẽ hỗ trợ dựng 3D, bóc tách CNC và mở các bảng chức năng cho anh ngay nhé!"
+          </div>
+        </div>
+       
+       <!-- Character Portrait Frame: ANH THỢ MỘC -->
+        <!-- Character Portrait Frame: DUAL MODE (ANH THỢ MỘC & ĐỐI TƯỢNG AOE) -->
+        <div class="portrait-frame" id="character-figure">
+           <!-- 1. CHẾ ĐỘ TRỢ LÝ AI: ANH THỢ MỘC -->
+           <div id="portrait-view-ai" class="portrait-view-pane active">
+              <svg viewBox="80 25 275 335" class="avatar-svg" id="avatar-svg-art">
+              <!-- 1. LỚP ĐẦU & CỔ DÀI (Head Layer - Cổ dài chui sâu dưới cổ áo polo) -->
+              <g id="avatar-head-group" class="wc3-head">
+                <image href="assets/mature_carpenter_head.png" xlink:href="assets/mature_carpenter_head.png" x="0" y="0" width="420" height="470" />
+                
+                <!-- Chớp mắt tự nhiên phía sau kính bảo hộ (#avatar-eyes) -->
+                <g id="avatar-eyes" class="wc3-eyes">
+                  <ellipse cx="188" cy="132" rx="7.5" ry="7.5" fill="#e8bcab"/>
+                  <path d="M181 131 Q188 136 195 131" stroke="#26150f" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                  
+                  <ellipse cx="242" cy="133" rx="7.5" ry="7.5" fill="#f5caa4"/>
+                  <path d="M235 132 Q242 137 249 132" stroke="#26150f" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                </g>
+
+                <!-- Khẩu hình miệng Lip-Sync thời gian thực (#avatar-mouth-group) -->
+                <g id="avatar-mouth-group">
+                  <!-- 1. Miệng cười thân thiện tự nhiên (Nghỉ / Idle) -->
+                  <g id="avatar-mouth-closed">
+                    <path d="M200 178 Q217 176 234 178 Q232 190 217 190 Q202 190 200 178 Z" fill="#42120e" stroke="#260805" stroke-width="1.4" stroke-linejoin="round"/>
+                    <path d="M203 178.5 Q217 177.5 231 178.5 Q229 183 217 183 Q205 183 203 178.5 Z" fill="#ffffff"/>
+                    <ellipse cx="217" cy="188" rx="7" ry="2.5" fill="#dc2626" opacity="0.85"/>
+                  </g>
+                  
+                  <!-- 2. Miệng hé mở vừa phải khi phát âm (Talking Half) -->
+                  <g id="avatar-mouth-half" style="display: none;">
+                    <path d="M203 176 Q217 174 231 176 Q228 187 217 187 Q206 187 203 176 Z" fill="#501511" stroke="#260805" stroke-width="1.4" stroke-linejoin="round"/>
+                    <path d="M205 176.5 Q217 175.5 229 176.5 Q227 181 217 181 Q207 181 205 176.5 Z" fill="#ffffff"/>
+                    <ellipse cx="217" cy="185.5" rx="5.5" ry="2.2" fill="#ef4444"/>
+                  </g>
+                  
+                  <!-- 3. Miệng mở rộng khi nói ngân/nhấn giọng (Talking Full) -->
+                  <g id="avatar-mouth-open" style="display: none;">
+                    <path id="avatar-mouth-cavity" d="M198 176 Q217 174 236 176 Q234 196 217 196 Q200 196 198 176 Z" fill="#42100d" stroke="#260805" stroke-width="1.6" stroke-linejoin="round"/>
+                    <path d="M202 176.5 Q217 175 232 176.5 Q230 183 217 183 Q204 183 202 176.5 Z" fill="#ffffff"/>
+                    <ellipse cx="217" cy="192" rx="8.5" ry="4" fill="#ef4444"/>
+                  </g>
+                </g>
+              </g>
+
+              <!-- 2. LỚP THÂN & CỔ ÁO POLO PHÍA TRƯỚC (Body Layer - Đè lên trên chân cổ, che phủ 100% đường ranh giới) -->
+              <g id="avatar-body-group" class="wc3-body">
+                <image href="assets/mature_carpenter_body.png" xlink:href="assets/mature_carpenter_body.png" x="0" y="0" width="420" height="470" />
+              </g>
+           </svg>
+           </div>
+
+           <!-- 2. CHẾ ĐỘ ĐỐI TƯỢNG ĐỘC LẬP (AOE UNIT INSPECTOR) -->
+           <div id="portrait-view-object" class="portrait-view-pane" style="display: none;">
+              <div class="object-portrait-box">
+                 <div class="obj-portrait-badge tier-1" id="obj-portrait-tier-badge">🏰 [TẦNG 1] KHỐI TỔNG</div>
+                 <div class="object-portrait-canvas-wrapper" id="obj-portrait-canvas-box">
+                    <canvas id="obj-portrait-3d-canvas" width="160" height="130"></canvas>
+                    <svg class="obj-portrait-svg" id="obj-portrait-svg" viewBox="0 0 160 160" style="display: none;">
+                       <!-- Rendered dynamically fallback -->
+                    </svg>
+                 </div>
+                 <div class="obj-portrait-health-bar">
+                    <div class="obj-hp-fill" id="obj-portrait-health-fill" style="width: 100%;"></div>
+                    <span class="obj-hp-text" id="obj-portrait-health-text">Chuẩn CNC 100%</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+        <div class="portrait-name" id="portrait-figure-name">Anh Thợ Mộc</div>
+     </div>
+
+     <!-- HUD CENTER: CONTENT / TABS -->
+     <div class="hud-center-panel">
+        <!-- Game Tabs -->
+        <div class="game-tabs">
+           <button class="game-tab-btn tab-btn active" id="tab-btn-chat" data-tab="tab-chat">Trợ Lý Tương Tác</button>
+           <button class="game-tab-btn tab-btn" id="tab-btn-scan" data-tab="tab-scan">Hồ Sơ Mặc Định</button>
+           <button class="game-tab-btn tab-btn" id="tab-btn-edit" data-tab="tab-edit">Tùy Chỉnh Kỹ Thuật</button>
+           <button class="game-tab-btn tab-btn" id="tab-btn-cam" data-tab="tab-cam">Bản Vẽ CNC</button>
+           <button class="game-tab-btn tab-btn" id="tab-btn-market" data-tab="tab-market">Thư Viện Mẫu</button>
+        </div>
+
+        <div class="game-tab-content">
+            <!-- 1. CHAT TAB (Moved to front) -->
+            <div class="tab-pane active" id="tab-chat" style="display:flex; flex-direction:column; height: 100%;">
+               <div class="chat-messages" id="chat-messages" style="flex:1; overflow-y:auto; font-size:12px; margin-bottom: 5px; padding-right: 5px;">
+                 <div class="chat-bubble bot">"Xin chào anh Huy! Mình là Anh Thợ Mộc (Tin Tin AI). Hãy nói cho mình biết anh muốn đóng đồ gỗ hay nội thất gì, hoặc gửi 1 tấm ảnh để mình bóc tách kết cấu nhé!"</div>
+               </div>
+                 <div style="display:flex; justify-content: flex-end; align-items: center; margin-bottom: 5px; gap: 6px; color: #94a3b8; font-size: 11px; flex-wrap: wrap;">
+                   <select id="select-voice-ai" style="background: rgba(0,0,0,0.6); color: #e2e8f0; border: 1px solid #4a5568; border-radius: 4px; padding: 2px 4px; font-size: 11px; max-width: 180px;">
+                     <option value="namminh" selected>🪵 Nam Minh (Giọng Anh Thợ Mộc - Trầm ấm)</option>
+                    <option value="hoaimy">👩‍🦰 Hoài My (Nữ Nam - Trẻ trung)</option>
+                                          <option value="google">🤖 Chị Google (Cổ điển)</option>
+                   </select>
+                   <select id="select-voice-speed" style="background: rgba(0,0,0,0.6); color: #e2e8f0; border: 1px solid #4a5568; border-radius: 4px; padding: 2px 4px; font-size: 11px; width: 55px;" title="Tốc độ nói">
+                     <option value="0.8">0.8x</option>
+                     <option value="1" selected>1x</option>
+                     <option value="1.2">1.2x</option>
+                     <option value="1.5">1.5x</option>
+                   </select>
+                   <span id="voice-status-icon" style="font-size: 14px;">🔊</span>
+                   <label class="switch" title="Bật/Tắt Giọng Nói">
+                     <input type="checkbox" id="toggle-voice-ai" checked>
+                     <span class="slider round"></span>
+                   </label>
+                 </div>
+                 <!-- Thanh kiểm duyệt & đếm ngược 4s tự động gửi giọng nói -->
+                 <div class="voice-review-bar" id="voice-review-bar" style="display:none;">
+                   <div class="review-status">
+                     <span class="review-pulse-dot"></span>
+                     <span id="voice-review-hint" class="review-hint">🎙️ Vừa nghe: Sửa trực tiếp hoặc chờ tự gửi</span>
+                   </div>
+                   <div class="review-actions">
+                     <span class="countdown-badge" id="voice-countdown-badge">4s</span>
+                     <button id="btn-voice-cancel" class="btn-review-cancel" title="Hủy bỏ, không gửi câu lệnh này">✕ Hủy</button>
+                   </div>
+                 </div>
+
+                 <div class="chat-input-row" style="display:flex; gap: 5px; margin-top: auto; align-items: center;">
+                 <button id="btn-voice-input" class="btn-mic" title="Nói trực tiếp để ra lệnh (Google Voice Search)">🎙️</button>
+                 <input type="text" id="chat-input" placeholder="Nói hoặc gõ yêu cầu cho Anh Thợ Mộc..." style="flex:1; padding: 6px; background: rgba(0,0,0,0.6); border: 1px solid #4a5568; color: white; border-radius: 4px;">
+                 <button id="btn-send-chat" class="btn-game-sys">Gửi</button>
+               </div>
+            </div>
+          <!-- 1. SCAN / DEFAULT PROFILE TAB (HỒ SƠ ĐỐI TƯỢNG 3 TẦNG CHUẨN AOE) -->
+          <div class="tab-pane" id="tab-scan" style="display:none;">
+            <div class="default-profile-container">
+              <!-- Cây Phân Cấp 3 Tầng (Hierarchical Breadcrumb) -->
+              <div class="aoe-breadcrumb-bar">
+                <span class="bc-title">CẤU TRÚC 3 TẦNG:</span>
+                <div class="bc-chain" id="profile-breadcrumb-chain">
+                  <button class="bc-btn active" id="btn-bc-tier1" data-tier="1" title="Khối Tổng: Cụm module hoàn chỉnh">🏰 [Tầng 1] Khối Tổng Tủ Bếp</button>
+                  <span class="bc-arrow">▶</span>
+                  <button class="bc-btn" id="btn-bc-tier2" data-tier="2" title="Khối Lẻ: Module khoang độc lập">📦 [Tầng 2] Module Chậu Rửa</button>
+                  <span class="bc-arrow">▶</span>
+                  <button class="bc-btn" id="btn-bc-tier3" data-tier="3" title="Chi Tiết: Tấm ván gỗ hoặc phụ kiện">🪵 [Tầng 3] Vách Hồi Trái 17.5mm</button>
+                </div>
+              </div>
+
+              <div class="default-profile-header">
+                <div class="profile-title-row">
+                  <span class="profile-badge tier-1" id="aoe-tier-header-badge">🏰 TẦNG 1: KHỐI TỔNG</span>
+                  <h4 id="detected-object-name" class="stats-title" style="margin:0; font-size:13px; color:#fbbf24;">Hệ Tủ Bếp Chữ L Hoàn Chỉnh</h4>
+                  <span class="preset-tag" id="current-preset-tag">ID: #SU-ENT-10492</span>
+                </div>
+                <div class="profile-actions-top">
+                  <button id="btn-sync-su-top" class="btn-hud-small" title="Đồng bộ ngay đối tượng đang chọn trong SketchUp" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); color: #fff; font-weight: bold; border-color: #fbbf24;">🔄 Đồng Bộ SU</button>
+                  <button id="btn-zoom-su" class="btn-hud-small" title="Zoom camera SketchUp đến đối tượng này">🔎 Zoom Đối Tượng SU</button>
+                  <button id="btn-switch-to-custom" class="btn-hud-small" title="Chuyển sang chế độ tùy chỉnh kỹ thuật">⚙️ Tùy Chỉnh Kỹ Thuật</button>
+                </div>
+              </div>
+
+              <!-- Lưới thông số kỹ thuật chi tiết nhất theo chuẩn 3 tầng -->
+              <div class="profile-specs-grid">
+                <div class="spec-card">
+                  <div class="spec-label">📦 Phân Cấp & Danh Mục</div>
+                  <div class="spec-value" id="detected-category">Khối Tổng (Assembly) - Tủ Bếp Chữ L</div>
+                </div>
+                <div class="spec-card highlight">
+                  <div class="spec-label">📐 Kích Thước 3 Chiều (X × Y × Z)</div>
+                  <div class="spec-value" id="default-specs-display">Dài: 2400mm | Rộng: 600mm | Cao: 2200mm</div>
+                </div>
+                <div class="spec-card">
+                  <div class="spec-label">🪵 Quy Cách Vật Liệu</div>
+                  <div class="spec-value" id="detected-material">MDF Lõi Xanh Chống Ẩm / Melamine</div>
+                </div>
+                <div class="spec-card">
+                  <div class="spec-label">📏 Độ Dày Ván (Thickness)</div>
+                  <div class="spec-value" id="detected-thickness">17.5mm (Chuẩn Cắt CNC)</div>
+                </div>
+                <div class="spec-card">
+                  <div class="spec-label">📊 Diện Tích & Thể Tích</div>
+                  <div class="spec-value" id="detected-area-vol">Diện tích: 4.85 m² | Thể tích: 0.085 m³</div>
+                </div>
+                <div class="spec-card">
+                  <div class="spec-label">✂️ Chu Vi Dán Nẹp Chỉ PVC</div>
+                  <div class="spec-value" id="detected-edge-banding">18.4 m dán nẹp viền</div>
+                </div>
+                <div class="spec-card" style="grid-column: span 2;">
+                  <div class="spec-label">🔩 Phụ Kiện Đi Kèm / Liên Kết</div>
+                  <div class="spec-value" id="detected-hardware" style="color: #67e8f9;">Bản lề Blum Clip Top 110°, Tay nắm Hafele 160mm, Ốc cam phi 15</div>
+                </div>
+                <div class="spec-card" style="grid-column: span 2;">
+                  <div class="spec-label">⚙️ Tình Trạng Sản Xuất CNC</div>
+                  <div class="spec-value" id="default-structure-display">✅ Đã kiểm tra liên kết & Bounding Box, sẵn sàng bóc tách CNC</div>
+                </div>
+              </div>
+
+              <div class="profile-bottom-bar">
+                <div class="profile-hint">💡 Kích chọn bất kỳ đối tượng nào trong <strong>SketchUp</strong> hoặc click vào mô hình <strong>3D Realtime</strong> để xem hồ sơ tức thời.</div>
+                <div style="display:flex; gap:6px;">
+                  <button id="btn-refresh-selection" class="btn-hud-small" title="Làm mới vùng chọn từ SketchUp">🔄 Làm Mới Vùng Chọn</button>
+                  <button id="btn-switch-to-cam" class="btn-hud-small" title="Bóc tách và cắt CNC đối tượng này">⚙️ Bóc Tách CNC</button>
+                  <button id="btn-build-from-default" class="btn-game-accent" title="Dựng 3D trực tiếp vào SketchUp theo phương án này">🔨 Dựng 3D Vào SU</button>
+                </div>
+              </div>
+            </div>
+            <!-- Hidden inputs needed by app.js logic -->
+            <input type="file" id="image-upload" accept="image/*" style="display: none;">
+          </div>
+
+          <!-- 2. EDIT / CUSTOM PARAMETERS TAB -->
+          <div class="tab-pane" id="tab-edit" style="display:none;">
+             <div class="custom-edit-header-row">
+               <div class="custom-title-hint">🛠️ <strong>TÙY CHỈNH KỸ THUẬT:</strong> Tùy chọn thông số kích thước & quy cách kết cấu</div>
+               <div class="custom-header-actions">
+                 <button id="btn-toggle-float-panel" class="btn-hud-small" title="Đưa bảng thông số nổi lên góc trên bên phải của không gian 3D (Vùng 1)">🗖 Nổi lên góc 3D</button>
+                 <button id="btn-reset-defaults-tab" class="btn-hud-small" title="Khôi phục về kích thước mặc định tiêu chuẩn">🔄 Khôi phục mặc định</button>
+                 <button id="btn-save-custom-as-default" class="btn-hud-small" title="Lưu các thông số đang chỉnh thành cấu hình Mặc Định mới">💾 Lưu làm Mặc Định</button>
+               </div>
+             </div>
+
+             <div class="game-form-grid">
+               <div class="form-group"><label>Dài (X) [mm]</label><input type="number" id="input-length" value="1200" step="10"></div>
+               <div class="form-group"><label>Rộng (Y) [mm]</label><input type="number" id="input-width" value="600" step="10"></div>
+               <div class="form-group"><label>Cao (Z) [mm]</label><input type="number" id="input-height" value="750" step="10"></div>
+               <div class="form-group">
+                 <label>Độ Dày Ván</label>
+                 <select id="select-thickness">
+                   <option value="17">17mm (MDF lõi xanh)</option>
+                   <option value="18" selected>18mm (Tiêu chuẩn)</option>
+                   <option value="25">25mm (Mặt bàn dày)</option>
+                   <option value="36">36mm (Ghép hộp 18)</option>
+                 </select>
+               </div>
+               
+               <div class="form-group"><label>Số Cánh Tủ</label><input type="number" id="input-doors" value="2" min="0" max="6"></div>
+               <div class="form-group"><label>Số Hộc Kéo</label><input type="number" id="input-drawers" value="0" min="0" max="6"></div>
+               
+               <div class="form-group">
+                 <label>Gỗ / Thân Tủ</label>
+                 <select id="select-material">
+                   <option value="oak">Gỗ Sồi (Oak)</option>
+                   <option value="walnut">Gỗ Óc Chó (Walnut)</option>
+                   <option value="white_melamine">Melamine Trắng</option>
+                 </select>
+               </div>
+               <div class="form-group">
+                 <label>Màu Cánh</label>
+                 <select id="select-door-material">
+                   <option value="same_as_body">Cùng màu thân</option>
+                   <option value="white_melamine">Trắng Sứ</option>
+                 </select>
+               </div>
+               <div class="form-group">
+                 <label>Kiểu Chân Đế</label>
+                 <select id="select-leg-style">
+                   <option value="metal_frame">Sắt Hộp Sơn Đen</option>
+                   <option value="wooden_legs">Chân Gỗ Tự Nhiên</option>
+                   <option value="panel_legs">Ván Hông Chạm Sàn</option>
+                 </select>
+               </div>
+               <div class="form-group">
+                 <label>Chỉ Dán Cạnh</label>
+                 <select id="select-edge-banding">
+                   <option value="pvc_1mm">Nẹp PVC 1.0mm</option>
+                   <option value="pvc_2mm">Nẹp PVC 2.0mm bo</option>
+                   <option value="acrylic">Không đường line</option>
+                 </select>
+               </div>
+               <div class="form-group">
+                 <label>Kiểu Tay Nắm</label>
+                 <select id="select-handle-style">
+                   <option value="bevel_45">Vát 45 độ âm</option>
+                   <option value="recessed">Tay nắm nhôm J/G</option>
+                   <option value="surface">Tay nắm nổi</option>
+                 </select>
+               </div>
+               <div class="form-group">
+                 <label>Ray & Bản Lề</label>
+                 <select id="select-hardware">
+                   <option value="soft_close">Giảm chấn tiêu chuẩn</option>
+                   <option value="push_open">Nhấn mở (Tip-on)</option>
+                 </select>
+               </div>
+             </div>
+             
+             <!-- Dynamic sliders -->
+             <div class="game-sliders" style="margin-top: 8px; display:flex; gap: 12px; align-items:center;">
+               <div style="flex:1;">
+                 <label style="width: auto; margin-right: 5px; font-size:10px;">Scale Dài (X): <span id="val-dc-lenx" style="color:#fbbf24; font-weight:bold;">1200</span>mm</label>
+                 <input type="range" id="slider-dc-lenx" min="400" max="3000" step="10" value="1200" style="width: 100%;">
+               </div>
+               <div style="flex:1;">
+                 <label style="width: auto; margin-right: 5px; font-size:10px;">Scale Cao (Z): <span id="val-dc-lenz" style="color:#fbbf24; font-weight:bold;">750</span>mm</label>
+                 <input type="range" id="slider-dc-lenz" min="400" max="3000" step="10" value="750" style="width: 100%;">
+               </div>
+             </div>
+          </div>
+
+          <!-- 3. CAM TAB -->
+          <div class="tab-pane" id="tab-cam" style="display:none;">
+            <div class="cam-stats">
+              <div>Số Tấm: <span id="cam-sheet-count" class="gold-text">0</span></div>
+              <div>Hao phí: <span id="cam-utilization" class="gold-text">0%</span></div>
+              <div>Cắt: <span id="cam-cut-length" class="gold-text">0m</span></div>
+              <div>T.Gian: <span id="cam-cut-time" class="gold-text">0p</span></div>
+            </div>
+            <div class="cam-visuals" style="height: 100px; overflow:hidden;">
+               <canvas id="nesting-canvas"></canvas>
+               <div id="nesting-legend" class="cam-legend"></div>
+            </div>
+            <textarea id="gcode-output-area" class="gcode-textarea" readonly placeholder="GCode..."></textarea>
+          </div>
+
+          <!-- 5. MARKET TAB -->
+          <div class="tab-pane" id="tab-market" style="display:none;">
+             <div class="market-list">
+               <div class="market-item"><span>Tủ Áo Cánh Kính</span><button class="btn-buy">Mua (50V)</button></div>
+               <div class="market-item"><span>Giường Tân Cổ Điển</span><button class="btn-buy">Mua (70V)</button></div>
+             </div>
+          </div>
+        </div>
+     </div>
+
+     <!-- HUD RIGHT: MINIMAP & COMMANDS (Action Grid) -->
+     <div class="hud-command-panel">
+        <!-- AI OPTION BAR: Khung đen tùy chọn ngữ cảnh (Ban đầu ở trạng thái chờ, tải ảnh xong mới hiện) -->
+        <div class="ai-option-bar" id="ai-option-bar">
+           <div class="ai-opt-bar-header">
+              <span class="ai-opt-title" id="ai-opt-bar-title">⚡ TÙY CHỌN NGỮ CẢNH</span>
+              <span class="ai-opt-counter" id="ai-preset-counter" style="display:none;">1/3</span>
+           </div>
+
+           <!-- Trạng thái chờ: Chưa bấm tải ảnh thì KHÔNG HIỆN 2 nút Mặc định & Tùy chỉnh -->
+           <div class="ai-opt-standby" id="ai-opt-standby">
+              <span class="standby-icon">💤</span>
+              <span class="standby-text">Chọn [TẢI ẢNH] để mở tùy chọn</span>
+           </div>
+
+           <!-- Trạng thái kích hoạt: Ẩn ban đầu, chỉ hiện SAU KHI chọn ô tải ảnh xong -->
+           <div class="ai-opt-slots" id="ai-opt-slots" style="display:none;">
+              <!-- Slot 1: Kích thước Mặc định -->
+              <button class="opt-slot active" id="btn-opt-default" title="Chọn phương án mặc định tiêu chuẩn nhân trắc học">
+                 <span class="slot-badge">1</span>
+                 <div class="slot-body">
+                    <span class="slot-label">Mặc Định</span>
+                    <span class="slot-val" id="opt-default-dim">1200x600</span>
+                 </div>
+              </button>
+
+              <!-- Slot 2: Tùy Chỉnh Kỹ Thuật -->
+              <button class="opt-slot" id="btn-opt-custom" title="Tùy chỉnh thông số kích thước & quy cách kết cấu tự do">
+                 <span class="slot-badge">2</span>
+                 <div class="slot-body">
+                    <span class="slot-label">Tùy Chỉnh</span>
+                    <span class="slot-val" id="opt-custom-tag">Tự do</span>
+                 </div>
+              </button>
+
+              <!-- Slot 3: Nút Next chuyển phương án tiếp theo -->
+              <button class="opt-slot opt-slot-next" id="btn-opt-next" title="Chuyển sang phương án kích thước AI tiếp theo">
+                 <span class="slot-next-icon">▶</span>
+                 <span class="slot-next-txt">Tiếp</span>
+              </button>
+           </div>
+           <img id="scanned-image-preview" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="Preview" style="display:none;" />
+        </div>
+
+        <!-- 3x2 Command Grid (WC3 style) -->
+        <div class="command-grid" id="command-grid">
+             <!-- Page 1 Skills -->
+             <button class="cmd-btn real-btn" id="btn-upload-trigger" title="Chọn Ảnh">
+               <div class="cmd-icon">📸</div>
+               <div class="cmd-txt">Tải Ảnh</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-build-3d" title="Dựng 3D Tĩnh">
+               <div class="cmd-icon">🔨</div>
+               <div class="cmd-txt">Xây 3D</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-generate-dc" title="Tạo DC (Có thể đổi kích thước)">
+               <div class="cmd-icon">🪄</div>
+               <div class="cmd-txt">Tạo DC</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-send-dc-to-su" title="Gửi DC vào SketchUp">
+               <div class="cmd-icon">📤</div>
+               <div class="cmd-txt">Xuất SU</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-save-gcode" title="Lưu File GCode CNC">
+               <div class="cmd-icon">💾</div>
+               <div class="cmd-txt">Lưu CNC</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-send-cnc" title="Gửi Xưởng CNC">
+               <div class="cmd-icon">🏭</div>
+               <div class="cmd-txt">Sản Xuất</div>
+             </button>
+             
+             <!-- Page 2 Skills (Moved from top floating buttons) -->
+             <button class="cmd-btn real-btn" id="btn-hud-save-load" title="Quản lý dự án">
+               <div class="cmd-icon">📁</div>
+               <div class="cmd-txt">Dự Án</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-hud-api" title="Cấu hình API">
+               <div class="cmd-icon">⚙️</div>
+               <div class="cmd-txt">API Key</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-hud-cam" title="Reset Camera">
+               <div class="cmd-icon">🔄</div>
+               <div class="cmd-txt">Reset Cam</div>
+             </button>
+             <button class="cmd-btn real-btn" id="btn-hud-grid" title="Bật/Tắt Lưới">
+               <div class="cmd-icon">🕸️</div>
+               <div class="cmd-txt">Lưới 3D</div>
+             </button>
+
+             <!-- Pagination Controls -->
+             <button class="cmd-btn sys-btn" id="btn-cmd-next" title="Trang Tiếp Theo" style="display:none;">
+               <div class="cmd-icon" style="color:var(--hud-highlight);">⏭️</div>
+               <div class="cmd-txt">Trang Sau</div>
+             </button>
+             <button class="cmd-btn sys-btn" id="btn-cmd-prev" title="Trang Trước" style="display:none;">
+               <div class="cmd-icon" style="color:var(--hud-highlight);">⏮️</div>
+               <div class="cmd-txt">Trở Lại</div>
+             </button>
+          </div>
+       </div>
+    </footer>
+  </div>
+
+
+  <!-- ============================================================================== -->
+  <!-- VIEW MODE 2: CHẾ ĐỘ KHAY ĐỨNG SKETCHUP (DOCK TRAY MODE - CHUẨN KHUNG ĐỎ 295PX) -->
+  <!-- ============================================================================== -->
+  <div id="view-dock-mode" class="view-mode-container dock-tray-app">
+
+    <!-- 1. TOP HEADER KHAY ĐỨNG (32PX) -->
+    <header class="dock-top-bar" id="dock-top-bar">
+      <div class="dock-logo-group">
+        <span class="dock-logo-icon">🏰</span>
+        <span class="dock-logo-title">Chill AI</span>
+        <span class="dock-logo-tag">TRAY</span>
+      </div>
+      <div class="dock-top-actions">
+        <!-- Nút chuyển sang giao diện Toàn Cảnh Studio (1180x780) -->
+        <button id="dock-btn-to-studio" class="dock-btn-studio" title="Phóng to ra Giao diện Toàn Cảnh Studio (1180x780)">
+          <span class="dock-btn-icon-pulse">🖥️</span>
+          <span>Studio</span>
+        </button>
+        <!-- Nút VIP PRO KTS Huy -->
+        <button id="dock-btn-open-account" class="dock-btn-vip" title="Quản lý Tài Khoản & Bản Quyền VIP PRO">
+          <span>👑 VIP</span>
+        </button>
+        <!-- Nút cấu hình API -->
+        <button id="dock-btn-open-api" class="dock-btn-tool" title="Cấu hình Google Gemini AI Key">
+          <span>⚙️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== HÀNG ĐỈNH HERO: Ô ĐỎ 60% + Ô XANH DƯƠNG 40% (CHUẨN ẢNH ANH HUY) ==================== -->
+    <div class="dock-hero-top-row" id="dock-hero-top-row">
+
+      <!-- 1. Ô ĐỎ (CHIẾM 60% CHIỀU NGANG): AVATAR VUÔNG TO & 3D OBJECT INSPECTOR -->
+      <div class="dock-avatar-preview-box" id="dock-avatar-preview-box" title="Click để mở Hồ Sơ Mặc Định (Thông Số Kỹ Thuật)">
+        
+        <!-- TRẠNG THÁI 1: AVATAR TIN TIN AI (CHỚP MẮT & LIP-SYNC) -->
+        <div class="dock-hero-avatar-view" id="dock-hero-avatar-view">
+          <div class="dock-avatar-viewport" id="dock-character-figure">
+            <svg viewBox="80 25 275 335" class="dock-avatar-svg" id="dock-avatar-svg-art">
+              <!-- Đầu & Cổ -->
+              <g id="dock-avatar-head-group" class="wc3-head">
+                <image href="assets/mature_carpenter_head.png" xlink:href="assets/mature_carpenter_head.png" x="0" y="0" width="420" height="470" />
+                <!-- Mắt chớp Lip-Sync -->
+                <g id="dock-avatar-eyes" class="wc3-eyes">
+                  <ellipse cx="188" cy="132" rx="7.5" ry="7.5" fill="#e8bcab"/>
+                  <path d="M181 131 Q188 136 195 131" stroke="#26150f" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                  <ellipse cx="242" cy="133" rx="7.5" ry="7.5" fill="#f5caa4"/>
+                  <path d="M235 132 Q242 137 249 132" stroke="#26150f" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                </g>
+                <!-- Khẩu hình miệng Lip-Sync -->
+                <g id="dock-avatar-mouth-group">
+                  <g id="dock-avatar-mouth-closed">
+                    <path d="M200 178 Q217 176 234 178 Q232 190 217 190 Q202 190 200 178 Z" fill="#42120e" stroke="#260805" stroke-width="1.4" stroke-linejoin="round"/>
+                    <path d="M203 178.5 Q217 177.5 231 178.5 Q229 183 217 183 Q205 183 203 178.5 Z" fill="#ffffff"/>
+                    <ellipse cx="217" cy="188" rx="7" ry="2.5" fill="#dc2626" opacity="0.85"/>
+                  </g>
+                  <g id="dock-avatar-mouth-half" style="display: none;">
+                    <path d="M203 176 Q217 174 231 176 Q228 187 217 187 Q206 187 203 176 Z" fill="#501511" stroke="#260805" stroke-width="1.4" stroke-linejoin="round"/>
+                    <path d="M205 176.5 Q217 175.5 229 176.5 Q227 181 217 181 Q207 181 205 176.5 Z" fill="#ffffff"/>
+                    <ellipse cx="217" cy="185.5" rx="5.5" ry="2.2" fill="#ef4444"/>
+                  </g>
+                  <g id="dock-avatar-mouth-open" style="display: none;">
+                    <path d="M198 176 Q217 174 236 176 Q234 196 217 196 Q200 196 198 176 Z" fill="#42100d" stroke="#260805" stroke-width="1.6" stroke-linejoin="round"/>
+                    <path d="M202 176.5 Q217 175 232 176.5 Q230 183 217 183 Q204 183 202 176.5 Z" fill="#ffffff"/>
+                    <ellipse cx="217" cy="192" rx="8.5" ry="4" fill="#ef4444"/>
+                  </g>
+                </g>
+              </g>
+              <!-- Thân áo -->
+              <g id="dock-avatar-body-group" class="wc3-body">
+                <image href="assets/mature_carpenter_body.png" xlink:href="assets/mature_carpenter_body.png" x="0" y="0" width="420" height="470" />
+              </g>
+            </svg>
+          </div>
+          <span class="dock-avatar-status-dot" title="Tin Tin AI sẵn sàng">●</span>
+          <div class="dock-hero-avatar-title" id="dock-hero-avatar-title">🤖 Tin Tin (Mở Hồ Sơ ➔)</div>
+        </div>
+
+        <!-- TRẠNG THÁI 2: 3D OBJECT INSPECTOR (ĐỒNG BỘ 100% BẢN FULL MÀN HÌNH - ẢNH 1) -->
+        <div class="dock-hero-object-view" id="dock-hero-object-view" style="display: none;">
+          <div class="object-portrait-box" id="dock-object-portrait-box">
+            <div class="obj-portrait-badge tier-1" id="dock-hero-obj-badge">🏰 [TẦNG 1] KHỐI TỔNG</div>
+            <div class="object-portrait-canvas-wrapper" id="dock-object-canvas-wrapper">
+              <canvas id="dock-obj-portrait-3d-canvas" width="160" height="85"></canvas>
+              <svg class="obj-portrait-svg" id="dock-hero-obj-svg" viewBox="0 0 160 160" style="display: none;"></svg>
+            </div>
+            <div class="obj-portrait-health-bar" id="dock-hero-health-bar">
+              <div class="obj-hp-fill" id="dock-hero-obj-health-fill" style="width: 100%;"></div>
+              <span class="obj-hp-text" id="dock-hero-obj-health-text">Chuẩn CNC 100%</span>
+            </div>
+          </div>
+          <div class="portrait-name" id="dock-hero-obj-name">HỆ TỦ BẾP ĐA KHỐI ACRYLIC</div>
+        </div>
+
+      </div>
+
+      <!-- 2. Ô XANH DƯƠNG (CHIẾM 40% CHIỀU NGANG): GỢI Ý TÁC VỤ NHANH XẾP DỌC -->
+      <div class="dock-blue-prompts-box" id="dock-blue-prompts-box">
+        <div class="dock-blue-prompts-title">💡 GỢI Ý TÁC VỤ:</div>
+        <div class="dock-blue-prompts-list">
+          <button class="dock-prompt-chip" data-prompt="Dựng tủ bếp chữ L hiện đại acrylic kích thước chuẩn" title="Dựng tủ bếp chữ L hiện đại">💡 Tủ bếp chữ L</button>
+          <button class="dock-prompt-chip" data-prompt="Dựng bàn làm việc chân sắt hộp 1200x600x750mm" title="Dựng bàn làm việc chân sắt">💡 Bàn chân sắt</button>
+          <button class="dock-prompt-chip" data-prompt="Kiểm tra kết cấu liên kết ván và Bounding Box CNC" title="Kiểm tra liên kết chuẩn CNC">💡 K.tra liên kết</button>
+          <button class="dock-prompt-chip" data-prompt="Bóc tách số tấm ván và ước tính hao phí gia công" title="Tính số lượng tấm ván và hao phí">💡 Tính số ván</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 2. KHUNG THÂN CHÍNH: 2 CỘT (CỘT TRÁI SIDEBAR + CỘT PHẢI WORKSPACE) -->
+    <div class="dock-body-container" id="dock-body-container">
+
+      <!-- ==================== CỘT TRÁI: SIDEBAR NAVIGATION (RỘNG ~58PX) ==================== -->
+      <aside class="dock-nav-sidebar" id="dock-nav-sidebar">
+        <!-- CỘT CÁC NÚT MỤC NHỎ CHIA THÀNH CỘT / Ô CHỨC NĂNG -->
+        <nav class="dock-nav-btn-list" id="dock-nav-btn-list">
+          <!-- Nút 1: Chat AI -->
+          <button class="dock-sidebar-nav-btn active" id="dock-nav-chat" data-tab="dock-pane-chat" title="Trợ Lý Trò Chuyện & Nhận Diện Giọng Nói Tin Tin AI">
+            <span class="dock-nav-icon">💬</span>
+            <span class="dock-nav-label">Chat AI</span>
+          </button>
+
+          <!-- Nút 2: Cấu Trúc 3 Tầng -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-hierarchy" data-tab="dock-pane-hierarchy" title="Cấu Trúc 3 Tầng Outliner: Khối Tổng ➔ Khối Lẻ ➔ Tấm Ván">
+            <span class="dock-nav-icon">📁</span>
+            <span class="dock-nav-label">3 Tầng</span>
+          </button>
+
+          <!-- Nút 3: Thông Số Kỹ Thuật (Hồ Sơ Mặc Định) -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-specs" data-tab="dock-pane-specs" title="Thông Số Kỹ Thuật: Dài x Rộng x Cao & Quy Cách Ván">
+            <span class="dock-nav-icon">📐</span>
+            <span class="dock-nav-label">Hồ Sơ</span>
+          </button>
+
+          <!-- Nút 4: Dynamic Component -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-dc" data-tab="dock-pane-dc" title="Tùy Chỉnh Dynamic Component: Cánh, Hộc Kéo, Chân, Tay Nắm">
+            <span class="dock-nav-icon">🛠️</span>
+            <span class="dock-nav-label">DC</span>
+          </button>
+
+          <!-- Nút 5: CNC & G-Code -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-cnc" data-tab="dock-pane-cnc" title="Bóc Tách Nesting & Xuất File G-Code Cắt Máy CNC">
+            <span class="dock-nav-icon">⚙️</span>
+            <span class="dock-nav-label">CNC</span>
+          </button>
+
+          <!-- Nút 6: Quét Ảnh Mẫu AI -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-vision" data-tab="dock-pane-vision" title="Tải & Quét Ảnh Mẫu Thiết Kế để AI Bóc Tách Tự Động">
+            <span class="dock-nav-icon">📸</span>
+            <span class="dock-nav-label">Ảnh Mẫu</span>
+          </button>
+
+          <!-- Nút 7: 3D Mini Inspector -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-3d" data-tab="dock-pane-3d" title="Mô Phỏng 3D Xoay 360 Đa Chiều (Chuột trái kéo dọc nhìn đỉnh/đáy)">
+            <span class="dock-nav-icon">👁️</span>
+            <span class="dock-nav-label">3D Mini</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- ==================== CỘT PHẢI: MÀN HÌNH CHÍNH WORKSPACE (CHIẾM TRỌN BÊN PHẢI) ==================== -->
+      <main class="dock-main-workspace" id="dock-main-workspace">
+
+        <!-- WORKSPACE HEADER: TIÊU ĐỀ PHÂN HỆ ĐANG MỞ -->
+        <header class="dock-workspace-header" id="dock-workspace-header">
+          <div class="dock-ws-title-group">
+            <span class="dock-ws-icon" id="dock-ws-icon">💬</span>
+            <span class="dock-ws-title" id="dock-ws-title">Trợ Lý Tin Tin AI</span>
+          </div>
+          <span class="dock-ws-badge" id="dock-ws-badge">TẦNG 1: KHỐI TỔNG</span>
+        </header>
+
+        <!-- VÙNG NỘI DUNG CUỘN ĐỘC LẬP (MASTER DETAIL PANES) -->
+        <div class="dock-workspace-content" id="dock-workspace-content">
+
+          <!-- ==================== PANE 1: TRỢ LÝ CHAT TIN TIN AI ==================== -->
+          <section class="dock-workspace-pane active" id="dock-pane-chat">
+            <!-- Khung cuộn nội dung tin nhắn Tin Tin -->
+            <div class="dock-chat-stream-container" id="dock-chat-stream-container">
+              <div class="dock-ai-speech-bubble" id="dock-avatar-speech-text">
+                "Chào anh Huy! Kích chọn bất kỳ đối tượng nào trong SketchUp hoặc gõ lệnh, Tin Tin sẽ bóc tách cấu trúc 3 tầng và chuẩn bị xuất CNC ngay nhé! ✨"
+              </div>
+            </div>
+
+            <!-- Khung nhập lệnh trò chuyện & Mic (GHIM SÁT ĐÁY THEO MŨI TÊN XANH LÁ) -->
+            <div class="dock-ai-chat-input-bar">
+              <button id="dock-btn-voice-input" class="dock-btn-mic" title="Nói trực tiếp để ra lệnh giọng nói">🎙️</button>
+              <input type="text" id="dock-chat-input" placeholder="Hỏi Tin Tin hoặc ra lệnh dựng 3D..." class="dock-input-text">
+              <button id="dock-btn-send-chat" class="dock-btn-send">Gửi</button>
+            </div>
+          </section>
+
+          <!-- ==================== PANE 2: CẤU TRÚC 3 TẦNG OUTLINER ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-hierarchy" style="display:none;">
+            <div class="dock-outliner-tree" id="dock-outliner-tree">
+              <!-- Tầng 1: Khối Tổng (Cha) -->
+              <div class="dock-tree-node tier-1 active" id="dock-tree-node-1" data-tier="1">
+                <div class="dock-tree-row">
+                  <span class="dock-tree-arrow">▼</span>
+                  <span class="dock-tree-icon">🏰</span>
+                  <span class="dock-tree-label" id="dock-tree-title-1">Hệ Tủ Bếp Đa Khối Acrylic Chữ L</span>
+                  <span class="dock-tree-pill">Tầng 1</span>
+                </div>
+
+                <!-- Nhóm Con Tầng 2 -->
+                <div class="dock-tree-group-tier2" id="dock-tree-group-tier2">
+                  <!-- Tầng 2: Khối Lẻ (Con) -->
+                  <div class="dock-tree-node tier-2" id="dock-tree-node-2" data-tier="2">
+                    <div class="dock-tree-row">
+                      <span class="dock-tree-indent">└─</span>
+                      <span class="dock-tree-arrow">▼</span>
+                      <span class="dock-tree-icon">📦</span>
+                      <span class="dock-tree-label" id="dock-tree-title-2">Module Khoang Chậu Rửa (W800)</span>
+                      <span class="dock-tree-pill">Tầng 2</span>
+                    </div>
+
+                    <!-- Nhóm Cháu Tầng 3 -->
+                    <div class="dock-tree-group-tier3" id="dock-tree-group-tier3">
+                      <!-- Tầng 3: Tấm Ván Chi Tiết (Cháu) -->
+                      <div class="dock-tree-node tier-3 active-sub" id="dock-tree-node-3" data-tier="3">
+                        <div class="dock-tree-row">
+                          <span class="dock-tree-indent">&nbsp;&nbsp;├─</span>
+                          <span class="dock-tree-icon">🪵</span>
+                          <span class="dock-tree-label" id="dock-tree-title-3">Vách Hồi Trái (17.5mm)</span>
+                          <span class="dock-tree-pill">Tầng 3</span>
+                        </div>
+                      </div>
+                      <!-- Tầng 3: Phụ Kiện (Chắt) -->
+                      <div class="dock-tree-node tier-3" id="dock-tree-node-3-hw" data-tier="3">
+                        <div class="dock-tree-row">
+                          <span class="dock-tree-indent">&nbsp;&nbsp;└─</span>
+                          <span class="dock-tree-icon">🔩</span>
+                          <span class="dock-tree-label" id="dock-tree-title-3-hw">Bản Lề Blum Giảm Chấn (2 bộ)</span>
+                          <span class="dock-tree-pill">Phụ Kiện</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Node Khối Lẻ Thứ 2 -->
+                  <div class="dock-tree-node tier-2" id="dock-tree-node-2-b" data-tier="2">
+                    <div class="dock-tree-row">
+                      <span class="dock-tree-indent">└─</span>
+                      <span class="dock-tree-arrow">▶</span>
+                      <span class="dock-tree-icon">📦</span>
+                      <span class="dock-tree-label">Module Hộc Kéo Đồ Khô (W600)</span>
+                      <span class="dock-tree-pill">Tầng 2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thanh hành động nhanh của Ngăn Cấu Trúc -->
+            <div class="dock-tree-actions">
+              <button id="dock-btn-sync-su-tree" class="dock-tree-action-btn highlight" title="Đồng bộ ngay vùng chọn trong SketchUp">
+                🔄 Đồng Bộ SU
+              </button>
+              <button id="dock-btn-zoom-su" class="dock-tree-action-btn" title="Zoom camera SketchUp đến đối tượng này">
+                🔎 Zoom Đối Tượng
+              </button>
+            </div>
+          </section>
+
+          <!-- ==================== PANE 3: THÔNG SỐ KỸ THUẬT ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-specs" style="display:none;">
+            <!-- Tên đối tượng & phân loại -->
+            <div class="dock-spec-header-box">
+              <div class="dock-spec-name" id="dock-detected-object-name">Hệ Tủ Bếp Chữ L Hoàn Chỉnh</div>
+              <div class="dock-spec-id" id="dock-detected-id">ID: #ENT-10490</div>
+            </div>
+
+            <!-- Form sửa nhanh 3 chiều Dài - Rộng - Cao -->
+            <div class="dock-quick-dim-box">
+              <div class="dock-dim-inputs-grid">
+                <div class="dock-dim-cell">
+                  <label>Dài (X) mm</label>
+                  <input type="number" id="dock-input-length" value="1200" step="10">
+                </div>
+                <div class="dock-dim-cell">
+                  <label>Rộng (Y) mm</label>
+                  <input type="number" id="dock-input-width" value="600" step="10">
+                </div>
+                <div class="dock-dim-cell">
+                  <label>Cao (Z) mm</label>
+                  <input type="number" id="dock-input-height" value="750" step="10">
+                </div>
+              </div>
+              <div class="dock-dim-summary-line" id="dock-specs-summary-display">
+                Dài: 1200mm | Rộng: 600mm | Cao: 750mm
+              </div>
+            </div>
+
+            <!-- Lưới thông số vật tư & kết cấu sản xuất -->
+            <div class="dock-spec-grid">
+              <div class="dock-spec-item">
+                <span class="dock-item-lbl">🪵 Vật Liệu:</span>
+                <select id="dock-select-material" class="dock-select-field">
+                  <option value="white_melamine" selected>MDF Melamine Trắng An Cường</option>
+                  <option value="oak">Gỗ Sồi Tự Nhiên (Oak)</option>
+                  <option value="walnut">Gỗ Óc Chó (Walnut)</option>
+                </select>
+              </div>
+              <div class="dock-spec-item">
+                <span class="dock-item-lbl">📏 Độ Dày:</span>
+                <select id="dock-select-thickness" class="dock-select-field">
+                  <option value="17">17.0mm (Ván nhập khẩu)</option>
+                  <option value="17.5" selected>17.5mm (MDF An Cường)</option>
+                  <option value="18">18.0mm (Tiêu chuẩn)</option>
+                  <option value="25">25.0mm (Mặt bàn dày)</option>
+                </select>
+              </div>
+              <div class="dock-spec-item">
+                <span class="dock-item-lbl">✂️ Nẹp PVC:</span>
+                <select id="dock-select-edge-banding" class="dock-select-field">
+                  <option value="pvc_1mm" selected>Nẹp PVC 1.0mm Đồng Màu</option>
+                  <option value="pvc_2mm">Nẹp PVC 2.0mm Bo Tròn</option>
+                  <option value="acrylic">Dán Cạnh Không Line (Zero-Joint)</option>
+                </select>
+              </div>
+              <div class="dock-spec-item full-width">
+                <div class="dock-cnc-verified-pill" id="dock-structure-display">
+                  ✅ Đã kiểm tra liên kết & Bounding Box, Chuẩn CNC 100%
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== PANE 4: CỖ MÁY KẾT CẤU & DYNAMIC DC ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-dc" style="display:none;">
+            <!-- Chọn Bộ Gen Kết Cấu Xưởng (Preset Engine) -->
+            <div class="dock-preset-selector-box">
+              <label class="dock-preset-lbl">🧠 BỘ GEN KẾT CẤU XƯỞNG:</label>
+              <select id="dock-select-preset" class="dock-select-field highlight-preset">
+                <option value="an_cuong_17_5" selected>⭐ Chuẩn An Cường 17.5mm (Hafele/Blum)</option>
+                <option value="standard_18">📦 Ván Tiêu Chuẩn 18.0mm (DTC/Ivan)</option>
+                <option value="budget_mfc_15">🏷️ Ván MFC Tiết Kiệm 15.0mm (Giá rẻ)</option>
+                <option value="custom_user">🛠️ Cấu Hình Riêng Xưởng Tôi</option>
+              </select>
+              <div class="dock-preset-desc" id="dock-preset-desc-text">
+                Chuẩn mộc xưởng An Cường: Hậu soi rãnh 9x9mm, khe cánh 2mm, ray bi 12.7mm.
+              </div>
+            </div>
+
+            <!-- Bảng Quy Chuẩn Kỹ Thuật Chi Tiết -->
+            <div class="dock-structural-spec-box">
+              <div class="dock-cfg-title">📐 THÔNG SỐ KẾT CẤU MỘC:</div>
+              <div class="dock-cfg-grid">
+                <div class="dock-cfg-item">
+                  <label>Ván Thùng (mm):</label>
+                  <input type="number" id="dock-cfg-board-thick" value="17.5" step="0.5">
+                </div>
+                <div class="dock-cfg-item">
+                  <label>Ván Hậu (mm):</label>
+                  <input type="number" id="dock-cfg-back-thick" value="9.0" step="0.5">
+                </div>
+                <div class="dock-cfg-item">
+                  <label>Lùi Rãnh Hậu:</label>
+                  <input type="number" id="dock-cfg-back-offset" value="18.0" step="1">
+                </div>
+                <div class="dock-cfg-item">
+                  <label>Khe Hở Cánh:</label>
+                  <input type="number" id="dock-cfg-door-gap" value="2.0" step="0.5">
+                </div>
+                <div class="dock-cfg-item">
+                  <label>Khe Hở Ray (Hông):</label>
+                  <input type="number" id="dock-cfg-drawer-gap" value="12.7" step="0.1">
+                </div>
+                <div class="dock-cfg-item">
+                  <label>Len Chân (mm):</label>
+                  <input type="number" id="dock-cfg-toe-h" value="60.0" step="5">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tùy Chọn Cánh & Ngăn Kéo -->
+            <div class="dock-dc-grid" style="margin-top: 6px;">
+              <div class="dock-dc-field">
+                <label>🚪 Số Cánh Mở</label>
+                <input type="number" id="dock-input-doors" value="3" min="1" max="6">
+              </div>
+              <div class="dock-dc-field">
+                <label>🗄️ Số Hộc Kéo</label>
+                <input type="number" id="dock-input-drawers" value="2" min="0" max="6">
+              </div>
+              <div class="dock-dc-field full">
+                <label>🪵 Vật Liệu Thùng & Cánh</label>
+                <select id="dock-select-wardrobe-mat" class="dock-select-field">
+                  <option value="white_melamine" selected>MDF Phủ Melamine Trắng Chống Ẩm</option>
+                  <option value="oak">Gỗ Sồi Tự Nhiên Vân Sáng (Oak)</option>
+                  <option value="walnut">Gỗ Óc Chó Sang Trọng (Walnut)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Cụm Nút Hành Động Chặng 3 -->
+            <div class="dock-structural-action-box">
+              <button id="dock-btn-build-structural" class="dock-btn-primary-build pulse-btn">
+                🔨 DỰNG 3D KẾT CẤU & DYNAMIC DC
+              </button>
+              <div class="dock-structural-sub-btns">
+                <button id="dock-btn-save-custom-preset" class="dock-btn-sub" title="Lưu thông số hiện tại làm Gu Xưởng của Tôi">
+                  💾 Lưu Gu Xưởng
+                </button>
+                <button id="dock-btn-open-contribute" class="dock-btn-sub highlight-gold" title="Góp ý mẹo mộc thi công vào kho tri thức Chill AI">
+                  💡 Góp Tri Thức Mộc
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== PANE 5: BÓC TÁCH CNC & G-CODE ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-cnc" style="display:none;">
+            <div class="dock-cnc-stat-row">
+              <div class="dock-cnc-pill">Số Tấm: <b id="dock-cam-sheet-count">4 tấm</b></div>
+              <div class="dock-cnc-pill">Hao Phí: <b id="dock-cam-utilization">8.5%</b></div>
+              <div class="dock-cnc-pill">Đường Cắt: <b id="dock-cam-cut-length">42.5m</b></div>
+            </div>
+            <div class="dock-nesting-mini-box">
+              <canvas id="dock-nesting-canvas" height="95" style="width:100%; height:95px; background:#000; border-radius:4px;"></canvas>
+            </div>
+            <div class="dock-cnc-btn-row">
+              <button id="dock-btn-switch-to-cam" class="dock-tree-action-btn highlight" style="flex:1;">⚙️ Bóc Tách Nesting</button>
+              <button id="dock-btn-save-gcode" class="dock-tree-action-btn" style="flex:1;">💾 Lưu G-Code (USB)</button>
+            </div>
+          </section>
+
+          <!-- ==================== PANE 6: QUÉT ẢNH MẪU AI ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-vision" style="display:none;">
+            <div class="dock-vision-upload-box" id="dock-vision-dropzone">
+              <div class="dock-vision-icon">📸</div>
+              <div class="dock-vision-text">Tải ảnh thiết kế mẫu</div>
+              <div class="dock-vision-subtext">(Click hoặc Kéo thả ảnh vào đây)</div>
+              <button id="dock-btn-choose-image" class="dock-tree-action-btn highlight" style="margin-top:6px; padding:3px 12px;">📂 Chọn File Ảnh</button>
+            </div>
+            <div class="dock-vision-preview-row" id="dock-vision-preview-wrap" style="display:none;">
+              <img id="dock-vision-img-preview" src="" alt="Ảnh thiết kế mẫu" class="dock-vision-preview-img">
+              <div class="dock-vision-ai-status">
+                <span style="color:#22c55e; font-weight:bold;">✓ AI đã nhận diện</span>
+                <span style="font-size:9.5px; color:#cbd5e1;" id="dock-vision-ai-desc">Bàn làm việc 1200x600x750mm</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== PANE 7: 3D MINI INSPECTOR ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-3d" style="display:none;">
+            <div class="dock-3d-canvas-wrap">
+              <canvas id="dock-pane-3d-canvas" style="width:100%; height:140px; border-radius:4px; background:#ccccc9; display:block;"></canvas>
+            </div>
+            <div class="dock-3d-controls-row">
+              <button id="dock-btn-reset-3d-cam" class="dock-tree-action-btn" style="flex:1;">🔄 Reset Góc Nhìn</button>
+              <button id="dock-btn-toggle-3d-wire" class="dock-tree-action-btn" style="flex:1;">🕸️ Khung Dây</button>
+            </div>
+            <div style="font-size:9px; color:#94a3b8; text-align:center; margin-top:3px;">
+              💡 Giữ chuột trái kéo ngang để xoay 360°, kéo dọc để nhìn từ trên đỉnh / phía đáy
+            </div>
+          </section>
+
+        </div>
+
+        <!-- WORKSPACE FOOTER: NÚT HÀNH ĐỘNG GHIM ĐÁY MÀN HÌNH CHÍNH -->
+        <footer class="dock-workspace-footer" id="dock-workspace-footer">
+          <!-- NÚT CHÍNH TO NHẤT: XÂY 3D VÀO SKETCHUP -->
+          <button class="dock-btn-primary-build" id="dock-btn-build-3d" title="Dựng mô hình 3D trực tiếp vào không gian làm việc SketchUp">
+            <span class="dock-btn-build-icon">🔨</span>
+            <span class="dock-btn-build-txt">XÂY 3D VÀO SKETCHUP</span>
+          </button>
+
+          <!-- HÀNG NÚT PHỤ 2 BÊN DƯỚI -->
+          <div class="dock-footer-btn-row">
+            <button class="dock-btn-secondary-action" id="dock-btn-generate-dc" title="Tạo Dynamic Component có thể đổi kích thước">
+              🪄 Tạo Dynamic DC
+            </button>
+            <button class="dock-btn-secondary-action" id="dock-btn-refresh-selection" title="Làm mới vùng chọn từ SketchUp">
+              🔄 Đồng Bộ SU
+            </button>
+          </div>
+        </footer>
+
+      </main>
+
+    </div>
+  </div>
+
+
+
+
+<!-- MODALS -->
+  <div class="game-modal" id="modal-projects" style="display: none;">
+    <div class="modal-box">
+      <h3>📁 Lưu Trữ (Save/Load)</h3>
+      <ul id="project-list-items"></ul>
+
+        <div class="modal-actions">
+        <button id="btn-new-project" class="btn-game-tool">+ Tạo Mới</button>
+        <button id="btn-close-projects" class="btn-game-tool">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-modal" id="modal-api-key" style="display: none;">
+    <div class="modal-box">
+      <h3>⚙️ Cấu Hình API (Nhà Chính)</h3>
+
+        <div style="text-align: center; margin-bottom: 15px;">
+           <button onclick="window.open('https://aistudio.google.com/app/apikey', '_blank')" style="background: transparent; border: 1px solid #fbbf24; color: #fbbf24; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: bold; transition: 0.2s;" onmouseover="this.style.background='#fbbf24'; this.style.color='#0f172a'" onmouseout="this.style.background='transparent'; this.style.color='#fbbf24'">👉 Bấm vào đây để lấy API Key Miễn Phí</button>
+           <div style="font-size: 11px; color: #64748b; margin-top: 5px;">(Yêu cầu đăng nhập tài khoản Google)</div>
+        </div>
+
+      <input type="text" id="input-gemini-key" placeholder="Dán mã API Key (AQ.Ab... hoặc AIzaSy...) vào đây" style="width: 100%; text-align: center; margin-bottom: 6px; font-family: monospace;">
+      <div style="font-size: 11px; color: #fbbf24; text-align: center; margin-bottom: 15px;">✨ Đã hỗ trợ tất cả định dạng mã API Key từ Google AI Studio</div>
+      
+        <div style="margin-bottom: 15px;">
+          <label style="display:block; margin-bottom: 5px; font-size:12px; color:#94a3b8; text-align:center;">Chọn Mô Hình Trí Tuệ Nhân Tạo:</label>
+          <select id="input-gemini-model" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.6); color: #fbbf24; border: 1px solid #4a5568; border-radius: 4px; text-align: center; font-family: inherit;">
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash (Phản hồi <1s, Ổn định & Khuyên dùng)</option>
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash (Mô hình mới nhất)</option>
+            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite (Siêu nhẹ)</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+        <button id="btn-save-gemini-key" class="btn-game-tool">Lưu Khóa</button>
+        <button id="btn-clear-gemini-key" class="btn-game-tool">Xóa Khóa</button>
+        <button id="btn-close-api-modal" class="btn-game-tool">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ACCOUNT & LICENSING MODAL (ABF STYLE) ==================== -->
+  <div class="game-modal" id="modal-account" style="display: none;">
+    <div class="modal-box modal-account-box">
+      <div class="account-modal-header">
+        <h3>👑 Tài Khoản & Phân Quyền Bản Quyền</h3>
+        <button id="btn-close-account-modal" class="btn-close-account" title="Đóng">✕</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="account-tabs">
+        <button class="account-tab-btn active" data-tab="tab-acc-license">💎 Gói Cước</button>
+        <button class="account-tab-btn" data-tab="tab-acc-profile">👤 Hồ Sơ</button>
+        <button class="account-tab-btn" data-tab="tab-acc-login">🔑 Đăng Nhập</button>
+        <button class="account-tab-btn" data-tab="tab-acc-register">✨ Đăng Ký</button>
+      </div>
+
+      <!-- Tab 1: License & Pricing (Gói Cước & Bản Quyền) -->
+      <div class="account-tab-content" id="tab-acc-license">
+        <div style="background: rgba(14, 116, 144, 0.2); border: 1px solid #06b6d4; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 20px;">🎉</span>
+          <div>
+            <div style="color: #67e8f9; font-weight: bold; font-size: 13px;">Giai Đoạn Thử Nghiệm Toàn Phần</div>
+            <div style="color: #cbd5e1; font-size: 11px;">Mọi tính năng nâng cao đều được <strong style="color: #a7f3d0;">MỞ KHÓA 100% MIỄN PHÍ</strong> cho KTS & Xưởng sản xuất!</div>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: #fbbf24; font-weight: bold; margin-bottom: 6px;">BẢNG PHÂN QUYỀN TÍNH NĂNG (DỰ KIẾN):</div>
+        <table class="acc-plans-table">
+          <thead>
+            <tr>
+              <th>Tính năng hệ thống</th>
+              <th style="text-align:center;">Gói FREE</th>
+              <th style="text-align:center;">Gói VIP PRO</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Dựng hình 3D tủ bếp, bàn ghế cơ bản</td>
+              <td class="center tag-free">✓ Có sẵn</td>
+              <td class="center tag-pro">✓ Có sẵn</td>
+            </tr>
+            <tr>
+              <td>Trợ lý ảo Avatar Anh Thợ Mộc (Tin Tin AI)</td>
+              <td class="center tag-free">✓ Trải nghiệm</td>
+              <td class="center tag-pro">✓ Không giới hạn</td>
+            </tr>
+            <tr>
+              <td>Xuất file cắt tấm CNC & Mã G-Code tự động</td>
+              <td class="center" style="color: #94a3b8;">Khóa (Đang Free)</td>
+              <td class="center tag-pro">✓ Mở khóa</td>
+            </tr>
+            <tr>
+              <td>Render phối cảnh nội thất AI 4K Photoreal</td>
+              <td class="center" style="color: #94a3b8;">Khóa (Đang Free)</td>
+              <td class="center tag-pro">✓ Mở khóa</td>
+            </tr>
+            <tr>
+              <td>Đồng bộ Realtime điện thoại điều khiển SketchUp</td>
+              <td class="center" style="color: #94a3b8;">Khóa (Đang Free)</td>
+              <td class="center tag-pro">✓ Mở khóa</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- License Key Activation Box -->
+        <div style="margin-top: 15px; background: #090d16; border: 1px dashed #b8860b; border-radius: 6px; padding: 12px;">
+          <label style="display: block; font-size: 11px; color: #fbbf24; font-weight: bold; margin-bottom: 6px;">🔑 NẠP MÃ KÍCH HOẠT BẢN QUYỀN (LICENSE KEY):</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="input-license-code" class="acc-input" placeholder="Ví dụ: CHILLAI-PRO-2026..." style="margin: 0; text-transform: uppercase;">
+            <button id="btn-activate-license" class="btn-game-sys" style="background: #b8860b; color: #fff; font-weight: bold; white-space: nowrap; padding: 0 14px;">Kích Hoạt</button>
+          </div>
+          <div id="license-msg-box" style="font-size: 11px; margin-top: 6px; display: none;"></div>
+        </div>
+
+        <button id="btn-switch-huy-admin" class="acc-btn-secondary" style="border-color: #fbbf24; color: #fbbf24; margin-top: 12px;">
+          👑 Chuyển Nhanh Về Tài Khoản Anh Huy (VIP PRO Trọn Đời)
+        </button>
+      </div>
+
+      <!-- Tab 2: Profile (Hồ Sơ Của Tôi) -->
+      <div class="account-tab-content" id="tab-acc-profile" style="display: none;">
+        <div class="acc-profile-card">
+          <div class="acc-profile-header">
+            <div class="acc-big-avatar" id="prof-user-avatar">👑</div>
+            <div>
+              <div style="font-size: 15px; font-weight: bold; color: #f8fafc;" id="prof-user-name">KTS. Nguyễn Văn Huy</div>
+              <div style="font-size: 12px; color: #38bdf8;" id="prof-user-role">Tổng Công Trình Sư</div>
+            </div>
+          </div>
+          <div class="acc-info-row"><span class="acc-info-label">Gói bản quyền:</span><span class="acc-info-val" style="color: #f59e0b;" id="prof-user-tier">Gói Doanh Nhân (VIP PRO)</span></div>
+          <div class="acc-info-row"><span class="acc-info-label">Thời hạn bản quyền:</span><span class="acc-info-val" style="color: #34d399;" id="prof-user-expire">Vĩnh viễn (Trọn đời)</span></div>
+          <div class="acc-info-row"><span class="acc-info-label">Số dư điểm (Credits):</span><span class="acc-info-val" style="color: #67e8f9;" id="prof-user-credits">999,999 Điểm</span></div>
+          <div class="acc-info-row"><span class="acc-info-label">Số điện thoại:</span><span class="acc-info-val" id="prof-user-phone">0988.888.888</span></div>
+          <div class="acc-info-row"><span class="acc-info-label">Email:</span><span class="acc-info-val" id="prof-user-email">thearchitect.huy@gmail.com</span></div>
+          <div class="acc-info-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #334155;">
+            <span class="acc-info-label">Mã máy (Hardware ID):</span>
+            <span class="acc-info-val" style="font-family: monospace; font-size: 11px; color: #a5b4fc;" id="prof-user-hwid">HWID-xxxx-xxxx-xxxx</span>
+          </div>
+        </div>
+
+        <button id="btn-acc-logout" class="acc-btn-secondary" style="color: #fca5a5; border-color: rgba(239, 68, 68, 0.4);">
+          🚪 Đăng Xuất Tài Khoản
+        </button>
+      </div>
+
+      <!-- Tab 3: Login (Đăng Nhập) -->
+      <div class="account-tab-content" id="tab-acc-login" style="display: none;">
+        <div class="acc-form-group">
+          <label>Số điện thoại hoặc Email:</label>
+          <input type="text" id="login-username" class="acc-input" placeholder="Nhập SĐT hoặc Email của bạn...">
+        </div>
+        <div class="acc-form-group">
+          <label>Mật khẩu:</label>
+          <input type="password" id="login-password" class="acc-input" placeholder="Nhập mật khẩu...">
+        </div>
+        <div id="login-msg-box" style="font-size: 11px; margin-bottom: 10px; display: none;"></div>
+        <button id="btn-do-login" class="acc-btn-primary">Đăng Nhập Ngay</button>
+        <button id="btn-quick-login-huy" class="acc-btn-secondary">👉 Đăng nhập 1-chạm: Tài khoản KTS. Huy (VIP)</button>
+      </div>
+
+      <!-- Tab 4: Register (Đăng Ký) -->
+      <div class="account-tab-content" id="tab-acc-register" style="display: none;">
+        <div class="acc-form-group">
+          <label>Họ và Tên:</label>
+          <input type="text" id="reg-fullname" class="acc-input" placeholder="Ví dụ: Nguyễn Văn Huy">
+        </div>
+        <div class="acc-form-group">
+          <label>Số điện thoại:</label>
+          <input type="text" id="reg-phone" class="acc-input" placeholder="Nhập số điện thoại...">
+        </div>
+        <div class="acc-form-group">
+          <label>Nghề nghiệp / Lĩnh vực:</label>
+          <select id="reg-role" class="acc-input">
+            <option value="Kiến Trúc Sư">Kiến Trúc Sư (KTS)</option>
+            <option value="Xưởng Mộc / CNC">Xưởng Mộc / Gia Công CNC</option>
+            <option value="Thiết Kế Nội Thất">Thiết Kế Nội Thất 3D</option>
+            <option value="Sinh Viên / Nghiên Cứu">Sinh Viên / Đang học nghề</option>
+          </select>
+        </div>
+        <div class="acc-form-group">
+          <label>Mật khẩu tạo mới:</label>
+          <input type="password" id="reg-password" class="acc-input" placeholder="Tạo mật khẩu an toàn...">
+        </div>
+        <div id="reg-msg-box" style="font-size: 11px; margin-bottom: 10px; display: none;"></div>
+        <button id="btn-do-register" class="acc-btn-primary">Tạo Tài Khoản & Nhận VIP Miễn Phí</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="three_preview.js"></script>
+  <script src="avatar.js"></script>
+  <script src="account.js"></script>
+  <script src="app.js"></script>
+
+  <!-- MODAL GÓP Ý TRI THỨC MỘC CỘNG ĐỒNG (CROWDSOURCED KNOWLEDGE) -->
+  <div id="modal-contribute-knowledge" class="acc-modal-backdrop" style="display: none;">
+    <div class="acc-modal-dialog" style="max-width: 380px;">
+      <div class="acc-modal-header">
+        <h3 class="acc-modal-title">💡 Góp Tri Thức Mộc Cho Chill AI</h3>
+        <button id="btn-close-contribute" class="acc-modal-close">&times;</button>
+      </div>
+      <div class="acc-modal-body">
+        <p style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px; line-height: 1.4;">
+          Chia sẻ mẹo thi công, quy cách phụ kiện (ray, lề, kính, dung sai hở tường, DIY...) để AI học hỏi và nâng cấp trí tuệ cho toàn ngành!
+        </p>
+        <div class="acc-form-group">
+          <label>Chủ đề / Tên phụ kiện hoặc mẹo nghề:</label>
+          <input type="text" id="contrib-title" class="acc-input" placeholder="Ví dụ: Ray âm giảm chấn Hafele trừ đáy 13mm">
+        </div>
+        <div class="acc-form-group">
+          <label>Danh mục:</label>
+          <select id="contrib-category" class="acc-input">
+            <option value="Phụ kiện ray trượt / bản lề">Phụ kiện ray trượt / bản lề</option>
+            <option value="Quy cách liên kết (Cam chốt / Mộng / Vít)">Quy cách liên kết (Cam chốt / Mộng / Vít)</option>
+            <option value="Dung sai hở tường / hiện trạng">Dung sai hở tường / hiện trạng</option>
+            <option value="Cánh kính / Cánh nhôm định hình">Cánh kính / Cánh nhôm định hình</option>
+            <option value="Mẹo thi công lắp đặt thực địa">Mẹo thi công lắp đặt thực địa</option>
+          </select>
+        </div>
+        <div class="acc-form-group">
+          <label>Mô tả chi tiết thông số / kinh nghiệm:</label>
+          <textarea id="contrib-content" class="acc-input" rows="4" placeholder="Mô tả cụ thể kích thước, cách trừ khe hở, lưu ý khi cắt CNC hoặc lắp ráp..."></textarea>
+        </div>
+        <div class="acc-form-group">
+          <label>Tên thợ / KTS / Xưởng đóng góp (không bắt buộc):</label>
+          <input type="text" id="contrib-author" class="acc-input" placeholder="Ví dụ: Xưởng Mộc Anh Huy - Hà Nội">
+        </div>
+        <button id="btn-submit-contribute" class="acc-btn-primary" style="margin-top: 5px;">🚀 Gửi Đóng Góp Vào Kho Tri Thức</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
