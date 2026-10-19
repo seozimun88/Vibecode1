@@ -2748,11 +2748,12 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
     const btnZoomSu = document.getElementById('btn-zoom-su');
     if (btnZoomSu) {
       btnZoomSu.addEventListener('click', () => {
-        if (this.currentSelectionData && window.sketchup && window.sketchup.zoom_selected_entity) {
-          window.sketchup.zoom_selected_entity(this.currentSelectionData.entity_id);
+        const entId = this.currentSelectionData?.entity_id || this.currentSelectionData?.entityId;
+        if (entId && window.sketchup && window.sketchup.zoom_to_entity) {
+          window.sketchup.zoom_to_entity(entId);
         } else {
           if (this.viewer && this.viewer.resetCamera) this.viewer.resetCamera();
-          console.log("[Chill AI] Zoom to entity:", this.currentSelectionData?.entity_id);
+          console.log("[Chill AI] Zoom to entity:", entId);
         }
       });
     }
@@ -4030,8 +4031,9 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       }
     });
     document.getElementById('dock-btn-zoom-su')?.addEventListener('click', () => {
-      if (this.currentSelectionData && window.sketchup && window.sketchup.zoom_selected_entity) {
-        window.sketchup.zoom_selected_entity(this.currentSelectionData.entityId);
+      const entId = this.currentSelectionData?.entityId || this.currentSelectionData?.entity_id;
+      if (entId && window.sketchup && window.sketchup.zoom_to_entity) {
+        window.sketchup.zoom_to_entity(entId);
       }
     });
 

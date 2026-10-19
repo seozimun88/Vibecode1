@@ -107,22 +107,21 @@ Cầu nối giao tiếp được thiết lập trong `main.rb` qua `UI::HtmlDial
 | **7** | `export_dxf_direct` | Không có / Tham số ván | Quét vùng chọn trong SketchUp, xuất thẳng file DXF 2D. Trả về: `window.onDxfExported(result)`. |
 | **8** | `nest_to_sketchup` | JSON: Tham số khổ ván & dao | Trải phẳng toàn bộ các tấm ván trực tiếp lên mặt sàn SketchUp kèm chữ 3D khắc nhãn chi tiết. Trả về: `window.onNestingToSUCompleted(result)`. |
 | **9** | `clamp_oversized_to_standard`| Không có | Co kích thước các tấm vượt khổ ván về tối đa 2440mm ngay trong SketchUp. |
-| **10** | `zoom_to_entity` | `entity_id` | Định vị camera SketchUp xoay và zoom sát vào chi tiết được chọn. |
-| **11** | `zoom_selected_entity` | `entity_id` | Zoom tiêu điểm vào đối tượng được chỉ định. |
-| **12** | `get_current_selection` | Không có | Lệnh Polling từ JS yêu cầu Ruby đọc lại đối tượng đang chọn trong SketchUp. |
-| **13** | `app_ready` | Không có | Bắt tay khởi động (Handshake), báo cho Ruby biết UI đã sẵn sàng tiếp nhận observer. |
-| **14** | `set_window_layout_mode` | Chuỗi: `'dock_tray'` hoặc `'studio'` | Đổi kích thước cửa sổ SketchUp Dialog tương ứng (`320x875` hoặc `1180x750`). |
-| **15** | `lock_dock_height` | Không có | Khóa kích thước cửa sổ khi người dùng đang ở chế độ khay đứng. |
-| **16** | `clamp_dock_size` | Không có | Hỗ trợ tương thích kích thước khay đứng. |
-| **17** | `reload_plugin_all` | Không có | Nạp lại toàn bộ file `.rb` bằng `load`, kết nối lại observer và reload trang HTML. |
-| **18** | `get_structural_presets` | Không có | Đọc `furniture_rules.json` và trả về danh sách preset: `window.onStructuralPresetsLoaded(presets)`. |
-| **19** | `build_structural_wardrobe`| JSON: `{preset_id, length, width, height, doors, drawers...}` | Dựng tủ áo chuẩn mộc CNC có đầy đủ công thức Dynamic DC từng tấm ván. |
-| **20** | `save_custom_preset` | JSON: Dữ liệu thông số mộc của xưởng | Lưu vào file `furniture_rules.json` dưới mục `custom_user`. Trả về: `window.onPresetSaved(bool)`. |
-| **21** | `contribute_knowledge` | JSON: `{title, author, rules, description...}` | Lưu ý kiến đóng góp kỹ thuật mộc vào `community_contributions.json`. Trả về: `window.onKnowledgeContributed(true)`. |
-| **22** | `play_audio` | JSON: `{text, voice, speed, cache_id}` | Gọi Windows Media Player COM OLE để phát âm thanh MP3 mượt mà. |
-| **23** | `stop_audio` | Không có | Dừng phát âm thanh ngay lập tức. |
-| **24** | `ensure_tts_server` | Không có | Kiểm tra tiến trình `tts_server.py`, nếu chưa chạy thì tự động `spawn` nền. |
-| **25** | `log_message` | Chuỗi văn bản | In thông báo log ra cửa sổ Ruby Console của SketchUp (`puts`). |
+| **10** | `zoom_to_entity` | `entity_id` | Định vị camera SketchUp xoay và zoom sát vào chi tiết được chọn (đã hợp nhất duy nhất). |
+| **11** | `get_current_selection` | Không có | Lệnh Polling từ JS yêu cầu Ruby đọc lại đối tượng đang chọn trong SketchUp. |
+| **12** | `app_ready` | Không có | Bắt tay khởi động (Handshake), báo cho Ruby biết UI đã sẵn sàng tiếp nhận observer. |
+| **13** | `set_window_layout_mode` | Chuỗi: `'dock_tray'` hoặc `'studio'` | Đổi kích thước cửa sổ SketchUp Dialog tương ứng (`320x875` hoặc `1180x750`). |
+| **14** | `lock_dock_height` | Không có | Khóa kích thước cửa sổ khi người dùng đang ở chế độ khay đứng. |
+| **15** | `clamp_dock_size` | Không có | Hỗ trợ tương thích kích thước khay đứng. |
+| **16** | `reload_plugin_all` | Không có | Nạp lại toàn bộ file `.rb` bằng `load`, kết nối lại observer và reload trang HTML. |
+| **17** | `get_structural_presets` | Không có | Đọc `furniture_rules.json` và trả về danh sách preset: `window.onStructuralPresetsLoaded(presets)`. |
+| **18** | `build_structural_wardrobe`| JSON: `{preset_id, length, width, height, doors, drawers...}` | Dựng tủ áo chuẩn mộc CNC có đầy đủ công thức Dynamic DC từng tấm ván. |
+| **19** | `save_custom_preset` | JSON: Dữ liệu thông số mộc của xưởng | Lưu vào file `furniture_rules.json` dưới mục `custom_user`. Trả về: `window.onPresetSaved(bool)`. |
+| **20** | `contribute_knowledge` | JSON: `{title, author, rules, description...}` | Lưu ý kiến đóng góp kỹ thuật mộc vào `community_contributions.json`. Trả về: `window.onKnowledgeContributed(true)`. |
+| **21** | `play_audio` | JSON: `{text, voice, speed, cache_id}` | Gọi Windows Media Player COM OLE để phát âm thanh MP3 mượt mà. |
+| **22** | `stop_audio` | Không có | Dừng phát âm thanh ngay lập tức. |
+| **23** | `ensure_tts_server` | Không có | Kiểm tra tiến trình `tts_server.py`, nếu chưa chạy thì tự động `spawn` nền. |
+| **24** | `log_message` | Chuỗi văn bản | In thông báo log ra cửa sổ Ruby Console của SketchUp (`puts`). |
 
 ---
 

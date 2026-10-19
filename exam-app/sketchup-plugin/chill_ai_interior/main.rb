@@ -39,10 +39,10 @@ module ChillAIInterior
   def self.reset_dialog_position
     begin
       if @dialog && @dialog.visible?
-        @dialog.set_position(100, 80)
-        @dialog.set_size(340, 840)
+        @dialog.set_position(1208, 58)
+        @dialog.set_size(320, 875)
         @dialog.bring_to_front
-        UI.messagebox("Đã đặt lại vị trí cửa sổ Chill AI về góc trên bên trái màn hình (100, 80)!")
+        UI.messagebox("Đã đặt lại vị trí cửa sổ Chill AI về chuẩn khay đứng (320x875)!")
       else
         show_dialog(force_default_pos: true)
       end
@@ -76,11 +76,11 @@ module ChillAIInterior
         return nil
       end
 
-      # Kích thước mặc định chuẩn khay dock
-      dock_w = 330
-      dock_h = 850
-      dock_top = 60
-      dock_left = 1100
+      # Kích thước mặc định chuẩn khay dock (đồng nhất 320x875)
+      dock_w = 320
+      dock_h = 875
+      dock_top = 58
+      dock_left = 1208
 
       dialog_options = {
         dialog_title: "Chill AI Interior - Trợ Lý Thiết Kế 3D & Sản Xuất CNC",
@@ -303,13 +303,7 @@ module ChillAIInterior
       AudioPlayer.ensure_tts_server
     end
 
-    # 8. Zoom tới đối tượng được chọn trong viewport của SketchUp
-    dialog.add_action_callback("zoom_selected_entity") do |_action_context, *args|
-      entity_id = args.first
-      SelectionManager.zoom_to_entity(entity_id)
-    end
-
-    # 9. Yêu cầu làm mới/truy vấn vùng chọn 3 tầng hiện tại (Chủ động Polling từ JS)
+    # 8. Yêu cầu làm mới/truy vấn vùng chọn 3 tầng hiện tại (Chủ động Polling từ JS)
     dialog.add_action_callback("get_current_selection") do |_action_context, *args|
       model = Sketchup.active_model
       if model && model.selection.count > 0
