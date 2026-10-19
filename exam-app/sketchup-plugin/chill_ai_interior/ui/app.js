@@ -200,7 +200,7 @@ class ChillAIApp {
       btnSave.addEventListener('click', () => {
         const val = inputKey.value.trim();
         if (val.length < 20) {
-          alert('⚠️ Lưu ý: Mã Google Gemini API Key thường có độ dài trên 20 ký tự (bắt đầu bằng AQ.Ab... hoặc AIzaSy...).\n\nVui lòng kiểm tra lại mã vừa dán!');
+          this.showMiniToast('Lưu ý: Mã Google Gemini API Key thường có độ dài trên 20 ký tự!', 'warning', 3500);
         }
         this.geminiApiKey = val;
         localStorage.setItem('chill_ai_gemini_key', val);
@@ -213,7 +213,7 @@ class ChillAIApp {
         
         updateBanner();
         if (modal) modal.style.display = 'none';
-        alert(`Đã lưu Google AI API Key thành công! Bây giờ bạn có thể trải nghiệm đầy đủ tính năng AI.`);
+        this.showMiniToast('Đã lưu Google AI API Key thành công!', 'success', 3000);
         if (this.avatar) {
           this.avatar.setEmotion('happy');
           this.avatar.addMessage('bot', `Tuyệt vời! ${modelName} AI đã kết nối thành công. Giờ bạn cứ tải ảnh chụp bất kỳ lên, mình sẽ nhận diện ngay lập tức!`);
@@ -228,7 +228,7 @@ class ChillAIApp {
         if (inputKey) inputKey.value = '';
         updateBanner();
         if (modal) modal.style.display = 'none';
-        alert('Đã xóa API Key. Hệ thống sẽ quay về chế độ mô phỏng mẫu.');
+        this.showMiniToast('Đã xóa API Key. Hệ thống sẽ quay về chế độ mô phỏng mẫu.', 'info', 3000);
       });
     }
 
@@ -436,14 +436,9 @@ class ChillAIApp {
       if (this.geminiApiKey) {
         await this.scanWithGeminiVision(dataUrl);
       } else {
-        // Nếu chưa cài Key: Hiển thị gợi ý nhập key hoặc dùng thử mẫu mô phỏng
-        const modal = document.getElementById('modal-api-key');
-        const ask = confirm("Bạn đang ở chế độ Demo chưa nhập Gemini API Key.\n\n• Bấm OK: Mở bảng cài đặt mã API Key miễn phí (Quét ảnh thật)\n• Bấm CANCEL: Dùng mẫu mô phỏng sẵn");
-        if (ask && modal) {
-          modal.style.display = 'flex';
-        } else {
-          this.detectFurnitureAI(dataUrl, 'desk');
-        }
+        // Nếu chưa cài Key: Hiển thị thông báo Toast và dùng mẫu mô phỏng sẵn
+        this.showMiniToast('Đang quét ảnh mẫu Demo (Cài Gemini API Key để quét ảnh thật)', 'info', 4000);
+        this.detectFurnitureAI(dataUrl, 'desk');
       }
     };
     reader.readAsDataURL(file);
@@ -704,7 +699,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
     } catch (err) {
       console.error('Lỗi Gemma 4 Vision:', err);
-      alert(`⚠️ Không thể nhận diện bằng Gemma 4 AI:\n${err.message}\n\nHệ thống sẽ chuyển sang dùng dữ liệu mẫu.`);
+      this.showMiniToast(`Không thể nhận diện bằng AI: ${err.message}. Đang dùng dữ liệu mẫu.`, 'warning', 4000);
       this.detectFurnitureAI(dataUrl, 'desk');
     } finally {
       if (spinner && content) {
@@ -1060,7 +1055,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
     this.updateDefaultProfileUI(activePreset);
     this.update3DAndCAM();
 
-    alert(`✅ Đã lưu kích thước ${newL} x ${newW} x ${newH} mm làm thông số Mặc Định mới thành công!`);
+    this.showMiniToast(`Đã lưu kích thước ${newL} x ${newW} x ${newH} mm làm số đo Mặc Định mới!`, 'success', 3500);
     if (this.avatar) {
       this.avatar.setEmotion('happy');
       this.avatar.addMessage('bot', `Tuyệt vời! Bác đã lưu kích thước <strong>${newL}x${newW}x${newH}mm</strong> làm số đo Mặc Định mới cho bạn rồi nhé!`);
@@ -1451,8 +1446,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       window.sketchup[actionName](JSON.stringify(data));
     } else {
       // Browser Standalone Preview Mode
-      const msg = `[Mô phỏng]: Đã gửi lệnh "${actionName}" thành công!\nTrong SketchUp thật, mô hình 3D "${this.currentModel.name}" với kích thước ${this.currentModel.length}x${this.currentModel.width}x${this.currentModel.height}mm sẽ được sinh ra trực tiếp trong viewport.`;
-      alert(msg);
+      this.showMiniToast(`[Mô phỏng]: Đã gửi lệnh "${actionName}" thành công!`, 'info', 3500);
       if (this.avatar) {
         this.avatar.setEmotion('happy');
         this.avatar.addMessage('bot', `Tuyệt vời! Đã áp dụng thiết kế "${this.currentModel.name}" vào dự án của bạn.`);
@@ -1904,8 +1898,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert(`Đã tải file G-Code thành công: ${filename}\nBạn có thể copy file này vào USB để cắm trực tiếp vào máy CNC hoặc nạp vào Aspire!`);
+        this.showMiniToast(`Đã tải file G-Code thành công: ${filename}`, 'success', 3500);
         return;
       }
     }
@@ -2579,13 +2572,13 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
     buyBtns.forEach(b => {
       b.addEventListener('click', () => {
         const item = b.getAttribute('data-item');
-        alert(`[Thanh toán VNPay / MoMo]:\nBạn đã chọn mua "${item}".\nHệ thống đang kết nối cổng thanh toán an toàn để tải gói Dynamic Component và file G-Code.`);
+        this.showMiniToast(`[VNPay / MoMo]: Đang kết nối cổng thanh toán mua "${item}"...`, 'info', 3500);
       });
     });
 
     contactBtns.forEach(b => {
       b.addEventListener('click', () => {
-        alert(`[Kết nối Xưởng CNC]:\nĐã gửi file G-Code của dự án đến xưởng CNC Decor gần bạn nhất!\nXưởng sẽ liên hệ báo giá ván và giao hàng trong 24 giờ.`);
+        this.showMiniToast(`[Xưởng CNC]: Đã gửi file G-Code đến xưởng CNC gần nhất!`, 'success', 3500);
       });
     });
   }
@@ -4626,7 +4619,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
         const author = document.getElementById('contrib-author')?.value || 'Ẩn danh';
 
         if (!title.trim() || !content.trim()) {
-          alert('Vui lòng nhập tên mẹo thi công và mô tả chi tiết!');
+          this.showMiniToast('Vui lòng nhập tên mẹo thi công và mô tả chi tiết!', 'warning', 3500);
           return;
         }
 

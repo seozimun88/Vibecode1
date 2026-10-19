@@ -299,7 +299,9 @@ const ChillAuth = (function() {
     if (switchHuyAdmin) {
       switchHuyAdmin.addEventListener('click', () => {
         switchHuyProfile();
-        alert('🎉 Đã kích hoạt hồ sơ VIP PRO trọn đời cho KTS. Nguyễn Văn Huy!');
+        if (window.chillApp && window.chillApp.showMiniToast) {
+          window.chillApp.showMiniToast('Đã kích hoạt hồ sơ VIP PRO trọn đời cho KTS. Nguyễn Văn Huy!', 'success', 3500);
+        }
         switchTab('tab-acc-profile');
       });
     }
