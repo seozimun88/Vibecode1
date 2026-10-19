@@ -10,7 +10,7 @@ require 'extensions.rb'
 module ChillAIInterior
   PLUGIN_ID = 'chill_ai_interior'.freeze
   PLUGIN_NAME = 'Chill AI Interior - Trợ Lý Thiết Kế & CNC AI'.freeze
-  PLUGIN_VERSION = '1.0.0'.freeze
+  PLUGIN_VERSION = '1.1.0'.freeze
 
   unless file_loaded?(__FILE__)
     extension = SketchupExtension.new(PLUGIN_NAME, File.join(File.dirname(__FILE__), PLUGIN_ID, 'main.rb'))

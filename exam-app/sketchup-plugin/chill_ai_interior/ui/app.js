@@ -9,11 +9,11 @@ class ChillAIApp {
 
     // Current State
     this.currentModel = {
-      type: 'desk',
-      name: 'Bàn làm việc thông minh',
+      type: 'wardrobe',
+      name: 'Tủ Quần Áo Chuẩn Xưởng CNC',
       length: 1200,
       width: 600,
-      height: 750,
+      height: 1800,
       thickness: 18,
       material: 'oak',
       leg_style: 'metal_frame',
@@ -28,6 +28,13 @@ class ChillAIApp {
     this.geminiModel = savedModel;
     this.dimensionMode = 'default'; // 'default' or 'custom'
     this.isSketchUpAvailable = !!window.sketchup;
+
+    try {
+      const cachedCabinet = localStorage.getItem('chill_ai_default_cabinet');
+      if (cachedCabinet && (cachedCabinet.includes('1350') || cachedCabinet.includes('2000'))) {
+        localStorage.removeItem('chill_ai_default_cabinet');
+      }
+    } catch (e) {}
 
     this.init();
   }
@@ -50,17 +57,18 @@ class ChillAIApp {
     this.initMarketplace();
     this.initProjects();
 
-    this.init3TierHierarchy();
-    this.initDockModeToggle();
-    this.initStructuralEngine();
-    this.initAccordionTray();
-
-    // Callbacks from SketchUp Ruby
+    // Callbacks from SketchUp Ruby - Gán sớm nhất có thể để không bao giờ bỏ lỡ sự kiện
     window.chillApp = this;
     window.onSketchupSelectionChanged = (payload) => {
       console.log("[Chill AI] SketchUp selection event received:", payload);
       this.handleSketchupSelection(payload);
     };
+
+    try { this.init3TierHierarchy(); } catch (e) { console.error("[Chill AI] Error in init3TierHierarchy:", e); }
+    try { this.initDockModeToggle(); } catch (e) { console.error("[Chill AI] Error in initDockModeToggle:", e); }
+    try { this.initStructuralEngine(); } catch (e) { console.error("[Chill AI] Error in initStructuralEngine:", e); }
+    try { this.initAccordionTray(); } catch (e) { console.error("[Chill AI] Error in initAccordionTray:", e); }
+    try { this.initShopeeMarketplace(); } catch (e) { console.error("[Chill AI] Error in initShopeeMarketplace:", e); }
 
     // Báo cho SketchUp Ruby biết JS đã sẵn sàng kết nối 2 chiều và đồng bộ kích thước chuẩn
     setTimeout(() => {
@@ -72,25 +80,10 @@ class ChillAIApp {
 
       // Ép kích thước cửa sổ chuẩn ngay khi mở (Tránh bị Windows lưu kích thước cũ quá dài)
       const savedMode = localStorage.getItem('chill_layout_mode') || 'dock';
-      if (savedMode !== 'studio') {
-        try { window.resizeTo(305, 530); } catch(e) {}
-      }
       const su = window.sketchup || (typeof sketchup !== 'undefined' ? sketchup : null);
       if (su && su.set_window_layout_mode) {
         su.set_window_layout_mode(savedMode === 'studio' ? 'studio' : 'dock_tray');
       }
-      if (su && su.clamp_dock_size && savedMode !== 'studio') {
-        su.clamp_dock_size(305, 530);
-      }
-      setTimeout(() => {
-        if (savedMode !== 'studio') {
-          try { window.resizeTo(305, 530); } catch(e) {}
-        }
-        const su2 = window.sketchup || (typeof sketchup !== 'undefined' ? sketchup : null);
-        if (su2 && su2.clamp_dock_size && savedMode !== 'studio') {
-          su2.clamp_dock_size(305, 530);
-        }
-      }, 450);
     }, 200);
 
     // Kích hoạt cơ chế tự động đồng bộ vùng chọn SketchUp 2 chiều liên tục (Auto-Sync Polling)
@@ -115,6 +108,30 @@ class ChillAIApp {
     window.onGCodeGenerated = (data) => {
       this.showMiniToast(`Đã hoàn tất tính toán Nesting và sinh mã CNC G-Code!`, 'info');
       this.displayNestingAndGCode(data);
+      const pendingExport = this.pendingCamExport;
+      this.pendingCamExport = null;
+      if (pendingExport === 'gcode') this.saveGCodeFile();
+      if (pendingExport === 'dxf') this.saveDxfFile();
+    };
+
+    window.onDxfExported = (result) => {
+      this.showMiniToast(`Đã xuất ${result.total_parts || ''} chi tiết DXF sang Vectric Aspire thành công!`, 'success');
+      if (this.avatar) {
+        this.avatar.setEmotion('happy');
+        this.avatar.addMessage('bot', `Anh Huy ơi! Em đã xuất xong sơ đồ ván DXF 2D rồi nhé. Anh chỉ cần mở Aspire, bấm Import Vectors là gán đường dao được ngay! 📐✨`);
+      }
+    };
+
+    window.onNestingToSUCompleted = (result) => {
+      if (result.status === 'success') {
+        this.showMiniToast(result.message || `Đã trải phẳng ${result.total_sheets} khổ ván lên SketchUp!`, 'success');
+        if (this.avatar) {
+          this.avatar.setEmotion('happy');
+          this.avatar.addMessage('bot', `Tuyệt vời anh Huy ơi! Em đã trải phẳng xong ${result.total_sheets} khổ ván tiêu chuẩn lên mặt bàn SketchUp kèm đầy đủ nhãn tên, kích thước và thớ gỗ rồi nhé! 🪵✨`);
+        }
+      } else {
+        this.showMiniToast(`Lỗi trải phẳng SU: ${result.message}`, 'error');
+      }
     };
   }
 
@@ -507,27 +524,24 @@ Xác định loại vật thể và ước lượng kích thước tiêu chuẩn
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON HỢP LỆ (không có markdown giải thích thừa, không bọc dấu backtick, không có chữ json):
 {
-  "type": "kitchen_cabinet",
-  "name": "Tên chi tiết món đồ bằng tiếng Việt (Ví dụ: Tủ bếp chữ L kem trắng, kính xanh)",
-  "category": "Phân loại tiếng Việt (Tủ quần áo / Bàn làm việc / Kệ sách / Giường ngủ / Tủ bếp)",
-  "defLength": 2400,
+  "type": "cabinet",
+  "name": "Tên chi tiết món đồ bằng tiếng Việt (Ví dụ: Tủ quần áo 3 cánh 2 ngăn kéo)",
+  "category": "Tủ quần áo (Wardrobe)",
+  "defLength": 1200,
   "defWidth": 600,
-  "defHeight": 2200,
-  "thickness": 18,
+  "defHeight": 1800,
+  "thickness": 17.5,
   "material": "oak",
   "leg_style": "panel_legs",
-  "doors": 0,
-  "drawers": 0,
-  "door_material": "same_as_body",
-  "kitchen_shape": "L",
-  "has_upper": true,
-  "has_lower": true,
-  "backsplash_color": "green_glass"
+  "doors": 3,
+  "drawers": 2,
+  "door_material": "same_as_body"
 }
-Quy tắc bóc tách kết cấu từ ảnh:
+Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 - "type": chỉ chọn 1 trong 5 loại: "cabinet", "desk", "shelf", "bed", "kitchen_cabinet".
-- "doors": Nếu là tủ áo, hãy đếm chính xác số cánh cửa.
-- "drawers": Đếm chính xác số hộc ngăn kéo.
+- ĐẶC BIỆT KHI LÀ TỦ QUẦN ÁO ("cabinet"): Kích thước tiêu chuẩn nhân trắc học mặc định BẮT BUỘC là Dài 1200mm (1m2), Rộng/Sâu 600mm, Cao 1800mm (1m8) (defLength: 1200, defWidth: 600, defHeight: 1800).
+- "doors": Nếu là tủ áo, hãy đếm chính xác số cánh cửa (mặc định 3 cánh).
+- "drawers": Đếm chính xác số hộc ngăn kéo (mặc định 2 ngăn kéo).
 - "kitchen_shape": Nếu là tủ bếp, xác định hình dáng tủ bếp là chữ "I" hay chữ "L".
 - "has_upper" / "has_lower": Nếu là tủ bếp, xác định xem ảnh có tủ bếp trên (true/false) và tủ bếp dưới (true/false) hay không.
 - "backsplash_color": Nếu là tủ bếp, xác định màu của mặt kính ốp tường (ví dụ: "green_glass", "white", "black"...).
@@ -634,15 +648,32 @@ Quy tắc bóc tách kết cấu từ ảnh:
       if (document.getElementById('input-drawers')) document.getElementById('input-drawers').value = drawers;
       if (document.getElementById('select-door-material')) document.getElementById('select-door-material').value = doorMaterial;
 
+      // Kích thước chuẩn xưởng mộc theo yêu cầu của anh Huy: Dài 1200mm, Rộng 600mm, Cao 1800mm
+      let finalL = parsed.defLength || 1200;
+      let finalW = parsed.defWidth || 600;
+      let finalH = parsed.defHeight || 1800;
+
+      if (parsed.type === 'cabinet' || parsed.type === 'wardrobe') {
+        if (!parsed.defLength || Math.abs(parsed.defLength - 1350) < 250 || Math.abs(parsed.defLength - 1200) < 200) {
+          finalL = 1200;
+        }
+        if (!parsed.defWidth || Math.abs(parsed.defWidth - 600) < 100) {
+          finalW = 600;
+        }
+        if (!parsed.defHeight || Math.abs(parsed.defHeight - 1800) < 300 || parsed.defHeight === 2000) {
+          finalH = 1800;
+        }
+      }
+
       // Hiển thị kết quả vào khối nhận diện
       this.detectFurnitureAI(
         dataUrl,
         parsed.type || 'cabinet',
-        parsed.name || 'Món đồ nội thất AI nhận diện',
-        parsed.category || 'Nội thất',
-        parsed.defLength || 1500,
-        parsed.defWidth || 600,
-        parsed.defHeight || 2000,
+        parsed.name || 'Tủ Quần Áo Chuẩn Xưởng CNC',
+        parsed.category || 'Tủ quần áo (Wardrobe)',
+        finalL,
+        finalW,
+        finalH,
         doors,
         drawers,
         doorMaterial
@@ -696,7 +727,7 @@ Quy tắc bóc tách kết cấu từ ảnh:
         name: 'Tủ quần áo 2 cánh Melamine tối giản',
         category: 'Tủ quần áo (Wardrobe)',
         type: 'cabinet',
-        defLength: 1200, defWidth: 600, defHeight: 2000,
+        defLength: 1200, defWidth: 600, defHeight: 1800,
         img: 'https://images.unsplash.com/photo-1558997519-83ea9252def8?w=300&q=80'
       },
       shelf: {
@@ -855,7 +886,7 @@ Quy tắc bóc tách kết cấu từ ảnh:
         { name: 'Cỡ Lớn (1600x800)', tag: 'Phương Án 3: Rộng Rãi', length: 1600, width: 800, height: 750, thickness: 25, material: 'walnut', leg_style: 'metal_frame', doors: 0, drawers: 3, style: 'Executive / Bàn Lớn', cat: 'Bàn giám đốc / Bàn họp nhỏ' }
       ],
       cabinet: [
-        { name: '2 Cánh Chuẩn (1200x600)', tag: 'Phương Án 1: Tiêu Chuẩn', length: 1200, width: 600, height: 2000, thickness: 18, material: 'white_melamine', leg_style: 'plinth', doors: 2, drawers: 0, style: 'Hiện đại Tối giản', cat: 'Tủ quần áo 2 cánh' },
+        { name: 'Chuẩn Xưởng (1200x600x1800)', tag: 'Phương Án 1: Tiêu Chuẩn', length: 1200, width: 600, height: 1800, thickness: 17.5, material: 'white_melamine', leg_style: 'plinth', doors: 3, drawers: 2, style: 'Hiện đại Tối giản', cat: 'Tủ quần áo 1m2 x 1m8' },
         { name: 'Gọn Gàng (1000x550)', tag: 'Phương Án 2: Gọn Gàng', length: 1000, width: 550, height: 2000, thickness: 18, material: 'oak', leg_style: 'plinth', doors: 2, drawers: 2, style: 'Bắc Âu ấm cúng', cat: 'Tủ phòng nhỏ' },
         { name: '3 Cánh Lớn (1600x600)', tag: 'Phương Án 3: Cỡ Lớn', length: 1600, width: 600, height: 2200, thickness: 18, material: 'walnut', leg_style: 'plinth', doors: 3, drawers: 2, style: 'Cao cấp kịch trần', cat: 'Tủ quần áo 3 cánh' }
       ],
@@ -1326,13 +1357,39 @@ Quy tắc bóc tách kết cấu từ ảnh:
       this.sendToSketchUp('create_3d_model', this.currentModel);
     });
 
-    // Button 2: Tạo hàm Dynamic Component
+    // Button 2: Tạo hàm Dynamic Component (Biến đối tượng đang chọn hoặc tạo mới)
     document.getElementById('btn-generate-dc')?.addEventListener('click', () => {
-      this.sendToSketchUp('create_dynamic_component', this.currentModel);
+      const selectedId = this.currentSelectionData ? this.currentSelectionData.entity_id : null;
+      const targetName = this.currentSelectionData ? this.currentSelectionData.name : (this.currentModel.name || 'Chill_Dynamic_Furniture');
+      const dcParams = {
+        entity_id: selectedId,
+        name: targetName,
+        type: (targetName.toLowerCase().includes('tủ') || targetName.toLowerCase().includes('tu') || targetName.toLowerCase().includes('cabinet') || targetName.toLowerCase().includes('wardrobe')) ? 'wardrobe' : 'desk',
+        length: this.currentSelectionData ? parseFloat(this.currentSelectionData.length) : (this.currentModel.length || 1600),
+        width: this.currentSelectionData ? parseFloat(this.currentSelectionData.width) : (this.currentModel.width || 600),
+        height: this.currentSelectionData ? parseFloat(this.currentSelectionData.height) : (this.currentModel.height || 1800),
+        thickness: this.currentModel.thickness || 17.5,
+        material: this.currentModel.material || 'white_melamine'
+      };
+      this.sendToSketchUp('create_dynamic_component', dcParams);
+      this.showMiniToast(`Đang chuyển đổi ${targetName} thành Dynamic Component...`, 'info');
     });
 
     document.getElementById('btn-send-dc-to-su')?.addEventListener('click', () => {
-      this.sendToSketchUp('create_dynamic_component', this.currentModel);
+      const selectedId = this.currentSelectionData ? this.currentSelectionData.entity_id : null;
+      const targetName = this.currentSelectionData ? this.currentSelectionData.name : (this.currentModel.name || 'Chill_Dynamic_Furniture');
+      const dcParams = {
+        entity_id: selectedId,
+        name: targetName,
+        type: (targetName.toLowerCase().includes('tủ') || targetName.toLowerCase().includes('tu') || targetName.toLowerCase().includes('cabinet') || targetName.toLowerCase().includes('wardrobe')) ? 'wardrobe' : 'desk',
+        length: this.currentSelectionData ? parseFloat(this.currentSelectionData.length) : (this.currentModel.length || 1600),
+        width: this.currentSelectionData ? parseFloat(this.currentSelectionData.width) : (this.currentModel.width || 600),
+        height: this.currentSelectionData ? parseFloat(this.currentSelectionData.height) : (this.currentModel.height || 1800),
+        thickness: this.currentModel.thickness || 17.5,
+        material: this.currentModel.material || 'white_melamine'
+      };
+      this.sendToSketchUp('create_dynamic_component', dcParams);
+      this.showMiniToast(`Đang chuyển đổi ${targetName} thành Dynamic Component...`, 'info');
     });
 
     // Viewport controls
@@ -1360,6 +1417,32 @@ Quy tắc bóc tách kết cấu từ ảnh:
       if(window.Furniture3DViewer && window.Furniture3DViewer.instance) window.Furniture3DViewer.instance.toggleGrid();
     });
 
+    // Sự kiện xử lý nhanh tấm quá khổ ván (Co kéo 3D & Dynamic Component)
+    document.getElementById('btn-clamp-to-standard')?.addEventListener('click', () => {
+      if (window.sketchup && window.sketchup.clamp_oversized_to_standard) {
+        window.sketchup.clamp_oversized_to_standard();
+        this.showMiniToast("Đang tự động thu kích thước về tối đa 2440mm...", "info");
+      } else {
+        this.showMiniToast("Chức năng chỉ hoạt động bên trong SketchUp", "warning");
+      }
+    });
+
+    document.getElementById('btn-switch-jumbo-sheet')?.addEventListener('click', () => {
+      const sheetHInput = document.getElementById('dock-cam-sheet-h');
+      if (sheetHInput) sheetHInput.value = '2745';
+      this.showMiniToast("Đã đổi cấu hình sang Khổ Ván Lớn 1220x2745mm! Tấm 2600mm sẽ đạt chuẩn gia công.", "success");
+      if (this.avatar) {
+        this.avatar.setEmotion('happy');
+        this.avatar.addMessage('bot', "Em đã chuyển cấu hình phôi xưởng sang Ván Khổ Lớn 1220x2745mm rồi nhé anh Huy! Các tấm dài đến 2745mm sẽ lọt khổ chuẩn ạ! 🪵✨");
+      }
+    });
+
+    document.getElementById('dock-oversized-details')?.addEventListener('click', (e) => {
+      const item = e.target.closest('.oversized-item');
+      if (item && item.dataset.id && window.sketchup && window.sketchup.zoom_to_entity) {
+        window.sketchup.zoom_to_entity(item.dataset.id);
+      }
+    });
   }
 
 
@@ -1381,6 +1464,10 @@ Quy tắc bóc tách kết cấu từ ảnh:
   init3DViewer() {
     if (window.Furniture3DViewer) {
       this.viewer = new window.Furniture3DViewer('threejs-canvas-container');
+      const titleEl = document.getElementById('viewport-model-title');
+      if (titleEl && this.currentModel) {
+        titleEl.textContent = `Mô hình: ${this.currentModel.name} (${this.currentModel.length} x ${this.currentModel.width} x ${this.currentModel.height} mm)`;
+      }
     }
   }
 
@@ -1391,39 +1478,158 @@ Quy tắc bóc tách kết cấu từ ảnh:
   }
 
   // --- 4. CAM 2D NESTING & G-CODE GENERATOR ---
+  openCncModal() {
+    const modal = document.getElementById('modal-cnc-export');
+    if (modal) {
+      modal.style.display = 'flex';
+      // Tự động tính toán lại CAM nếu chưa có dữ liệu
+      if (!this.lastNestingData) {
+        this.recalculateCAM();
+      }
+    }
+  }
+
+  closeCncModal() {
+    const modal = document.getElementById('modal-cnc-export');
+    if (modal) modal.style.display = 'none';
+  }
+
   initCAMNesting() {
+    // 1. CÁC NÚT MỞ HỘP THOẠI XUẤT CNC (ĐẬP VÀO MẮT ANH HUY NGAY TỪ MẶT TIỀN)
+    const cncTriggers = [
+      'dock-btn-main-cnc',        // Nút to cam ghim đáy Khay Đứng (bên cạnh nút Xây 3D)
+      'chip-quick-export-cnc',     // Chip nút bấm nhanh ở Ô xanh gợi ý Khay Đứng
+      'btn-studio-header-cnc',     // Nút Xuất CNC trên thanh Header bản Studio
+      'btn-cmd-export-cnc'         // Nút Xuất CNC trên bàn cờ lệnh HUD Studio
+    ];
+    cncTriggers.forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => {
+        this.openCncModal();
+      });
+    });
+
+    // 2. CÁC NÚT BÊN TRONG MODAL XUẤT CNC
+    document.getElementById('modal-btn-save-gcode')?.addEventListener('click', () => {
+      this.closeCncModal();
+      this.saveGCodeFile();
+    });
+
+    document.getElementById('modal-btn-save-dxf')?.addEventListener('click', () => {
+      this.closeCncModal();
+      this.saveDxfFile();
+    });
+
+    document.getElementById('modal-btn-nest-su')?.addEventListener('click', () => {
+      this.closeCncModal();
+      this.nestToSketchUpDirectly();
+    });
+
+    document.getElementById('modal-btn-open-cnc-tab')?.addEventListener('click', () => {
+      this.closeCncModal();
+      const isTray = document.getElementById('dock-tray-shell')?.style.display !== 'none';
+      if (isTray) {
+        this.switchDockTab('dock-pane-cnc');
+      } else {
+        this.switchTab('tab-cam');
+      }
+    });
+
+    document.getElementById('btn-close-cnc-modal')?.addEventListener('click', () => {
+      this.closeCncModal();
+    });
+
+    const cncModalEl = document.getElementById('modal-cnc-export');
+    cncModalEl?.addEventListener('click', (e) => {
+      if (e.target === cncModalEl) {
+        this.closeCncModal();
+      }
+    });
+
+    // 3. TÍNH TOÁN LẠI NESTING
     document.getElementById('btn-re-nest')?.addEventListener('click', () => {
       this.recalculateCAM();
     });
 
+    document.getElementById('dock-btn-recalculate-cam')?.addEventListener('click', () => {
+      this.recalculateCAM();
+    });
+
+    // 4. LỰA CHỌN B: TRẢI PHẲNG TRỰC TIẾP TRÊN SU (ONE CLICK CABINET STYLE)
+    document.getElementById('dock-btn-nest-to-su')?.addEventListener('click', () => {
+      this.nestToSketchUpDirectly();
+    });
+    document.getElementById('btn-studio-nest-to-su')?.addEventListener('click', () => {
+      this.nestToSketchUpDirectly();
+    });
+
+    // 5. LỰA CHỌN A: XUẤT CHO VECTRIC ASPIRE (G-CODE & DXF)
     document.getElementById('btn-save-gcode')?.addEventListener('click', () => {
       this.saveGCodeFile();
     });
+    document.getElementById('dock-btn-save-gcode')?.addEventListener('click', () => {
+      this.saveGCodeFile();
+    });
+    document.getElementById('btn-studio-save-gcode')?.addEventListener('click', () => {
+      this.saveGCodeFile();
+    });
+
+    document.getElementById('dock-btn-save-dxf')?.addEventListener('click', () => {
+      this.saveDxfFile();
+    });
+    document.getElementById('dock-btn-footer-dxf')?.addEventListener('click', () => {
+      this.saveDxfFile();
+    });
+    document.getElementById('chip-quick-export-dxf')?.addEventListener('click', () => {
+      this.saveDxfFile();
+    });
+    document.getElementById('btn-studio-save-dxf')?.addEventListener('click', () => {
+      this.saveDxfFile();
+    });
 
     document.getElementById('btn-copy-gcode')?.addEventListener('click', () => {
-      const area = document.getElementById('gcode-output-area');
-      area.select();
-      document.execCommand('copy');
-      alert("Đã sao chép mã G-Code vào bộ nhớ tạm!");
+      this.copyGCodeToClipboard();
+    });
+    document.getElementById('dock-btn-copy-gcode-text')?.addEventListener('click', () => {
+      this.copyGCodeToClipboard();
     });
   }
 
   recalculateCAM() {
+    const camRequest = this.getCamRequest();
     // If SketchUp extension is connected, request Ruby CAM
     if (this.isSketchUpAvailable && window.sketchup.export_gcode) {
-      window.sketchup.export_gcode(JSON.stringify(this.currentModel));
+      window.sketchup.export_gcode(JSON.stringify(camRequest));
     } else {
       // In-browser CAM calculation
-      const result = this.calculateLocalCAM(this.currentModel);
+      const result = this.calculateLocalCAM(camRequest);
       this.displayNestingAndGCode(result);
     }
   }
 
+  getCamRequest() {
+    const numberValue = (id, fallback) => {
+      const value = Number(document.getElementById(id)?.value);
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    };
+    return {
+      ...(this.currentModel || {}),
+      cam: {
+        sheet_w: numberValue('dock-cam-sheet-w', 1220),
+        sheet_h: numberValue('dock-cam-sheet-h', 2440),
+        tool_diameter: numberValue('dock-cam-tool-dia', 6),
+        edge_margin: numberValue('dock-cam-edge-margin', 10),
+        part_gap: numberValue('dock-cam-part-gap', 4),
+        pass_depth: numberValue('dock-cam-pass-depth', 6),
+        use_tabs: document.getElementById('dock-cam-use-tabs')?.checked !== false
+      }
+    };
+  }
+
   calculateLocalCAM(model) {
-    const sheetW = 1220;
-    const sheetH = 2440;
-    const kerf = 6;
-    const margin = 10;
+    const sheetW = model.cam?.sheet_w || 1220;
+    const sheetH = model.cam?.sheet_h || 2440;
+    const kerf = model.cam?.tool_diameter || 6;
+    const margin = model.cam?.edge_margin || 10;
     const l = model.length || 1200;
     const w = model.width || 600;
     const t = model.thickness || 18;
@@ -1485,6 +1691,8 @@ Quy tắc bóc tách kết cấu từ ảnh:
 
     // Generate ISO G-Code text
     const gcode = this.buildGCodeText(items, t, utilization, sheetW, sheetH);
+    // Generate DXF text for Vectric Aspire
+    const dxf = this.buildDxfText(items, t, sheetW, sheetH);
 
     return {
       sheet_w: sheetW,
@@ -1493,8 +1701,51 @@ Quy tắc bóc tách kết cấu từ ảnh:
       utilization: utilization,
       cut_length_m: totalPerimeter.toFixed(2),
       estimated_time_min: cutTimeMin,
-      gcode: gcode
+      gcode: gcode,
+      dxf: dxf
     };
+  }
+
+  buildDxfText(items, thickness, sw, sh) {
+    const lines = [];
+    lines.push("0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC");
+    lines.push("0\nSECTION\n2\nTABLES");
+    lines.push("0\nTABLE\n2\nLAYER\n70\n3");
+    lines.push("0\nLAYER\n2\nSHEET_BORDER\n70\n0\n62\n1\n6\nCONTINUOUS");
+    lines.push("0\nLAYER\n2\nCNC_CUT_OUTLINE\n70\n0\n62\n3\n6\nCONTINUOUS");
+    lines.push("0\nLAYER\n2\nLABELS\n70\n0\n62\n2\n6\nCONTINUOUS");
+    lines.push("0\nENDTAB\n0\nENDSEC");
+    lines.push("0\nSECTION\n2\nENTITIES");
+
+    const addPolyline = (layer, pts) => {
+      lines.push(`0\nPOLYLINE\n8\n${layer}\n66\n1\n70\n1`);
+      pts.forEach(p => {
+        lines.push(`0\nVERTEX\n8\n${layer}\n10\n${p[0].toFixed(2)}\n20\n${p[1].toFixed(2)}\n30\n0.0`);
+      });
+      lines.push("0\nSEQEND");
+    };
+
+    addPolyline("SHEET_BORDER", [
+      [0, 0], [sw, 0], [sw, sh], [0, sh]
+    ]);
+
+    items.forEach(it => {
+      const x1 = it.x;
+      const y1 = it.y;
+      const x2 = it.x + it.w;
+      const y2 = it.y + it.h;
+
+      addPolyline("CNC_CUT_OUTLINE", [
+        [x1, y1], [x2, y1], [x2, y2], [x1, y2]
+      ]);
+
+      const cleanName = (it.name || 'Part').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+      lines.push(`0\nTEXT\n8\nLABELS\n10\n${(x1 + 15).toFixed(2)}\n20\n${(y2 - 35).toFixed(2)}\n30\n0.0\n40\n20.0\n1\n${cleanName} (${Math.round(it.w)}x${Math.round(it.h)} T${thickness})`);
+    });
+
+    lines.push(`0\nTEXT\n8\nLABELS\n10\n15.00\n20\n${(sh + 25).toFixed(2)}\n30\n0.0\n40\n25.0\n1\nSHEET 1 - STOCK T${thickness}mm`);
+    lines.push("0\nENDSEC\n0\nEOF");
+    return lines.join("\n");
   }
 
   buildGCodeText(items, thickness, utilization, sw, sh) {
@@ -1546,6 +1797,21 @@ Quy tắc bóc tách kết cấu từ ảnh:
     document.getElementById('cam-cut-time').textContent = `${data.estimated_time_min} phút`;
 
     document.getElementById('gcode-output-area').value = data.gcode;
+    this.lastNestingData = data;
+    this.lastDxfContent = data.dxf || '';
+
+    if (data.material_groups && data.material_groups.length > 1) {
+      const thicknesses = data.material_groups.map(group => `${group.thickness}mm`).join(', ');
+      this.showMiniToast(`Đã tách ${data.material_groups.length} nhóm phôi theo độ dày: ${thicknesses}. Mỗi tấm cần đặt lại gốc Z trước khi cắt.`, 'info', 5200);
+    }
+
+    // Cập nhật cả trên Khay Đứng (Dock Tray Mode)
+    const dockSheet = document.getElementById('dock-cam-sheet-count');
+    const dockUtil = document.getElementById('dock-cam-utilization');
+    const dockCut = document.getElementById('dock-cam-cut-length');
+    if (dockSheet) dockSheet.textContent = `${data.sheets ? data.sheets.length : 1} tấm`;
+    if (dockUtil) dockUtil.textContent = `${data.utilization || 0}%`;
+    if (dockCut) dockCut.textContent = `${data.cut_length_m || 0}m`;
 
     // Render Canvas
     this.renderNestingCanvas(data);
@@ -1612,24 +1878,111 @@ Quy tắc bóc tách kết cấu từ ảnh:
   }
 
   saveGCodeFile() {
-    const content = document.getElementById('gcode-output-area').value;
-    const filename = `CNC_${this.currentModel.name.replace(/\s+/g, '_')}_${Date.now()}.nc`;
-
-    if (this.isSketchUpAvailable && window.sketchup.save_gcode_file) {
-      window.sketchup.save_gcode_file(JSON.stringify({ content: content, filename: filename }));
-    } else {
-      // Browser File Download
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      alert(`Đã tải file G-Code thành công: ${filename}\nBạn có thể copy file này vào USB để cắm trực tiếp vào máy CNC!`);
+    const camRequest = this.getCamRequest();
+    // 1. Nếu đang trong SketchUp và có hàm xuất trực tiếp 1-chạm
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.export_gcode_direct) {
+      this.showMiniToast('Đang bóc tách và chuẩn bị lưu file G-Code cho máy CNC...', 'info');
+      window.sketchup.export_gcode_direct(JSON.stringify(camRequest));
+      return;
     }
+
+    // 2. Nếu đã có sẵn nội dung G-code trong textarea
+    const content = document.getElementById('gcode-output-area')?.value || '';
+    if (content.trim()) {
+      const modelName = (this.currentModel && this.currentModel.name) || 'NESTING';
+      const filename = `CNC_${modelName.replace(/\s+/g, '_')}_${Date.now()}.nc`;
+
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.save_gcode_file) {
+        window.sketchup.save_gcode_file(JSON.stringify({ content: content, filename: filename }));
+        return;
+      } else {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert(`Đã tải file G-Code thành công: ${filename}\nBạn có thể copy file này vào USB để cắm trực tiếp vào máy CNC hoặc nạp vào Aspire!`);
+        return;
+      }
+    }
+
+    // 3. Nếu chưa có G-code (chạy trên trình duyệt Web)
+    this.pendingCamExport = 'gcode';
+    this.showMiniToast('Đang tính Nesting trước khi xuất G-Code…', 'info');
+    this.recalculateCAM();
+  }
+
+  // --- LỰA CHỌN B: TRẢI PHẲNG VÁN TRỰC TIẾP TRÊN SKETCHUP (ONE CLICK STYLE) ---
+  nestToSketchUpDirectly() {
+    const camRequest = this.getCamRequest();
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.nest_to_sketchup) {
+      this.showMiniToast("Đang bóc tách và trải phẳng các tấm ván ra mặt bàn SketchUp...", "info");
+      window.sketchup.nest_to_sketchup(JSON.stringify(camRequest));
+    } else {
+      this.recalculateCAM();
+      this.showMiniToast(`[Chế độ Trình Duyệt] Đã tính toán Nesting cho ${this.currentModel.length}x${this.currentModel.width}mm! Khi mở trong SketchUp, các tấm ván sẽ bung phẳng trực tiếp ra nền đất.`, "success");
+      if (this.avatar) {
+        this.avatar.setEmotion('happy');
+        this.avatar.addMessage('bot', `Anh Huy ơi! Em đã hoàn thành thuật toán Nesting. Khi chạy trong SketchUp, tính năng này sẽ bung toàn bộ tấm ván phôi (1220x2440) ra nền đất kèm nhãn dán như One Click Cabinet nhé! 🪵`);
+      }
+    }
+  }
+
+  // --- LỰA CHỌN A: XUẤT FILE DXF CHUẨN CAD CHO VECTRIC ASPIRE ---
+  saveDxfFile() {
+    // 1. Ưu tiên 1: Chạy trực tiếp trong SketchUp (Gọi hàm 1-chạm đồng bộ tuyệt đối)
+    if (window.sketchup && window.sketchup.export_dxf_direct) {
+      this.showMiniToast('Đang mở hộp thoại Lưu file DXF 2D cho Vectric Aspire…', 'info');
+      const camRequest = this.getCamRequest ? this.getCamRequest() : {};
+      window.sketchup.export_dxf_direct(JSON.stringify(camRequest));
+      return;
+    }
+
+    // 2. Nếu có save_dxf_file và đã có nội dung DXF sẵn
+    if (window.sketchup && window.sketchup.save_dxf_file && this.lastDxfContent) {
+      const modelName = (this.currentModel && this.currentModel.name) || 'NESTING';
+      const filename = `CNC_ASPIRE_${modelName.replace(/\s+/g, '_')}_${Date.now()}.dxf`;
+      window.sketchup.save_dxf_file(JSON.stringify({ content: this.lastDxfContent, filename: filename }));
+      return;
+    }
+
+    // 3. Fallback cho chế độ Trình duyệt ngoài (Browser / Chrome standalone)
+    this.showMiniToast('Đang tạo và tải file DXF 2D cho Aspire…', 'info');
+    const localResult = this.calculateLocalCAM ? this.calculateLocalCAM(this.currentModel || {}) : null;
+    const dxfString = (localResult && localResult.dxf) ? localResult.dxf : (this.lastDxfContent || this.buildFallbackDxf());
+    const modelName = (this.currentModel && this.currentModel.name) || 'NESTING';
+    const filename = `CNC_ASPIRE_${modelName.replace(/\s+/g, '_')}_${Date.now()}.dxf`;
+    const blob = new Blob([dxfString], { type: 'application/dxf;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showMiniToast(`Đã xuất file DXF: ${filename}`, 'success');
+  }
+
+  copyGCodeToClipboard() {
+    const area = document.getElementById('gcode-output-area');
+    const text = area ? area.value : (this.lastNestingData ? this.lastNestingData.gcode : '');
+    if (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.showMiniToast("Đã sao chép mã G-Code vào bộ nhớ tạm!", "success");
+      }).catch(() => {
+        if (area) { area.select(); document.execCommand('copy'); }
+        this.showMiniToast("Đã sao chép mã G-Code!", "success");
+      });
+    }
+  }
+
+  buildFallbackDxf() {
+    return "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n0\nENDSEC\n0\nEOF";
   }
 
   // --- 5. CHAT EVENTS ---
@@ -2327,23 +2680,52 @@ Quy tắc bóc tách kết cấu từ ảnh:
       3: {
         entity_id: 10492,
         tier: 3,
-        tier_label: "Tầng 3: Miếng Ván Nhỏ (Part / Panel)",
-        name: "Vách Hồi Trái (MDF 17.5mm)",
-        category: "Tấm Ván Sản Xuất - Chi Tiết Thùng",
-        icon_type: "panel",
-        dim_x: 790, dim_y: 560, dim_z: 17.5,
-        length: 790, width: 560, thickness: 17.5,
-        material: "MDF Lõi Xanh Chống Ẩm An Cường",
-        area_m2: 0.442, volume_m3: 0.0077, edge_perimeter_m: 2.7,
-        breadcrumb: ["🏰 Hệ Tủ Bếp Chữ L", "📦 Module Chậu Rửa", "🪵 Vách Hồi Trái 17.5mm"],
+        tier_label: "Tầng 3: Phụ Kiện Kim Khí (Hardware)",
+        name: "TAY NẮM KÉO 2-B (Hợp Kim Nhôm)",
+        category: "Phụ Kiện Kim Khí",
+        icon_type: "hardware",
+        dim_x: 150, dim_y: 22, dim_z: 18,
+        length: 150, width: 22, thickness: 18,
+        material: "Hợp Kim Nhôm Anode Đen Nhám",
+        area_m2: 0.003, volume_m3: 0.0001, edge_perimeter_m: 0.34,
+        breadcrumb: ["🏰 Hệ Tủ Quần Áo", "🚪 Hệ Cánh Cửa", "🪵 Tay Nắm Kéo 2-B"],
         hardware_list: [
-          { name: "Chỉ nẹp PVC dán cạnh viền (Dày 1mm)", qty: "2.7m" },
-          { name: "Lỗ khoan định vị cam chốt phi 15", qty: "4 lỗ" }
+          { name: "Ốc vít M4x22 bắt qua cánh tủ", qty: "2 con" },
+          { name: "Đệm cao su chống cấn Melamine", qty: "2 cái" }
         ],
-        status_cnc: "✅ Mã ván: V-01, đã tối ưu đường cắt Nesting trên khổ 1220x2440"
+        status_cnc: "✅ Tim lỗ khoan CNC chuẩn 128mm",
+        goods_info: {
+          sku: "HDL-ALU-TITAN-128",
+          title: "[Chính Hãng Chill Decor / Hafele] Tay Nắm Hợp Kim Nhôm Đúc Nguyên Khối Anode Cao Cấp Cho Tủ Áo & Ngăn Kéo",
+          brand: "Chill Hardware & Hafele Standard",
+          style: "Hiện Đại Tối Giản (Modern Minimalist / Bắc Âu Luxury)",
+          origin: "OEM Chuẩn Xuất Khẩu Châu Âu",
+          color_options: ["Đen Nhám Anode", "Vàng Xước Titan", "Bạc Chrome Sáng", "Xám Gunmetal"],
+          size_options: ["Tim 96mm (Dài 115)", "Tim 128mm (Dài 150)", "Tim 160mm (Dài 185)", "Tim 192mm (Dài 220)"],
+          price_current: "32.000 đ",
+          price_original: "45.000 đ",
+          discount: "-29%",
+          unit: "/ Cái (Kèm 02 ốc vít M4)",
+          warranty: "Bảo hành 24 tháng chính hãng chống bay màu & gỉ sét mồ hôi tay",
+          return_policy: "1 đổi 1 trong 30 ngày nếu lỗi ren ốc hoặc trầy xước từ nhà sản xuất",
+          durability_score: "⭐ 9.9 / 10 điểm",
+          user_review: "Chất nhôm đúc đầm tay chắc nịch, lớp mạ đen nhám mịn màng không bám vân tay. Bắt vào cánh tủ áo nhìn sang hơn hẳn tay nắm thông thường ngoài chợ!",
+          shop_description: "• Chất liệu: Hợp kim nhôm đặc đúc áp lực cao, không rỗng ruột.\n• Công nghệ mạ: Xử lý điện hóa Anode hóa cứng chịu ma sát mồ hôi tay.\n• Phụ kiện: Tặng kèm 02 ốc vít M4x22 tiêu chuẩn cho ván 17.5mm.",
+          specs: "Dài 150mm • Tim ốc 128mm • Bản rộng 12mm • Cao 22mm",
+          badge: "Shopee Mall",
+          rating: 4.96,
+          sold_count: "18.5k đã bán",
+          suppliers: [
+            { name: "Tổng Kho Phụ Kiện Kim Khí Mộc Cầu Giấy", city: "Hà Nội", dist_km: 1.1, stock: "Sẵn kho 3.500 cái", phone: "0982.555.666", addr: "Nguyễn Phong Sắc, Cầu Giấy, Hà Nội" },
+            { name: "Đại Lý Tay Nắm & Bản Lề Ivan Thạch Thất", city: "Hà Nội", dist_km: 2.3, stock: "Sẵn kho 6.000 cái", phone: "0971.222.333", addr: "Đường tỉnh 419, Thạch Thất, Hà Nội" },
+            { name: "Kho Phụ Kiện Tủ Áo Hóc Môn TP.HCM", city: "TP. Hồ Chí Minh", dist_km: 1.5, stock: "Sẵn kho 5.200 cái", phone: "0902.333.444", addr: "Quang Trung, P.14, Gò Vấp / Q12, TP.HCM" },
+            { name: "Tổng Đại Lý Phụ Kiện Mộc Thuận An Bình Dương", city: "Bình Dương", dist_km: 3.2, stock: "Sẵn kho 4.800 cái", phone: "0908.777.666", addr: "Đại Lộ Bình Dương, Thuận An, Bình Dương" }
+          ]
+        }
       }
     };
 
+    this.rootModelData = this.tierModels[1];
     this.currentSelectionData = this.tierModels[1];
 
     // Gắn sự kiện thanh thử nghiệm 3 tầng nhanh trong 3D Viewport
@@ -2416,20 +2798,191 @@ Quy tắc bóc tách kết cấu từ ảnh:
       }
     }
 
-    // Render ban đầu
-    this.updateProfileTab(this.currentSelectionData);
-    this.updateObjectPortrait(this.currentSelectionData);
+    // Khởi tạo thanh điều hướng phụ kiện 1 chạm (Sub-Switcher)
+    this.initHardwareSubSwitcher();
+
+    // Render ban đầu an toàn
+    try {
+      this.updateProfileTab(this.currentSelectionData);
+      this.updateObjectPortrait(this.currentSelectionData);
+    } catch (err) {
+      console.warn("[Chill AI] Initial 3-tier render error:", err);
+    }
     
     // Mặc định ở chế độ Khay Đứng: Hiển thị Avatar Tin Tin AI sẵn sàng chào đón anh Huy
     if (document.body.classList.contains('dock-mode') || localStorage.getItem('chill_layout_mode') !== 'studio') {
-      this.updateHeroObjectPreview(null);
+      try {
+        this.updateHeroObjectPreview(null);
+      } catch (err) {
+        console.warn("[Chill AI] Initial hero preview error:", err);
+      }
+    }
+  }
+
+  // --- THANH ĐIỀU HƯỚNG PHỤ KIỆN 1 CHẠM (1-TOUCH ACCESSORY SUB-SWITCHER) ---
+  initHardwareSubSwitcher() {
+    const chipDoor = document.getElementById('chip-switch-door');
+    const chipHandle = document.getElementById('chip-switch-handle');
+    const chipHinge = document.getElementById('chip-switch-hinge');
+
+    if (chipDoor) chipDoor.addEventListener('click', () => this.switchSubHardware('door'));
+    if (chipHandle) chipHandle.addEventListener('click', () => this.switchSubHardware('handle'));
+    if (chipHinge) chipHinge.addEventListener('click', () => this.switchSubHardware('hinge'));
+  }
+
+  updateHardwareSubSwitcher(data) {
+    const bar = document.getElementById('dock-shopee-switcher-bar');
+    if (!bar) return;
+
+    const nameLower = (data.name || '').toLowerCase();
+    const isHw = (data.category && data.category.toLowerCase().includes('phụ kiện')) || 
+                 (data.icon_type === 'hardware') || 
+                 nameLower.includes('tay nắm') || 
+                 nameLower.includes('bản lề');
+    const isDoorOrDrawer = nameLower.includes('cánh') || nameLower.includes('door') || 
+                           nameLower.includes('kéo') || nameLower.includes('ngăn') || 
+                           nameLower.includes('ván') || (data.tier === 2 || data.tier === 3);
+
+    if (isDoorOrDrawer || isHw) {
+      bar.style.display = 'flex';
+      if (!isHw) {
+        this.lastSelectedDoorOrPanel = data;
+        this.setSubSwitcherActive('door');
+      } else if (nameLower.includes('tay nắm')) {
+        this.setSubSwitcherActive('handle');
+      } else if (nameLower.includes('bản lề')) {
+        this.setSubSwitcherActive('hinge');
+      }
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  setSubSwitcherActive(target) {
+    const chips = {
+      door: document.getElementById('chip-switch-door'),
+      handle: document.getElementById('chip-switch-handle'),
+      hinge: document.getElementById('chip-switch-hinge')
+    };
+    Object.keys(chips).forEach(k => {
+      if (chips[k]) chips[k].classList.toggle('active', k === target);
+    });
+  }
+
+  switchSubHardware(target) {
+    this.setSubSwitcherActive(target);
+
+    if (target === 'handle') {
+      const handleData = {
+        tier: 3,
+        tier_label: "Tầng 3: Phụ Kiện Kim Khí (Hardware)",
+        name: "Tay Nắm Hợp Kim Nhôm Hafele Anode",
+        category: "Phụ Kiện",
+        icon_type: "hardware",
+        material: "Hợp kim nhôm Anode Đen Nhám",
+        dim_x: 128,
+        dim_y: 20,
+        dim_z: 15,
+        length: 128,
+        width: 20,
+        thickness: 15,
+        status_cnc: "Phụ Kiện Kim Khí Hafele Đạt Chuẩn",
+        goods_info: {
+          sku: "HDL-ALU-TITAN-128",
+          title: "[Chính Hãng Chill Decor / Hafele] Tay Nắm Hợp Kim Nhôm Đúc Nguyên Khối Anode Cao Cấp Cho Tủ Áo & Ngăn Kéo",
+          brand: "Chill Hardware & Hafele Standard",
+          style: "Hiện Đại Tối Giản (Modern Minimalist / Bắc Âu Luxury)",
+          origin: "OEM Chuẩn Xuất Khẩu Châu Âu",
+          color_options: ["Đen Nhám Anode", "Vàng Xước Titan", "Bạc Chrome Sáng", "Xám Gunmetal"],
+          size_options: ["Tim 96mm (Dài 115)", "Tim 128mm (Dài 150)", "Tim 160mm (Dài 185)", "Tim 192mm (Dài 220)"],
+          price_current: "32.000 đ",
+          price_original: "45.000 đ",
+          discount: "-29%",
+          unit: "/ Cái (Kèm 02 ốc vít M4)",
+          warranty: "Bảo hành 24 tháng chính hãng chống bay màu & gỉ sét",
+          return_policy: "1 đổi 1 trong 30 ngày nếu lỗi ren ốc hoặc trầy xước",
+          durability_score: "⭐ 9.9 / 10 điểm",
+          user_review: "“Chất nhôm đúc đầm tay chắc nịch, lớp mạ đen nhám mịn màng không bám vân tay. Bắt vào cánh tủ áo nhìn sang hơn hẳn tay nắm thông thường ngoài chợ!”",
+          shop_description: "• Chất liệu: Hợp kim nhôm đặc đúc áp lực cao, không rỗng ruột.\n• Công nghệ mạ: Xử lý điện hóa Anode hóa cứng chịu ma sát mồ hôi tay.\n• Phụ kiện: Tặng kèm 02 ốc vít M4x22 tiêu chuẩn cho ván 17.5mm.",
+          specs: "Dài 128mm • Cao 22mm • Bản rộng 12mm • Tim ốc chuẩn CNC",
+          badge: "Shopee Mall",
+          rating: 4.96,
+          sold_count: "18.5k đã bán",
+          suppliers: [
+            { name: "Tổng Kho Phụ Kiện Kim Khí Mộc Cầu Giấy", city: "Hà Nội", dist_km: 1.1, stock: "Sẵn kho 3.500 cái", phone: "0982.555.666", addr: "Nguyễn Phong Sắc, Cầu Giấy, Hà Nội" },
+            { name: "Đại Lý Tay Nắm & Bản Lề Ivan Thạch Thất", city: "Hà Nội", dist_km: 2.3, stock: "Sẵn kho 6.000 cái", phone: "0971.222.333", addr: "Đường tỉnh 419, Thạch Thất, Hà Nội" },
+            { name: "Kho Phụ Kiện Tủ Áo Hóc Môn TP.HCM", city: "TP. Hồ Chí Minh", dist_km: 1.5, stock: "Sẵn kho 5.200 cái", phone: "0902.333.444", addr: "Quang Trung, P.14, Gò Vấp / Q12, TP.HCM" },
+            { name: "Tổng Kho Bản Lề Tay Nắm Thuận An Bình Dương", city: "Bình Dương", dist_km: 3.6, stock: "Sẵn kho 4.800 cái", phone: "0968.111.444", addr: "Đại lộ Bình Dương, Thuận An, Bình Dương" }
+          ]
+        }
+      };
+      this.updateProfileTab(handleData);
+      this.updateHeroObjectPreview(handleData);
+      this.renderShopeeCard(handleData.goods_info);
+
+    } else if (target === 'hinge') {
+      const hingeData = {
+        tier: 3,
+        tier_label: "Tầng 3: Phụ Kiện Kim Khí (Hardware)",
+        name: "Bản Lề Giảm Chấn Blum / Ivan Inox 304",
+        category: "Phụ Kiện",
+        icon_type: "hardware",
+        material: "Inox 304 Thép Không Gỉ",
+        dim_x: 65,
+        dim_y: 35,
+        dim_z: 12,
+        length: 65,
+        width: 35,
+        thickness: 12,
+        status_cnc: "Phụ Kiện Giảm Chấn Đạt Chuẩn",
+        goods_info: {
+          sku: "HW-BLUM-110-SC",
+          title: "[Chính Hãng Blum / Ivan] Bản Lề Giảm Chấn Thủy Lực Inox 304 Bật Tháo Lắp Nhanh Cho Tủ Bếp & Tủ Áo",
+          brand: "Blum / Ivan Austria Design",
+          style: "Kỹ Thuật Công Nghiệp Đức",
+          origin: "Chính Hãng Áo / Đức",
+          color_options: ["Inox 304 Sáng Bóng", "Thép Mạ Niken", "Sơn Tĩnh Điện Đen Titan"],
+          size_options: ["Cong vừa (Trùm nửa)", "Thẳng (Trùm ngoài)", "Cong nhiều (Lọt lòng)"],
+          price_current: "38.000 đ",
+          price_original: "50.000 đ",
+          discount: "-24%",
+          unit: "/ Cái (Kèm đế & ốc vít)",
+          warranty: "Bảo hành trọn đời chống xệ cánh • 1 đổi 1 trong 1 năm",
+          return_policy: "Đổi mới ngay lập tức nếu piston thủy lực xì dầu hoặc kẹt lò xo",
+          durability_score: "⭐ 9.8 / 10 điểm",
+          user_review: "“Đóng mở êm ru không 1 tiếng động, cánh tủ tự hít vào nhẹ nhàng. Đã dùng cho hàng trăm công trình chưa từng bị lỗi xệ cánh.”",
+          shop_description: "• Thép không rỉ Inox 304 dày 1.5mm, piston đồng thủy lực đôi.\n• Góc mở rộng 110 độ, điều chỉnh 3D đa hướng (lên-xuống, ra-vào, trái-phải).\n• Đạt chứng nhận 80.000 lần đóng mở tiêu chuẩn LGA Đức.",
+          specs: "Góc mở 110° • Giảm chấn thủy lực êm ái • Thử nghiệm 80.000 lần đóng mở",
+          badge: "Shopee Mall",
+          rating: 4.98,
+          sold_count: "12.5k đã bán",
+          suppliers: [
+            { name: "Tổng Kho Phụ Kiện Kim Khí Blum - Hafele Cầu Giấy", city: "Hà Nội", dist_km: 0.9, stock: "Sẵn kho 2.500 bộ", phone: "0982.555.666", addr: "Nguyễn Phong Sắc, Cầu Giấy, Hà Nội" },
+            { name: "Trung Tâm Phụ Kiện Ngành Mộc DTC & Ivan Thạch Thất", city: "Hà Nội", dist_km: 2.8, stock: "Sẵn kho 5.000 bộ", phone: "0971.222.333", addr: "Đường tỉnh 419, Thạch Thất, Hà Nội" },
+            { name: "Tổng Kho Phụ Kiện Mộc Hóc Môn - Q12", city: "TP. Hồ Chí Minh", dist_km: 1.6, stock: "Sẵn kho 4.200 bộ", phone: "0902.333.444", addr: "Quang Trung, P.14, Gò Vấp / Q12, TP.HCM" }
+          ]
+        }
+      };
+      this.updateProfileTab(hingeData);
+      this.updateHeroObjectPreview(hingeData);
+      this.renderShopeeCard(hingeData.goods_info);
+
+    } else if (target === 'door') {
+      const orig = this.lastSelectedDoorOrPanel || this.currentSelectionData;
+      if (orig) {
+        this.updateProfileTab(orig);
+        this.updateHeroObjectPreview(orig);
+        if (orig.goods_info) {
+          this.renderShopeeCard(orig.goods_info);
+        }
+      }
     }
   }
 
   selectTier(tierNumber) {
     this.currentTier = tierNumber;
     const data = this.tierModels[tierNumber] || this.tierModels[1];
-    this.selectObject(data);
+    this.selectObject(data, null, this.tierModels[1]);
 
     // Cập nhật trạng thái active của nút chọn
     document.querySelectorAll('.btn-tier-select').forEach(b => {
@@ -2440,51 +2993,346 @@ Quy tắc bóc tách kết cấu từ ảnh:
     });
   }
 
-  selectObject(data, sourceMesh = null) {
+  selectObject(data, sourceMesh = null, rootData = null, source = null) {
     if (!data) return;
-    this.currentSelectionData = data;
-    this.updateProfileTab(data);
-    this.updateObjectPortrait(data, sourceMesh);
+    try {
+      this.currentSelectionData = data;
+      this.selectionSource = source || (sourceMesh ? 'plugin_3d' : (data._source || 'plugin_ui'));
+      this.updateProfileTab(data);
+      this.updateObjectPortrait(data, sourceMesh);
+      this.updateHardwareSubSwitcher(data);
 
-    // Cập nhật dữ liệu đối tượng nhưng GIỮ NGUYÊN tab người dùng đang làm việc (Chat AI, DC, CAM...)
-    // Tuyệt đối không tự ý nhảy về tab-scan làm gián đoạn trò chuyện
-    this.updatePortraitView('object');
+      // ==============================================================================
+      // NGUYÊN TẮC HIỂN THỊ 3D VIEWPORT (STUDIO MODE) vs AVATAR:
+      // 1. Avatar (Mini 3D Inspector): Hiển thị chi tiết đối tượng được click (tay nắm, bản lề, miếng ván)
+      // 2. Viewport 3D lớn: LUÔN hiển thị TỔNG FILE VẬT THỂ hoặc KHỐI TỔNG LỚN NHẤT (Tầng 1).
+      //    Tuyệt đối không bị thu nhỏ hoặc biến dạng thành miếng chi tiết nhỏ!
+      // ==============================================================================
+      let masterData = null;
+      if (rootData && (rootData.tier === 1 || !rootData.tier)) {
+        masterData = rootData;
+      } else if (data.tier === 1) {
+        masterData = data;
+      } else if (this.rootModelData) {
+        masterData = this.rootModelData;
+      } else {
+        // Fallback: Khi click chi tiết mà chưa từng có khối tổng
+        const nameLower = (data.name || '').toLowerCase();
+        const isWardrobe = nameLower.includes('áo') || nameLower.includes('quần áo') || nameLower.includes('wardrobe') || nameLower.includes('closet') || nameLower.includes('tu ao') || nameLower.includes('tủ') || nameLower.includes('tay nắm');
+        const isKitchen = nameLower.includes('bếp') || nameLower.includes('kitchen');
+        masterData = {
+          tier: 1,
+          name: isWardrobe ? "Hệ Tủ Quần Áo Đa Năng" : (isKitchen ? "Hệ Tủ Bếp Chữ L" : "Bàn Làm Việc Thông Minh"),
+          model_type: isWardrobe ? 'wardrobe' : (isKitchen ? 'kitchen_cabinet' : 'desk'),
+          dim_x: isWardrobe ? 1200 : (isKitchen ? 2400 : 1200),
+          dim_y: isWardrobe ? 600 : (isKitchen ? 600 : 600),
+          dim_z: isWardrobe ? 1800 : (isKitchen ? 2200 : 750),
+          doors: 3,
+          drawers: 2
+        };
+      }
+
+      this.rootModelData = masterData;
+
+      // Đồng bộ thông số Khối Tổng lên 3D Viewport lớn trong Studio Mode
+      const masterNameLower = (masterData.name || '').toLowerCase();
+      let detectedType = masterData.model_type || '';
+      if (!detectedType) {
+        if (masterNameLower.includes('áo') || masterNameLower.includes('quần áo') || masterNameLower.includes('wardrobe') || masterNameLower.includes('closet') || masterNameLower.includes('tu ao') || masterNameLower.includes('quan ao') || (masterNameLower.includes('tủ') && !masterNameLower.includes('bếp'))) {
+          detectedType = 'wardrobe';
+        } else if (masterNameLower.includes('bếp') || masterNameLower.includes('kitchen') || masterNameLower.includes('tu bep')) {
+          detectedType = 'kitchen_cabinet';
+        } else if (masterNameLower.includes('giường') || masterNameLower.includes('bed') || masterNameLower.includes('giuong')) {
+          detectedType = 'bed';
+        } else if (masterNameLower.includes('kệ') || masterNameLower.includes('shelf') || masterNameLower.includes('ke')) {
+          detectedType = 'shelf';
+        } else if (masterNameLower.includes('bàn') || masterNameLower.includes('desk') || masterNameLower.includes('table') || masterNameLower.includes('ban')) {
+          detectedType = 'desk';
+        } else {
+          detectedType = 'wardrobe';
+        }
+      }
+
+      if (this.currentModel) {
+        this.currentModel.type = detectedType;
+        this.currentModel.name = masterData.name || (detectedType === 'wardrobe' ? 'Hệ Tủ Quần Áo' : 'Bàn Làm Việc');
+        this.currentModel.length = parseFloat(masterData.dim_x || masterData.length) || (detectedType === 'wardrobe' ? 1200 : 1200);
+        this.currentModel.width = parseFloat(masterData.dim_y || masterData.width) || 600;
+        this.currentModel.height = parseFloat(masterData.dim_z || masterData.height) || (detectedType === 'wardrobe' ? 1800 : 750);
+        this.currentModel.doors = masterData.doors || 3;
+        this.currentModel.drawers = masterData.drawers || 2;
+      }
+
+      // Cập nhật tiêu đề mô hình Khối Tổng trên đỉnh 3D Viewport lớn:
+      const titleEl = document.getElementById('viewport-model-title');
+      if (titleEl) {
+        titleEl.textContent = `Mô hình: ${this.currentModel.name} (${this.currentModel.length} x ${this.currentModel.width} x ${this.currentModel.height} mm)`;
+      }
+
+      // Chỉ re-render 3D Viewport lớn nếu Khối Tổng thực sự thay đổi
+      const rootKey = `${this.currentModel.type}_${this.currentModel.length}_${this.currentModel.width}_${this.currentModel.height}`;
+      if (this._lastRenderedRootKey !== rootKey) {
+        this._lastRenderedRootKey = rootKey;
+        if (this.viewer && typeof this.viewer.updateModel === 'function') {
+          try {
+            this.viewer.updateModel(this.currentModel);
+            if (typeof this.viewer.spinShowcase === 'function') {
+              this.viewer.spinShowcase(3);
+            }
+          } catch (vErr) {
+            console.warn("[Chill AI] Viewer updateModel error:", vErr);
+          }
+        }
+      }
+
+      // Xoay 3 vòng 360 độ trên cả Mini Inspector & Dock Mini Inspector
+      if (this.miniInspector && typeof this.miniInspector.spinShowcase === 'function') {
+        try { this.miniInspector.spinShowcase(3); } catch (e) {}
+      }
+      if (this.dockMiniInspector && typeof this.dockMiniInspector.spinShowcase === 'function') {
+        try { this.dockMiniInspector.spinShowcase(3); } catch (e) {}
+      }
+
+      // Tự động đồng bộ thông tin hàng hóa & Nơi bán gần bạn chuẩn Shopee
+      try {
+        if (data.goods_info) {
+          this.updateShopeeData(data.goods_info);
+        } else {
+          this.updateShopeeData(null);
+        }
+      } catch (sErr) {
+        console.warn("[Chill AI] updateShopeeData error:", sErr);
+      }
+
+      // Tự động mở tab Nơi Bán & Mua Vật Tư khi chọn vật thể (chuẩn yêu cầu anh Huy)
+      try {
+        if (document.body.classList.contains('dock-mode') || localStorage.getItem('chill_layout_mode') !== 'studio') {
+          this.switchDockTab('dock-pane-shopee');
+        } else {
+          this.switchTab('tab-shopee');
+        }
+      } catch (tErr) {
+        console.warn("[Chill AI] Auto switch Shopee tab error:", tErr);
+      }
+
+      // Avatar Tin Tin tương tác trực tiếp: Báo đã nhận diện và đồng bộ 7 mục Mua Vật Tư
+      if (this.avatar && data && data.name) {
+        const itemTitle = data.name;
+        const msg = `Lan đã nhận diện: <strong>${itemTitle}</strong>.<br>Đã cập nhật đầy đủ 7 mục thông tin hàng hóa, phân loại SKU & nơi mua gần bạn nhất vào tab <strong>Mua Vật Tư</strong> rồi nhé anh Huy! 🛒✨`;
+        try {
+          this.avatar.addMessage('bot', msg, {
+            text: '🛒 Mở Tab Mua Vật Tư',
+            onClick: () => {
+              if (document.body.classList.contains('dock-mode')) {
+                const btn = document.getElementById('dock-nav-shopee');
+                if (btn) btn.click();
+              } else {
+                this.switchTab('tab-shopee');
+              }
+            }
+          }, false);
+        } catch (aErr) {
+          console.warn("[Chill AI] Avatar addMessage error:", aErr);
+        }
+      }
+
+      this.updatePortraitView('object');
+    } catch (err) {
+      console.error("[Chill AI] selectObject error:", err);
+    }
   }
 
   on3DObjectSelected(meshData, sourceMesh = null) {
     if (!meshData) return;
-    this.selectObject(meshData, sourceMesh);
+    this.selectObject(meshData, sourceMesh, null, 'plugin_3d');
   }
 
   handleSketchupSelection(payload) {
     if (!payload) return;
-    if (payload.has_selection && payload.data) {
-      this.selectObject(payload.data);
+
+    // Cập nhật cảnh báo quá khổ ván Real-time (Co kéo 3D & Dynamic Component)
+    if (payload.oversized_warning) {
+      this.handleOversizedWarning(payload.oversized_warning, payload.data);
     } else {
-      console.log("[Chill AI] SU Selection cleared.");
-      this.currentSelectionData = null;
-      this.updateHeroObjectPreview(null);
-      this.updatePortraitView('ai');
+      this.handleOversizedWarning(null);
+    }
+
+    if (payload.has_selection && payload.data) {
+      // NẾU người dùng đang chọn xem chi tiết trực tiếp trong 3D Plugin (tay nắm, miếng ván...),
+      // TUYỆT ĐỐI không cho SketchUp polling đè ngược lại khối tủ áo!
+      if (this.selectionSource === 'plugin_3d') {
+        console.log("[Chill AI] Đang giữ chi tiết 3D plugin, bỏ qua selection từ SketchUp:", this.currentSelectionData?.name);
+        return;
+      }
+
+      this.selectionSource = 'sketchup';
+      const incomingId = payload.data.entity_id;
+      const currentId = this.currentSelectionData ? this.currentSelectionData.entity_id : null;
+
+      // Kiểm tra xem kích thước có bị thay đổi do co kéo 3D (Scale / Dynamic Component) không
+      let dimChanged = false;
+      if (this.currentSelectionData && payload.data) {
+        const curL = Number(this.currentSelectionData.length) || 0;
+        const curW = Number(this.currentSelectionData.width) || 0;
+        const curH = Number(this.currentSelectionData.height) || 0;
+        const newL = Number(payload.data.length) || 0;
+        const newW = Number(payload.data.width) || 0;
+        const newH = Number(payload.data.height) || 0;
+        if (Math.abs(curL - newL) > 1.0 || Math.abs(curW - newW) > 1.0 || Math.abs(curH - newH) > 1.0) {
+          dimChanged = true;
+        }
+      }
+
+      // Tránh reload lại cùng một đối tượng NẾU kích thước KHÔNG đổi (để giữ chu kỳ xoay 3 vòng mượt mà)
+      if (incomingId && currentId && String(incomingId) === String(currentId) && !dimChanged) {
+        return;
+      }
+      this.selectObject(payload.data, null, payload.root_data, 'sketchup');
+    } else {
+      // Nếu đối tượng đang xem được chọn từ 3D Plugin (source === 'plugin_3d' hoặc 'plugin_ui'),
+      // TUYỆT ĐỐI không để polling ngầm 3s của SketchUp tự ý xóa và đá về lại Anh Thợ Mộc!
+      if (this.selectionSource === 'plugin_3d' || this.selectionSource === 'plugin_ui') {
+        return;
+      }
+
+      if (this.currentSelectionData) {
+        console.log("[Chill AI] SU Selection cleared.");
+        this.currentSelectionData = null;
+        this.selectionSource = null;
+        this.updateHeroObjectPreview(null);
+        this.updatePortraitView('ai');
+      }
+    }
+  }
+
+  // Quản lý hiển thị Banner & Âm thanh cảnh báo tấm quá khổ ván 1220x2440mm
+  handleOversizedWarning(warning, data = null) {
+    const banner = document.getElementById('dock-oversized-warning-banner');
+    const badgeCount = document.getElementById('dock-oversized-badge-count');
+    const detailsContainer = document.getElementById('dock-oversized-details');
+    const healthFill = document.getElementById('dock-hero-obj-health-fill');
+    const healthText = document.getElementById('dock-hero-obj-health-text');
+
+    if (!warning || !warning.has_oversized || !warning.panels || warning.panels.length === 0) {
+      if (banner) banner.style.setProperty('display', 'none', 'important');
+      if (healthFill && this.currentSelectionData) {
+        healthFill.style.width = '100%';
+        healthFill.style.background = 'var(--accent-green, #2ed573)';
+      }
+      if (healthText && this.currentSelectionData) {
+        healthText.textContent = 'Chuẩn CNC 100%';
+        healthText.style.color = 'var(--text-primary, #ffffff)';
+      }
+      return;
+    }
+
+    // Có tấm quá khổ! Bật banner cảnh báo đỏ rực
+    if (banner) banner.style.setProperty('display', 'block', 'important');
+    if (badgeCount) badgeCount.textContent = `${warning.total_oversized} tấm`;
+
+    // Cập nhật thanh máu sức khỏe CNC sang màu đỏ cảnh báo
+    if (healthFill) {
+      healthFill.style.width = '35%';
+      healthFill.style.background = 'linear-gradient(90deg, #ff4757, #ff6b81)';
+    }
+    if (healthText) {
+      healthText.textContent = `⚠️ QUÁ KHỔ (${warning.total_oversized} TẤM)`;
+      healthText.style.color = '#ff6b81';
+    }
+
+    // Render danh sách chi tiết các tấm bị quá khổ
+    if (detailsContainer) {
+      detailsContainer.innerHTML = warning.panels.map(p => {
+        let excessBadges = [];
+        if (p.is_oversized_l) {
+          excessBadges.push(`<span class="excess-pill">Dài +${p.excess_l}mm (>2440)</span>`);
+        }
+        if (p.is_oversized_w) {
+          excessBadges.push(`<span class="excess-pill">Rộng +${p.excess_w}mm (>1220)</span>`);
+        }
+        return `
+          <div class="oversized-item" data-id="${p.entity_id}" title="Nhấp để zoom cận cảnh tấm này trong SketchUp">
+            <div class="oversized-item-header">
+              <span class="oversized-item-name">🪵 ${p.name || 'Tấm ván'}</span>
+              <div class="oversized-item-pills">${excessBadges.join(' ')}</div>
+            </div>
+            <div class="oversized-item-dims">
+              Kích thước thực tế: <strong>${p.length} × ${p.width} × ${p.thickness} mm</strong>
+            </div>
+            <div class="oversized-item-sol">
+              💡 ${p.solution || 'Cần chia nhỏ hoặc chuyển sang khổ ván lớn 2745mm'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Kích hoạt giọng nói cảnh báo Lyly (throttle 6 giây tránh lặp liên tục khi kéo chuột)
+    const now = Date.now();
+    if (!this.lastOversizedVoiceTime || (now - this.lastOversizedVoiceTime > 6000)) {
+      this.lastOversizedVoiceTime = now;
+      const firstP = warning.panels[0];
+      const excessInfo = firstP.is_oversized_l ? `vượt ${firstP.excess_l} mi-li-mét chiều dài` : `vượt ${firstP.excess_w} mi-li-mét chiều rộng`;
+      const voiceText = `Anh Huy ơi! Phát hiện tấm ${firstP.name} ${excessInfo} so với khổ ván tiêu chuẩn hai nghìn bốn trăm bốn mươi mi-li-mét. Anh hãy kiểm tra và thu bớt hoặc chọn dùng khổ hai nghìn bảy trăm bốn mươi lăm nhé!`;
+
+      if (this.avatar && typeof this.avatar.speak === 'function') {
+        try {
+          this.avatar.speak(voiceText);
+        } catch (e) {
+          console.warn("[Chill AI] Lyly speak error:", e);
+        }
+      }
+      if (this.avatar && typeof this.avatar.addMessage === 'function') {
+        try {
+          this.avatar.setEmotion('worried');
+          this.avatar.addMessage('bot', `⚠️ <strong>CẢNH BÁO QUÁ KHỔ VÁN:</strong><br>Phát hiện <strong>${warning.total_oversized} tấm</strong> vượt khổ ván 1220x2440mm! (${firstP.name}: ${firstP.length}x${firstP.width}mm, ${excessInfo}).<br>Anh có thể bấm nút <strong>[✂️ Thu Về 2440mm]</strong> hoặc chuyển sang <strong>[📐 Dùng Khổ 2745mm]</strong> ở banner bên trên nhé!`);
+        } catch (e) {}
+      }
+    }
+  }
+
+  clearSelection() {
+    this.currentSelectionData = null;
+    this.selectionSource = null;
+    this.updateHeroObjectPreview(null);
+    this.updatePortraitView('ai');
+    if (this.viewer && typeof this.viewer.highlightMesh === 'function') {
+      this.viewer.highlightMesh(null);
     }
   }
 
   updatePortraitView(mode) {
+    // 1. Studio mode elements
     const paneAi = document.getElementById('portrait-view-ai');
     const paneObj = document.getElementById('portrait-view-object');
     const nameEl = document.getElementById('portrait-figure-name');
+
+    // 2. Dock mode elements (Đồng bộ 100% Khay Đứng)
+    const dockBox = document.getElementById('dock-avatar-preview-box');
+    const dockAvatarView = document.getElementById('dock-hero-avatar-view');
+    const dockObjView = document.getElementById('dock-hero-object-view');
+    const dockNameEl = document.getElementById('dock-hero-obj-name');
 
     if (mode === 'ai') {
       if (paneAi) { paneAi.classList.add('active'); paneAi.style.display = 'block'; }
       if (paneObj) { paneObj.classList.remove('active'); paneObj.style.display = 'none'; }
       if (nameEl) nameEl.textContent = 'Anh Thợ Mộc';
+
+      if (dockBox) dockBox.classList.remove('has-object');
+      if (dockAvatarView) dockAvatarView.style.display = '';
+      if (dockObjView) dockObjView.style.display = 'none';
     } else {
       if (paneAi) { paneAi.classList.remove('active'); paneAi.style.display = 'none'; }
       if (paneObj) { paneObj.classList.add('active'); paneObj.style.display = 'block'; }
       if (nameEl && this.currentSelectionData) {
         nameEl.textContent = this.currentSelectionData.name || 'Đối tượng 3D';
       }
-      if (this.miniInspector && this.currentSelectionData) {
-        this.miniInspector.inspect(this.currentSelectionData);
+
+      if (dockBox) dockBox.classList.add('has-object');
+      if (dockAvatarView) dockAvatarView.style.display = 'none';
+      if (dockObjView) dockObjView.style.display = 'flex';
+      if (dockNameEl && this.currentSelectionData) {
+        dockNameEl.textContent = (this.currentSelectionData.name || 'ĐỐI TƯỢNG 3D').toUpperCase();
       }
     }
   }
@@ -2493,11 +3341,23 @@ Quy tắc bóc tách kết cấu từ ảnh:
     if (!data) return;
     const tier = data.tier || 1;
 
-    // Header Badge
+    // Header Badge (Studio Mode)
     const headerBadge = document.getElementById('aoe-tier-header-badge');
     if (headerBadge) {
       headerBadge.className = `profile-badge tier-${tier}`;
       headerBadge.textContent = data.tier_label || `TẦNG ${tier}`;
+    }
+
+    // Workspace Dock Badge (Khay Đứng Mode)
+    const dockWsBadge = document.getElementById('dock-ws-badge');
+    if (dockWsBadge) {
+      const isHw = (data.category && data.category.toLowerCase().includes('phụ kiện')) || 
+                   (data.icon_type === 'hardware') || 
+                   (data.name && data.name.toLowerCase().includes('tay nắm')) ||
+                   (data.name && data.name.toLowerCase().includes('bản lề'));
+      const badgeText = isHw ? 'TẦNG 3: PHỤ KIỆN' : (tier === 1 ? 'TẦNG 1: KHỐI TỔNG' : (tier === 2 ? 'TẦNG 2: CÁNH / MODULE' : 'TẦNG 3: TẤM VÁN'));
+      dockWsBadge.textContent = badgeText;
+      dockWsBadge.className = `dock-ws-badge tier-${tier}${isHw ? ' hw' : ''}`;
     }
 
     // Name & ID
@@ -2573,10 +3433,11 @@ Quy tắc bóc tách kết cấu từ ảnh:
     const valZ = data.dim_z || data.height || (data.thickness ? data.thickness : 750);
     if (inLen) inLen.value = valX;
     if (inWid) inWid.value = valY;
-    if (inHei) inHei.value = valZ;
-    this.currentModel.length = valX;
-    this.currentModel.width = valY;
-    this.currentModel.height = valZ;
+    if (tier === 1) {
+      this.currentModel.length = valX;
+      this.currentModel.width = valY;
+      this.currentModel.height = valZ;
+    }
 
     // Đồng bộ Cây Phân Cấp Outliner Tree View (Cha -> Con -> Cháu)
     const t1 = document.getElementById('tree-node-1');
@@ -2675,6 +3536,8 @@ Quy tắc bóc tách kết cấu từ ảnh:
   // Cập nhật Ô ĐỎ trên đỉnh Khay Đứng: Đồng bộ 100% với bản Full Studio (Ảnh 1)
   updateHeroObjectPreview(data, sourceMesh = null) {
     const previewBox = document.getElementById('dock-avatar-preview-box');
+    const avatarView = document.getElementById('dock-hero-avatar-view');
+    const objView = document.getElementById('dock-hero-object-view');
     const badgeEl = document.getElementById('dock-hero-obj-badge');
     const nameEl = document.getElementById('dock-hero-obj-name');
     const healthFill = document.getElementById('dock-hero-obj-health-fill');
@@ -2683,12 +3546,26 @@ Quy tắc bóc tách kết cấu từ ảnh:
     if (data && (data.name || data.dim_x || data.length)) {
       // Chuyển sang hiển thị mô hình 3D Inspector
       if (previewBox) previewBox.classList.add('has-object');
+      if (avatarView) avatarView.style.display = 'none';
+      if (objView) objView.style.display = 'flex';
 
       const tier = data.tier || 1;
-      const tierLabel = tier === 1 ? '🏰 [TẦNG 1] KHỐI TỔNG' : (tier === 2 ? '📦 [TẦNG 2] KHỐI LẺ' : '🪵 [TẦNG 3] TẤM VÁN');
+      const isHw = (data.category && data.category.toLowerCase().includes('phụ kiện')) || 
+                   (data.icon_type === 'hardware') || 
+                   (data.name && data.name.toLowerCase().includes('tay nắm')) ||
+                   (data.name && data.name.toLowerCase().includes('bản lề'));
+      const tierLabel = isHw ? '🔩 [TẦNG 3] PHỤ KIỆN' : (tier === 1 ? '🏰 [TẦNG 1] KHỐI TỔNG' : (tier === 2 ? '📦 [TẦNG 2] KHỐI LẺ' : '🪵 [TẦNG 3] TẤM VÁN'));
       if (badgeEl) {
-        badgeEl.className = `obj-portrait-badge tier-${tier}`;
+        badgeEl.className = `obj-portrait-badge tier-${tier}${isHw ? ' hw' : ''}`;
         badgeEl.textContent = tierLabel;
+      }
+
+      // Đồng bộ nhãn Tầng trên thanh header Workspace (#dock-ws-badge)
+      const dockWsBadge = document.getElementById('dock-ws-badge');
+      if (dockWsBadge) {
+        const badgeText = isHw ? 'TẦNG 3: PHỤ KIỆN' : (tier === 1 ? 'TẦNG 1: KHỐI TỔNG' : (tier === 2 ? 'TẦNG 2: CÁNH / MODULE' : 'TẦNG 3: TẤM VÁN'));
+        dockWsBadge.textContent = badgeText;
+        dockWsBadge.className = `dock-ws-badge tier-${tier}${isHw ? ' hw' : ''}`;
       }
       if (nameEl) {
         nameEl.textContent = (data.name || 'ĐỐI TƯỢNG 3D').toUpperCase();
@@ -2715,6 +3592,14 @@ Quy tắc bóc tách kết cấu từ ảnh:
     } else {
       // Quay về Avatar Tin Tin AI
       if (previewBox) previewBox.classList.remove('has-object');
+      if (avatarView) avatarView.style.display = '';
+      if (objView) objView.style.display = 'none';
+
+      const dockWsBadge = document.getElementById('dock-ws-badge');
+      if (dockWsBadge) {
+        dockWsBadge.textContent = 'TRỢ LÝ AI';
+        dockWsBadge.className = 'dock-ws-badge tier-1';
+      }
     }
   }
 
@@ -2727,6 +3612,40 @@ Quy tắc bóc tách kết cấu từ ảnh:
     const w = canvas.width;
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
+
+    const nameLower = (data.name || '').toLowerCase();
+    const isHw = (data.category && data.category.toLowerCase().includes('phụ kiện')) || 
+                 (data.icon_type === 'hardware') || 
+                 nameLower.includes('tay nắm') || 
+                 nameLower.includes('bản lề');
+
+    if (isHw) {
+      const cx = w / 2;
+      const cy = h / 2;
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(cx - 36, cy - 8, 72, 8, 3);
+      } else {
+        ctx.rect(cx - 36, cy - 8, 72, 8);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(cx - 24, cy, 8, 14);
+      ctx.fillRect(cx + 16, cy, 8, 14);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 32, cy - 5);
+      ctx.lineTo(cx + 32, cy - 5);
+      ctx.stroke();
+      return;
+    }
 
     const len = data.dim_x || data.length || 1200;
     const wid = data.dim_y || data.width || 600;
@@ -2924,7 +3843,7 @@ Quy tắc bóc tách kết cấu từ ảnh:
   initDockModeToggle() {
     // 1. Phục hồi chế độ đã lưu (mặc định là 'dock' chuẩn khay đứng)
     const savedMode = localStorage.getItem('chill_layout_mode') || 'dock';
-    this.switchLayoutMode(savedMode, false);
+    this.switchLayoutMode(savedMode, savedMode === 'studio');
 
     // 2. Nút chuyển đổi từ Studio -> Khay Đứng SU
     const btnToDock = document.getElementById('btn-toggle-dock-mode');
@@ -3002,7 +3921,8 @@ Quy tắc bóc tách kết cấu từ ảnh:
       'dock-pane-dc': { title: 'Tùy Chỉnh Dynamic Component', icon: '🛠️' },
       'dock-pane-cnc': { title: 'Bóc Tách & File G-Code CNC', icon: '⚙️' },
       'dock-pane-vision': { title: 'Quét Ảnh Thiết Kế AI', icon: '📸' },
-      'dock-pane-3d': { title: 'Mô Phỏng 3D Mini Inspector', icon: '👁️' }
+      'dock-pane-3d': { title: 'Mô Phỏng 3D Mini Inspector', icon: '👁️' },
+      'dock-pane-shopee': { title: 'Mua Vật Tư & Nơi Bán Gần Bạn', icon: '🛒' }
     };
 
     // 1. Highlight nút sidebar
@@ -3047,6 +3967,10 @@ Quy tắc bóc tách kết cấu từ ảnh:
           this.renderNestingCanvas(this.lastNestingData);
         }
       }, 50);
+    } else if (tabId === 'dock-pane-shopee') {
+      setTimeout(() => {
+        this.renderShopeeSuppliers();
+      }, 30);
     }
   }
 
@@ -3118,7 +4042,7 @@ Quy tắc bóc tách kết cấu từ ảnh:
     const syncDimensions = () => {
       const l = parseInt(inLen ? inLen.value : 1200) || 1200;
       const w = parseInt(inWid ? inWid.value : 600) || 600;
-      const h = parseInt(inHei ? inHei.value : 750) || 750;
+      const h = parseInt(inHei ? inHei.value : 1800) || 1800;
 
       this.currentModel.length = l;
       this.currentModel.width = w;
@@ -3185,19 +4109,28 @@ Quy tắc bóc tách kết cấu từ ảnh:
 
     // G. TAB 3D MINI CONTROLS
     document.getElementById('dock-btn-reset-3d-cam')?.addEventListener('click', () => {
+      let resetDone = false;
       if (this.miniInspector && this.miniInspector.fitCameraToObject && this.miniInspector.modelGroup) {
         this.miniInspector.fitCameraToObject(this.miniInspector.modelGroup);
-        this.showMiniToast('Đã đặt lại góc nhìn 3D!', 'info');
+        resetDone = true;
       }
+      if (this.dockMiniInspector && this.dockMiniInspector.fitCameraToObject && this.dockMiniInspector.modelGroup) {
+        this.dockMiniInspector.fitCameraToObject(this.dockMiniInspector.modelGroup);
+        resetDone = true;
+      }
+      if (resetDone) this.showMiniToast('Đã đặt lại góc nhìn 3D!', 'info');
     });
     document.getElementById('dock-btn-toggle-3d-wire')?.addEventListener('click', () => {
-      if (this.miniInspector && this.miniInspector.modelGroup) {
-        this.miniInspector.modelGroup.traverse(child => {
+      const toggleGrp = (grp) => {
+        if (!grp) return;
+        grp.traverse(child => {
           if (child.isMesh && child.material) {
             child.material.wireframe = !child.material.wireframe;
           }
         });
-      }
+      };
+      if (this.miniInspector && this.miniInspector.modelGroup) toggleGrp(this.miniInspector.modelGroup);
+      if (this.dockMiniInspector && this.dockMiniInspector.modelGroup) toggleGrp(this.dockMiniInspector.modelGroup);
     });
 
     // H. CỤM PHÍM TÁC VỤ GHIM ĐÁY MÀN HÌNH CHÍNH WORKSPACE
@@ -3206,20 +4139,29 @@ Quy tắc bóc tách kết cấu từ ảnh:
       this.sendToSketchUp('create_3d_model', this.currentModel);
     });
 
-    // 2. Nút Tạo Dynamic Component
+    // 2. Nút Tạo Dynamic Component (Biến đối tượng đang chọn hoặc sinh mới thành DC)
     document.getElementById('dock-btn-generate-dc')?.addEventListener('click', () => {
+      const selectedId = this.currentSelectionData ? this.currentSelectionData.entity_id : null;
+      const targetName = this.currentSelectionData ? this.currentSelectionData.name : (this.currentModel.name || 'Chill_Dynamic_Furniture');
       const dcParams = {
-        name: this.currentModel.name || 'Chill_Dynamic_Furniture',
-        lenx: this.currentModel.length || 1200,
-        leny: this.currentModel.width || 600,
-        lenz: this.currentModel.height || 750,
-        thickness: this.currentModel.thickness || 18,
+        entity_id: selectedId,
+        name: targetName,
+        type: (targetName.toLowerCase().includes('tủ') || targetName.toLowerCase().includes('tu') || targetName.toLowerCase().includes('cabinet') || targetName.toLowerCase().includes('wardrobe')) ? 'wardrobe' : 'desk',
+        length: this.currentSelectionData ? parseFloat(this.currentSelectionData.length) : (this.currentModel.length || 1600),
+        width: this.currentSelectionData ? parseFloat(this.currentSelectionData.width) : (this.currentModel.width || 600),
+        height: this.currentSelectionData ? parseFloat(this.currentSelectionData.height) : (this.currentModel.height || 1800),
+        thickness: this.currentModel.thickness || 17.5,
         material: this.currentModel.material || 'white_melamine',
-        doors: parseInt(document.getElementById('dock-input-doors')?.value || 2),
-        drawers: parseInt(document.getElementById('dock-input-drawers')?.value || 0),
+        doors: parseInt(document.getElementById('dock-input-doors')?.value || 3),
+        drawers: parseInt(document.getElementById('dock-input-drawers')?.value || 2),
         leg_style: document.getElementById('dock-select-leg-style')?.value || 'metal_frame'
       };
       this.sendToSketchUp('create_dynamic_component', dcParams);
+      if (this.avatar) {
+        this.avatar.speak(`Lan đang chuyển đổi ${targetName} thành Dynamic Component có đầy đủ thông số và cánh mở tương tác cho anh Huy nhé!`);
+        this.avatar.addMessage('bot', `🪄 <strong>ĐÃ TẠO DYNAMIC COMPONENT THÀNH CÔNG!</strong><br>Đối tượng <strong>${targetName}</strong> đã được nạp đầy đủ thông số co giãn, cảnh báo khổ ván 2440mm và hàm mở cánh tương tác.<br>Anh Huy hãy mở cửa sổ <strong>Component Options</strong> trong SketchUp để xem và chỉnh sửa thông số nhé! 🚪✨`);
+      }
+      this.showMiniToast(`Đang chuyển đổi ${targetName} thành Dynamic Component...`, 'info');
     });
 
     // 3. Nút Đồng Bộ SketchUp
@@ -3244,9 +4186,6 @@ Quy tắc bóc tách kết cấu từ ảnh:
     document.getElementById('dock-btn-switch-to-cam')?.addEventListener('click', () => {
       this.generateNestingData();
       this.showMiniToast('Đã tính toán sơ đồ Nesting tối ưu ván!', 'success');
-    });
-    document.getElementById('dock-btn-save-gcode')?.addEventListener('click', () => {
-      document.getElementById('btn-save-gcode')?.click();
     });
   }
 
@@ -3289,10 +4228,271 @@ Quy tắc bóc tách kết cấu từ ảnh:
   startSelectionPolling() {
     if (this._pollingTimer) clearInterval(this._pollingTimer);
     this._pollingTimer = setInterval(() => {
+      // Khi đang soi chi tiết trong 3D Plugin (tay nắm, ván...), tạm ngưng polling để tránh đè dữ liệu
+      if (this.selectionSource === 'plugin_3d') {
+        return;
+      }
       if (window.sketchup && window.sketchup.get_current_selection) {
         window.sketchup.get_current_selection();
       }
-    }, 1500);
+    }, 1000);
+  }
+
+  // ==============================================================================
+  // CHILL SHOPEE - HÀNG HÓA & TÌM NHÀ CUNG CẤP GẦN BẠN THEO BÁN KÍNH
+  // ==============================================================================
+  initShopeeMarketplace() {
+    const slider = document.getElementById('shopee-radius-slider');
+    const display = document.getElementById('shopee-radius-display');
+    const citySelect = document.getElementById('shopee-select-city');
+    const btnSwitch = document.getElementById('btn-switch-to-shopee');
+
+    slider?.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (display) display.textContent = val;
+      this.renderShopeeSuppliers();
+    });
+
+    citySelect?.addEventListener('change', () => {
+      this.renderShopeeSuppliers();
+    });
+
+    btnSwitch?.addEventListener('click', () => {
+      this.switchDockTab('dock-pane-shopee');
+    });
+
+    // Các nút bấm nhanh tại mặt tiền Khay Đứng (Nút footer & Chip ô xanh dương)
+    document.getElementById('chip-quick-export-dxf')?.addEventListener('click', () => {
+      this.saveDxfFile();
+    });
+    document.getElementById('dock-btn-footer-dxf')?.addEventListener('click', () => {
+      this.saveDxfFile();
+    });
+    document.getElementById('chip-quick-nest-su')?.addEventListener('click', () => {
+      this.nestToSketchUpDirectly();
+    });
+    document.getElementById('chip-quick-shopee')?.addEventListener('click', () => {
+      this.switchDockTab('dock-pane-shopee');
+    });
+    document.getElementById('dock-btn-footer-nest')?.addEventListener('click', () => {
+      this.nestToSketchUpDirectly();
+    });
+    document.getElementById('dock-btn-footer-shopee')?.addEventListener('click', () => {
+      this.switchDockTab('dock-pane-shopee');
+    });
+
+    // Các nút bấm tại Toàn Cảnh Studio
+    document.getElementById('btn-cmd-nest-to-su')?.addEventListener('click', () => {
+      this.nestToSketchUpDirectly();
+    });
+    document.getElementById('btn-cmd-shopee')?.addEventListener('click', () => {
+      this.switchTab('tab-shopee');
+    });
+
+    // Studio Shopee Radius Slider & City Select
+    const studioSlider = document.getElementById('studio-shopee-radius-slider');
+    const studioDisplay = document.getElementById('studio-shopee-radius-display');
+    const studioCity = document.getElementById('studio-shopee-select-city');
+    studioSlider?.addEventListener('input', (e) => {
+      if (studioDisplay) studioDisplay.textContent = e.target.value;
+      this.renderStudioShopeeSuppliers();
+    });
+    studioCity?.addEventListener('change', () => {
+      this.renderStudioShopeeSuppliers();
+    });
+
+    // Nạp dữ liệu ban đầu
+    this.updateShopeeData(null);
+  }
+
+  updateShopeeData(goodsInfo) {
+    if (!goodsInfo) {
+      // Mặc định nạp dữ liệu tay nắm tủ cao cấp (HDL-ALU-TITAN)
+      goodsInfo = {
+        sku: "HDL-ALU-TITAN-128",
+        badge: "Shopee Mall",
+        rating: 4.96,
+        sold_count: "18.5k đã bán",
+        title: "[Chính Hãng Chill Decor / Hafele] Tay Nắm Hợp Kim Nhôm Đúc Nguyên Khối Anode Cao Cấp Cho Tủ Áo & Ngăn Kéo",
+        brand: "Chill Hardware & Hafele Standard",
+        style: "Hiện Đại Tối Giản (Modern Minimalist / Bắc Âu Luxury)",
+        origin: "OEM Chuẩn Xuất Khẩu Châu Âu",
+        color_options: ["Đen Nhám Anode", "Vàng Xước Titan", "Bạc Chrome Sáng", "Xám Gunmetal"],
+        size_options: ["Tim 96mm (Dài 115)", "Tim 128mm (Dài 150)", "Tim 160mm (Dài 185)", "Tim 192mm (Dài 220)"],
+        price_current: "32.000 đ",
+        price_original: "45.000 đ",
+        discount: "-29%",
+        unit: "/ Cái (Kèm 02 ốc vít M4)",
+        warranty: "Bảo hành 24 tháng chính hãng chống bay màu & gỉ sét mồ hôi tay",
+        return_policy: "1 đổi 1 trong 30 ngày nếu lỗi ren ốc hoặc trầy xước từ nhà sản xuất",
+        durability_score: "⭐ 9.9 / 10 điểm",
+        user_review: "Chất nhôm đúc đầm tay chắc nịch, lớp mạ đen nhám mịn màng không bám vân tay. Bắt vào cánh tủ áo nhìn sang hơn hẳn tay nắm thông thường ngoài chợ!",
+        shop_description: "• Chất liệu: Hợp kim nhôm đặc đúc áp lực cao, không rỗng ruột.\n• Công nghệ mạ: Xử lý điện hóa Anode hóa cứng chịu ma sát mồ hôi tay.\n• Phụ kiện: Tặng kèm 02 ốc vít M4x22 tiêu chuẩn cho ván 17.5mm.",
+        specs: "Dài 128mm • Cao 22mm • Bản rộng 12mm • Tim ốc chuẩn CNC",
+        suppliers: [
+          { name: "Tổng Kho Phụ Kiện Kim Khí Mộc Cầu Giấy", city: "Hà Nội", dist_km: 1.1, stock: "Sẵn kho 3.500 cái", phone: "0982.555.666", addr: "Nguyễn Phong Sắc, Cầu Giấy, Hà Nội" },
+          { name: "Đại Lý Tay Nắm & Bản Lề Ivan Thạch Thất", city: "Hà Nội", dist_km: 2.3, stock: "Sẵn kho 6.000 cái", phone: "0971.222.333", addr: "Đường tỉnh 419, Thạch Thất, Hà Nội" },
+          { name: "Kho Phụ Kiện Tủ Áo Hóc Môn TP.HCM", city: "TP. Hồ Chí Minh", dist_km: 1.5, stock: "Sẵn kho 5.200 cái", phone: "0902.333.444", addr: "Quang Trung, P.14, Gò Vấp / Q12, TP.HCM" },
+          { name: "Tổng Đại Lý Phụ Kiện Mộc Thuận An Bình Dương", city: "Bình Dương", dist_km: 3.2, stock: "Sẵn kho 4.800 cái", phone: "0908.777.666", addr: "Đại Lộ Bình Dương, Thuận An, Bình Dương" }
+        ]
+      };
+    }
+
+    this.currentGoodsData = goodsInfo;
+    this.currentGoodsSuppliers = goodsInfo.suppliers || [];
+
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+      const elStudio = document.getElementById('studio-' + id);
+      if (elStudio) elStudio.textContent = val;
+    };
+
+    const setHtml = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = val;
+      const elStudio = document.getElementById('studio-' + id);
+      if (elStudio) elStudio.innerHTML = val;
+    };
+
+    // 1. Tên sản phẩm, SKU, Đánh giá & Đã bán
+    setEl('shopee-item-sku', `SKU: ${goodsInfo.sku || 'MAT-01'}`);
+    setEl('shopee-item-rating', goodsInfo.rating || '4.96');
+    setEl('shopee-item-sold', goodsInfo.sold_count || '1k+');
+    setEl('shopee-item-title', goodsInfo.title || 'Vật tư nội thất');
+
+    // 4. Giá cả & Khuyến mãi
+    setEl('shopee-item-price-current', goodsInfo.price_current || '32.000 đ');
+    setEl('shopee-item-price-original', goodsInfo.price_original || '45.000 đ');
+    setEl('shopee-item-discount', goodsInfo.discount || '-10%');
+    setEl('shopee-item-unit', goodsInfo.unit ? `${goodsInfo.unit}` : '/ Cái');
+
+    // 2. Phân loại SKU (Mã màu & Kích thước)
+    this.renderSkuChips('shopee-color-chips', goodsInfo.color_options || ["Đen Nhám Anode", "Vàng Xước Titan", "Bạc Chrome Sáng", "Xám Gunmetal"]);
+    this.renderSkuChips('studio-shopee-color-chips', goodsInfo.color_options || ["Đen Nhám Anode", "Vàng Xước Titan", "Bạc Chrome Sáng", "Xám Gunmetal"]);
+    this.renderSkuChips('shopee-size-chips', goodsInfo.size_options || ["Tim 96mm (Dài 115)", "Tim 128mm (Dài 150)", "Tim 160mm (Dài 185)", "Tim 192mm (Dài 220)"]);
+    this.renderSkuChips('studio-shopee-size-chips', goodsInfo.size_options || ["Tim 96mm (Dài 115)", "Tim 128mm (Dài 150)", "Tim 160mm (Dài 185)", "Tim 192mm (Dài 220)"]);
+
+    // 3. Phong cách & Xuất xứ
+    setEl('shopee-item-style', goodsInfo.style || 'Hiện Đại Tối Giản');
+    setEl('shopee-item-origin', goodsInfo.origin || 'OEM Chuẩn Xuất Khẩu Châu Âu');
+
+    // 5. Chính sách bảo hành & Đổi trả
+    setEl('shopee-item-warranty', goodsInfo.warranty || 'Bảo hành 24 tháng chính hãng');
+    setEl('shopee-item-return', goodsInfo.return_policy || '1 đổi 1 trong 30 ngày nếu lỗi');
+
+    // 6. Độ bền được người dùng đánh giá
+    const durScore = goodsInfo.durability_score ? (goodsInfo.durability_score.includes('⭐') ? goodsInfo.durability_score : `⭐ ${goodsInfo.durability_score}`) : '⭐ 9.9 / 10 điểm';
+    setEl('shopee-item-durability', durScore);
+    const reviewTxt = goodsInfo.user_review ? (goodsInfo.user_review.startsWith('“') ? goodsInfo.user_review : `“${goodsInfo.user_review}”`) : '“Chất lượng đúc hoàn thiện tinh xảo, bắt vào cánh tủ rất sang!”';
+    setEl('shopee-item-review', reviewTxt);
+
+    // 7. Thông tin do chủ shop đăng & Quy cách kỹ thuật
+    const formattedDesc = (goodsInfo.shop_description || '').replace(/\n/g, '<br>');
+    setHtml('shopee-item-shop-desc', formattedDesc);
+    setEl('shopee-item-specs', goodsInfo.specs || 'Quy cách kỹ thuật tiêu chuẩn');
+
+    this.renderShopeeSuppliers();
+  }
+
+  renderSkuChips(containerId, options) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!Array.isArray(options) || options.length === 0) {
+      container.innerHTML = '<span style="font-size:9px; color:#64748b;">(Tiêu chuẩn)</span>';
+      return;
+    }
+    container.innerHTML = options.map((opt, idx) => {
+      const activeClass = idx === 0 ? 'active' : '';
+      return `<span class="shopee-chip ${activeClass}" data-val="${opt}">${opt}</span>`;
+    }).join('');
+
+    // Attach click listener
+    container.querySelectorAll('.shopee-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.shopee-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+  }
+
+  renderShopeeSuppliers() {
+    const listEl = document.getElementById('shopee-supplier-list');
+    if (!listEl) return;
+
+    const slider = document.getElementById('shopee-radius-slider');
+    const citySelect = document.getElementById('shopee-select-city');
+    const countEl = document.getElementById('shopee-count-num');
+
+    const maxDist = parseFloat(slider?.value || 5);
+    const selectedCity = citySelect?.value || 'Hà Nội';
+
+    const allSuppliers = this.currentGoodsSuppliers || [];
+    
+    // Lọc theo thành phố và cự ly bán kính
+    let filtered = allSuppliers.filter(s => {
+      const matchCity = !s.city || s.city === selectedCity;
+      const matchDist = (s.dist_km || 0) <= maxDist;
+      return matchCity && matchDist;
+    });
+
+    filtered.sort((a, b) => (a.dist_km || 0) - (b.dist_km || 0));
+
+    if (countEl) countEl.textContent = filtered.length;
+    const studioCountEl = document.getElementById('studio-shopee-count-num');
+    if (studioCountEl) studioCountEl.textContent = filtered.length;
+
+    const studioListEl = document.getElementById('studio-shopee-supplier-list');
+
+    if (filtered.length === 0) {
+      const emptyHtml = `
+        <div style="text-align:center; padding:18px 10px; color:#94a3b8; font-size:10px; background:rgba(15,23,42,0.5); border-radius:6px; border:1px dashed #334155;">
+          <div style="font-size:22px; margin-bottom:4px;">🔍</div>
+          <div>Không tìm thấy đại lý nào trong bán kính <strong>${maxDist} km</strong> tại <strong>${selectedCity}</strong>.</div>
+          <div style="font-size:9.5px; color:#fbbf24; margin-top:5px;">💡 Gợi ý: Hãy kéo thanh trượt tăng bán kính lên 10km hoặc 20km nhé!</div>
+        </div>
+      `;
+      listEl.innerHTML = emptyHtml;
+      if (studioListEl) studioListEl.innerHTML = emptyHtml;
+      return;
+    }
+
+    const cardsHtml = filtered.map(sup => {
+      const d = sup.dist_km || 1.0;
+      let badgeClass = 'near';
+      let badgeText = `Gần: ${d} km`;
+      if (d > 5) {
+        badgeClass = 'far';
+        badgeText = `${d} km`;
+      } else if (d > 2.5) {
+        badgeClass = 'mid';
+        badgeText = `${d} km`;
+      }
+
+      const mapQuery = encodeURIComponent(`${sup.name} ${sup.addr}`);
+      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+
+      return `
+        <div class="shopee-supplier-card">
+          <div class="sup-header-row">
+            <span class="sup-name">🏪 ${sup.name}</span>
+            <span class="sup-distance-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="sup-addr">📍 ${sup.addr}</div>
+          <div class="sup-stock-row">
+            <span style="color:#34d399; font-weight:bold;">${sup.stock || '🟢 Sẵn hàng'}</span>
+            <span style="color:#64748b;">Giao xưởng: 1-2h</span>
+          </div>
+          <div class="sup-actions-row">
+            <a href="tel:${sup.phone}" class="btn-sup-phone" title="Gọi điện đặt hàng ngay">📞 Hotline: ${sup.phone}</a>
+            <a href="${mapUrl}" target="_blank" class="btn-sup-map" title="Mở chỉ đường Google Maps">🗺️ Chỉ Đường Maps</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.innerHTML = cardsHtml;
+    if (studioListEl) studioListEl.innerHTML = cardsHtml;
   }
 
   initAccordionTray() {
@@ -3359,9 +4559,9 @@ Quy tắc bóc tách kết cấu từ ảnh:
       btnBuild.addEventListener('click', () => {
         const payload = {
           preset_id: selectPreset ? selectPreset.value : 'an_cuong_17_5',
-          length: parseFloat(document.getElementById('dock-input-length')?.value) || 1600,
+          length: parseFloat(document.getElementById('dock-input-length')?.value) || 1200,
           width: parseFloat(document.getElementById('dock-input-width')?.value) || 600,
-          height: parseFloat(document.getElementById('dock-input-height')?.value) || 2200,
+          height: parseFloat(document.getElementById('dock-input-height')?.value) || 1800,
           doors: parseInt(document.getElementById('dock-input-doors')?.value, 10) || 3,
           drawers: parseInt(document.getElementById('dock-input-drawers')?.value, 10) || 2,
           material: document.getElementById('dock-select-wardrobe-mat')?.value || 'white_melamine',
@@ -3444,7 +4644,7 @@ Quy tắc bóc tách kết cấu từ ảnh:
 }
 
 // Instantiate on DOM Loaded
+window.ChillAIApp = ChillAIApp;
 document.addEventListener('DOMContentLoaded', () => {
   window.app = new ChillAIApp();
-
 });

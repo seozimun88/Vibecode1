@@ -198,6 +198,9 @@ class AvatarConsultant {
     figure.style.cursor = 'pointer';
     figure.title = 'Bấm vào Anh Thợ Mộc để trò chuyện';
     figure.addEventListener('click', () => {
+      if (window.chillApp && window.chillApp.currentSelectionData) {
+        window.chillApp.clearSelection();
+      }
       this.setEmotion('happy');
       const greetings = [
         'Dạ chào anh Huy! Anh Thợ Mộc Tin Tin luôn sẵn sàng hỗ trợ đóng đồ gỗ và bóc tách ván CNC chuẩn xác ạ! 🪵✨',

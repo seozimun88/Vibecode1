@@ -10,12 +10,15 @@ class Furniture3DViewer {
     this.renderer = null;
     this.currentMeshGroup = null;
     this.isWireframe = false;
+    this.spinRemaining = 0;
 
     // Mouse Orbit Controls State
     this.isMouseDown = false;
     this.prevMouseX = 0;
     this.prevMouseY = 0;
     this.spherical = { radius: 2400, theta: Math.PI / 4, phi: Math.PI / 3 };
+    this.isPausedByDblClick = false;
+    this.pauseTimer = null;
 
     this.init();
   }
@@ -103,12 +106,26 @@ class Furniture3DViewer {
       this.clickStartY = e.clientY;
     });
 
+    let lastClickTime = 0;
     el.addEventListener('mouseup', (e) => {
       this.isMouseDown = false;
       const dist = Math.hypot(e.clientX - (this.clickStartX || 0), e.clientY - (this.clickStartY || 0));
-      if (dist < 6) {
-        this.handleClickRaycast(e);
+      if (dist < 8) {
+        const now = Date.now();
+        if (now - lastClickTime < 380) {
+          // Kích chọn chuột trái 2 lần liên tiếp (<380ms)
+          lastClickTime = 0;
+          this.handleDoubleClickPause();
+        } else {
+          lastClickTime = now;
+          this.handleClickRaycast(e);
+        }
       }
+    });
+
+    el.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      this.handleDoubleClickPause();
     });
 
     window.addEventListener('mouseup', () => {
@@ -157,6 +174,7 @@ class Furniture3DViewer {
   resetCamera() {
     this.spherical = { radius: 2400, theta: Math.PI / 4, phi: Math.PI / 3 };
     this.centerModelToViewport();
+    this.spinShowcase(3);
   }
 
   centerModelToViewport() {
@@ -186,9 +204,49 @@ class Furniture3DViewer {
 
   animate() {
     requestAnimationFrame(() => this.animate());
+
+    // Môi trường 3D cứ xoay bình thường, trừ khi đang giữ chuột kéo hoặc đang tạm dừng 30s sau cú click đúp
+    if (this.currentMeshGroup && !this.isMouseDown && !this.isPausedByDblClick) {
+      if (this.spinRemaining > 0) {
+        const step = 0.022; // Vòng quay tăng tốc showcase
+        this.currentMeshGroup.rotation.y += step;
+        this.spinRemaining -= step;
+      } else {
+        this.currentMeshGroup.rotation.y += 0.005; // Tốc độ xoay tự động êm ái, thanh lịch chuẩn showroom
+      }
+    }
+
     if (this.renderer && this.scene && this.camera) {
       this.renderer.render(this.scene, this.camera);
     }
+  }
+
+  handleDoubleClickPause() {
+    this.isPausedByDblClick = true;
+    if (this.pauseTimer) clearTimeout(this.pauseTimer);
+
+    console.log("[Chill AI 3D] Đã kích chọn chuột trái 2 lần: Ngưng xoay 3D. Đợi 30s sau mới xoay tiếp.");
+    if (window.chillApp && typeof window.chillApp.showMiniToast === 'function') {
+      window.chillApp.showMiniToast("⏸️ Đã ngưng xoay 3D (Đợi 30s sau mới xoay tiếp)", "info");
+    }
+
+    // Đồng bộ tạm dừng 30s cho cả Mini Inspector
+    if (window.chillApp && window.chillApp.miniInspector && typeof window.chillApp.miniInspector.handleDoubleClickPause === 'function') {
+      window.chillApp.miniInspector.handleDoubleClickPause(false);
+    }
+
+    // Đợi đúng 30 giây (30,000 ms) sau mới xoay tiếp
+    this.pauseTimer = setTimeout(() => {
+      this.isPausedByDblClick = false;
+      console.log("[Chill AI 3D] Đã hết 30s: Tiếp tục xoay 3D bình thường.");
+      if (window.chillApp && typeof window.chillApp.showMiniToast === 'function') {
+        window.chillApp.showMiniToast("▶️ Tiếp tục xoay 3D bình thường", "info");
+      }
+    }, 30000);
+  }
+
+  spinShowcase(rotations = 3) {
+    this.spinRemaining = Math.PI * 2 * rotations;
   }
 
   // --- MODEL GENERATION FOR 3D VIEWPORT ---
@@ -235,6 +293,7 @@ class Furniture3DViewer {
 
     // Tự động căn chỉnh mô hình vào đúng giữa trọng tâm (Center to Viewport)
     this.centerModelToViewport();
+    this.spinShowcase(3);
   }
 
   // Helper box creator centered
@@ -256,10 +315,16 @@ class Furniture3DViewer {
       this.highlightMesh(hitMesh);
       if (hitMesh.userData && window.chillApp) {
         if (typeof window.chillApp.selectObject === 'function') {
-          window.chillApp.selectObject(hitMesh.userData, hitMesh);
+          window.chillApp.selectObject(hitMesh.userData, hitMesh, null, 'plugin_3d');
         } else {
-          window.chillApp.on3DObjectSelected(hitMesh.userData);
+          window.chillApp.on3DObjectSelected(hitMesh.userData, hitMesh);
         }
+      }
+    } else {
+      // Click vào khoảng trống nền 3D -> Hủy vùng chọn và quay lại Trợ lý AI
+      this.highlightMesh(null);
+      if (window.chillApp && typeof window.chillApp.clearSelection === 'function') {
+        window.chillApp.clearSelection();
       }
     }
   }
@@ -510,6 +575,42 @@ class Furniture3DViewer {
 
     const posZ = w / 2 + t / 2;
 
+    const handleUserData = {
+      entity_id: 10601,
+      tier: 3,
+      tier_label: "Tầng 3: Phụ Kiện Kim Khí (Tay Nắm)",
+      name: "Tay Nắm Hợp Kim Nhôm Đúc",
+      category: "Phụ Kiện Kim Khí",
+      icon_type: "hardware",
+      dim_x: 12, dim_y: 100, dim_z: 15,
+      length: 100, width: 12, thickness: 15,
+      material: "Hợp Kim Nhôm Đúc Anode Đen",
+      hardware_list: [{ name: "Vít bắt tay nắm M4x25", qty: "2 con" }],
+      status_cnc: "Phụ kiện hoàn thiện lắp ráp"
+    };
+
+    const doorUserData = {
+      entity_id: 10610,
+      tier: 2,
+      tier_label: "Tầng 2: Hệ Cánh Cửa Tủ",
+      name: "Cánh Tủ Áo Melamine",
+      category: "Cánh Tủ",
+      icon_type: "panel",
+      material: "MDF Chống Ẩm Phủ Melamine",
+      hardware_list: [{ name: "Bản lề bật giảm chấn Hafele", qty: "4 cái" }]
+    };
+
+    const drawerUserData = {
+      entity_id: 10620,
+      tier: 2,
+      tier_label: "Tầng 2: Ngăn Kéo Tủ Áo",
+      name: "Mặt Ngăn Kéo Tủ Áo",
+      category: "Ngăn Kéo",
+      icon_type: "panel",
+      material: "MDF Chống Ẩm Phủ Melamine",
+      hardware_list: [{ name: "Ray trượt bi 3 tầng giảm chấn", qty: "1 bộ" }]
+    };
+
     // TRƯỜNG HỢP A: TỦ 3 CÁNH + 2 NGĂN KÉO (Khớp 100% ảnh thực tế)
     if (doors === 3 && drawers > 0) {
       const colW = (l - 4) / 3;
@@ -525,19 +626,19 @@ class Furniture3DViewer {
 
       // 1 Cánh dài suốt bên phải
       const rightX = dividerX + colW / 2;
-      this.addBox(colW - 2, h - 64, t, rightX, 60 + (h - 64) / 2, posZ, doorMat);
+      this.addBox(colW - 2, h - 64, t, rightX, 60 + (h - 64) / 2, posZ, doorMat, doorUserData);
       // Tay nắm đứng cánh phải
-      this.addBox(12, 100, 15, rightX - colW / 2 + 30, h * 0.5, posZ + 8, metalMat);
+      this.addBox(12, 100, 15, rightX - colW / 2 + 30, h * 0.5, posZ + 8, metalMat, handleUserData);
 
       // 2 Cánh ngắn bên trái
       const door1X = -l / 2 + colW * 0.5 + 2;
       const door2X = -l / 2 + colW * 1.5 + 2;
       const upperY = 60 + drTotalH + 4 + upperDoorH / 2;
-      this.addBox(colW - 2, upperDoorH, t, door1X, upperY, posZ, doorMat);
-      this.addBox(colW - 2, upperDoorH, t, door2X, upperY, posZ, doorMat);
+      this.addBox(colW - 2, upperDoorH, t, door1X, upperY, posZ, doorMat, doorUserData);
+      this.addBox(colW - 2, upperDoorH, t, door2X, upperY, posZ, doorMat, doorUserData);
       // Tay nắm đứng 2 cánh ngắn
-      this.addBox(12, 100, 15, -l / 2 + colW - 30, upperY - 40, posZ + 8, metalMat);
-      this.addBox(12, 100, 15, -l / 2 + colW + 30, upperY - 40, posZ + 8, metalMat);
+      this.addBox(12, 100, 15, -l / 2 + colW - 30, upperY - 40, posZ + 8, metalMat, handleUserData);
+      this.addBox(12, 100, 15, -l / 2 + colW + 30, upperY - 40, posZ + 8, metalMat, handleUserData);
 
       // Các ngăn kéo bên dưới (trải rộng qua 2 khoang trái)
       const singleDrH = (drTotalH - (drawers - 1) * 4) / drawers;
@@ -545,10 +646,10 @@ class Furniture3DViewer {
       const drX = -l / 2 + colW + 1;
       for (let j = 0; j < drawers; j++) {
         const drY = 60 + j * (singleDrH + 4) + singleDrH / 2;
-        this.addBox(drW, singleDrH, t, drX, drY, posZ, doorMat);
+        this.addBox(drW, singleDrH, t, drX, drY, posZ, doorMat, drawerUserData);
         // 2 Tay nắm ngang cho mỗi ngăn kéo
-        this.addBox(80, 12, 15, -l / 2 + colW * 0.5, drY, posZ + 8, metalMat);
-        this.addBox(80, 12, 15, -l / 2 + colW * 1.5, drY, posZ + 8, metalMat);
+        this.addBox(80, 12, 15, -l / 2 + colW * 0.5, drY, posZ + 8, metalMat, handleUserData);
+        this.addBox(80, 12, 15, -l / 2 + colW * 1.5, drY, posZ + 8, metalMat, handleUserData);
       }
     } else if (doors === 2 && drawers > 0) {
       // TRƯỜNG HỢP B: TỦ 2 CÁNH + NGĂN KÉO DƯỚI
@@ -559,16 +660,16 @@ class Furniture3DViewer {
 
       for (let i = 0; i < 2; i++) {
         const dX = -l / 2 + doorW * (i + 0.5) + 2;
-        this.addBox(doorW - 2, upperDoorH, t, dX, upperY, posZ, doorMat);
+        this.addBox(doorW - 2, upperDoorH, t, dX, upperY, posZ, doorMat, doorUserData);
         const hX = (i === 0) ? dX + doorW / 2 - 30 : dX - doorW / 2 + 30;
-        this.addBox(12, 100, 15, hX, upperY - 30, posZ + 8, metalMat);
+        this.addBox(12, 100, 15, hX, upperY - 30, posZ + 8, metalMat, handleUserData);
       }
 
       const singleDrH = (drTotalH - (drawers - 1) * 4) / drawers;
       for (let j = 0; j < drawers; j++) {
         const drY = 60 + j * (singleDrH + 4) + singleDrH / 2;
-        this.addBox(l - 4, singleDrH, t, 0, drY, posZ, doorMat);
-        this.addBox(90, 12, 15, 0, drY, posZ + 8, metalMat);
+        this.addBox(l - 4, singleDrH, t, 0, drY, posZ, doorMat, drawerUserData);
+        this.addBox(90, 12, 15, 0, drY, posZ + 8, metalMat, handleUserData);
       }
     } else {
       // TRƯỜNG HỢP C: TỦ CÁNH MỞ TIÊU CHUẨN
@@ -576,9 +677,9 @@ class Furniture3DViewer {
       const doorH = h - 64;
       for (let i = 0; i < doors; i++) {
         const doorX = -l / 2 + doorW * (i + 0.5) + 2;
-        this.addBox(doorW - 2, doorH, t, doorX, 60 + doorH / 2, posZ, doorMat);
+        this.addBox(doorW - 2, doorH, t, doorX, 60 + doorH / 2, posZ, doorMat, doorUserData);
         const hX = (i % 2 === 0) ? doorX + doorW / 2 - 30 : doorX - doorW / 2 + 30;
-        this.addBox(12, 100, 15, hX, h * 0.5, posZ + 8, metalMat);
+        this.addBox(12, 100, 15, hX, h * 0.5, posZ + 8, metalMat, handleUserData);
       }
     }
   }
@@ -773,6 +874,14 @@ class Mini3DInspector {
     this.prevMouseX = 0;
     this.prevMouseY = 0;
     this.autoRotate = true;
+    this.spinSpeed = 0.018; // Tốc độ xoay chậm êm ái, mượt mà chuẩn điện ảnh
+    this.rotationsPerCycle = 3; // Xoay ít nhất 3 vòng 360 độ đầy đủ trước khi nghỉ một nhịp
+    this.spinRemaining = Math.PI * 2 * this.rotationsPerCycle;
+    this.isPausedCycle = false;
+    this.pauseRemainingFrames = 0;
+    this.lastRafTime = 0;
+    this.isPausedByDblClick = false;
+    this.pauseTimer = null;
 
     this.init();
   }
@@ -888,18 +997,63 @@ class Mini3DInspector {
         }, 1500);
       }
     });
+
+    let lastMiniClickTime = 0;
+    this.canvas.addEventListener('click', (e) => {
+      const now = Date.now();
+      if (now - lastMiniClickTime < 380) {
+        lastMiniClickTime = 0;
+        e.stopPropagation();
+        this.handleDoubleClickPause();
+      } else {
+        lastMiniClickTime = now;
+      }
+    });
+
+    this.canvas.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.handleDoubleClickPause();
+    });
+  }
+
+  handleDoubleClickPause(notifyParent = true) {
+    this.isPausedByDblClick = true;
+    if (this.pauseTimer) clearTimeout(this.pauseTimer);
+
+    console.log("[Mini3DInspector] Kích 2 lần: Ngưng xoay 3D. Đợi 30s sau mới xoay tiếp.");
+    if (notifyParent && window.chillApp && typeof window.chillApp.showMiniToast === 'function') {
+      window.chillApp.showMiniToast("⏸️ Đã ngưng xoay 3D (Đợi 30s sau mới xoay tiếp)", "info");
+    }
+
+    if (notifyParent && window.chillApp && window.chillApp.viewer && typeof window.chillApp.viewer.handleDoubleClickPause === 'function') {
+      window.chillApp.viewer.isPausedByDblClick = true;
+      if (window.chillApp.viewer.pauseTimer) clearTimeout(window.chillApp.viewer.pauseTimer);
+      window.chillApp.viewer.pauseTimer = setTimeout(() => {
+        window.chillApp.viewer.isPausedByDblClick = false;
+      }, 30000);
+    }
+
+    this.pauseTimer = setTimeout(() => {
+      this.isPausedByDblClick = false;
+      console.log("[Mini3DInspector] Đã hết 30s: Tiếp tục xoay chi tiết.");
+    }, 30000);
   }
 
   startTimerLoop() {
     if (this.timerLoopId) clearInterval(this.timerLoopId);
     // Khi người dùng click trong SketchUp viewport, cửa sổ HtmlDialog mất focus khiến Chromium
-    // ngừng requestAnimationFrame. Dùng timer 33ms (~30 FPS) giúp vật thể luôn xoay 360 độ mượt mà!
+    // ngừng requestAnimationFrame. Timer kiểm tra nếu RAF ngừng > 50ms thì tiếp tục duy trì xoay mượt mà!
     this.timerLoopId = setInterval(() => {
-      this.renderFrame();
+      const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      if (now - this.lastRafTime > 50) {
+        this.renderFrame();
+      }
     }, 33);
   }
 
   animate() {
+    this.lastRafTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     this.animationId = requestAnimationFrame(this.animate.bind(this));
     this.renderFrame();
   }
@@ -909,9 +1063,25 @@ class Mini3DInspector {
     // Bỏ qua nếu canvas thực sự bị ẩn
     if (this.canvas.offsetParent === null && window.getComputedStyle(this.canvas).display === 'none') return;
 
-    if (this.modelGroup) {
-      if (this.autoRotate && !this.isDragging) {
-        this.modelGroup.rotation.y += 0.022; // Xoay 360 độ rõ nét và sinh động
+    if (this.modelGroup && this.autoRotate && !this.isDragging && !this.isPausedByDblClick) {
+      if (this.spinRemaining > 0) {
+        // Đang trong chu kỳ xoay chậm êm ái (ít nhất 3 vòng 360 độ liên tục)
+        this.modelGroup.rotation.y += this.spinSpeed;
+        this.spinRemaining -= this.spinSpeed;
+      } else {
+        // Đã hoàn thành ít nhất 3 vòng xoay (3 x 360 độ) -> Tạm dừng một nhịp ngắn ngắm mặt tiền rồi tiếp tục chu kỳ 3 vòng tiếp
+        if (!this.isPausedCycle) {
+          this.isPausedCycle = true;
+          this.pauseRemainingFrames = 80; // ~2.5 giây dừng ngắm mặt chính diện
+        } else {
+          this.pauseRemainingFrames--;
+          if (this.pauseRemainingFrames <= 0) {
+            // Hết thời gian nghỉ -> Chuẩn hóa góc quay mượt mà và bắt đầu chu kỳ 3 vòng mới uyển chuyển!
+            this.isPausedCycle = false;
+            this.modelGroup.rotation.y = this.modelGroup.rotation.y % (Math.PI * 2);
+            this.spinRemaining = Math.PI * 2 * this.rotationsPerCycle;
+          }
+        }
       }
     }
 
@@ -951,60 +1121,177 @@ class Mini3DInspector {
   // Hiển thị và phân tích đối tượng
   inspect(data, sourceMesh = null) {
     if (!this.isSupported) return;
-    this.clearModel();
-    this.autoRotate = true;
-    this.onResize();
+    try {
+      this.clearModel();
+      this.autoRotate = true;
+      this.onResize();
 
-    const svgFallback = document.getElementById('obj-portrait-svg');
-    if (this.canvas) this.canvas.style.display = 'block';
-    if (svgFallback) svgFallback.style.display = 'none';
+      const svgFallback = document.getElementById('obj-portrait-svg');
+      if (this.canvas) this.canvas.style.display = 'block';
+      if (svgFallback) svgFallback.style.display = 'none';
 
-    // 1. Nếu có Mesh thực tế truyền vào từ ThreeJS Viewport
-    if (sourceMesh && sourceMesh.geometry) {
-      try {
-        const cloneGeo = sourceMesh.geometry.clone();
-        const cloneMat = (sourceMesh.material && sourceMesh.material.clone)
-          ? sourceMesh.material.clone()
-          : new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.5, metalness: 0.1 });
+      // 1. Nếu có Mesh thực tế truyền vào từ ThreeJS Viewport
+      if (sourceMesh && sourceMesh.geometry) {
+        try {
+          const cloneGeo = sourceMesh.geometry.clone();
+          const cloneMat = (sourceMesh.material && sourceMesh.material.clone)
+            ? sourceMesh.material.clone()
+            : new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.5, metalness: 0.1 });
 
-        const mesh = new THREE.Mesh(cloneGeo, cloneMat);
-        mesh.castShadow = true;
+          const mesh = new THREE.Mesh(cloneGeo, cloneMat);
+          mesh.castShadow = true;
 
-        // Viền vàng kim sắc nét bao quanh chi tiết
-        const edges = new THREE.EdgesGeometry(cloneGeo);
-        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 1 }));
-        mesh.add(line);
+          // Viền vàng kim sắc nét bao quanh chi tiết
+          const edges = new THREE.EdgesGeometry(cloneGeo);
+          const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 1 }));
+          mesh.add(line);
 
-        this.modelGroup.add(mesh);
-        this.fitCameraToObject(this.modelGroup);
-        return;
-      } catch (err) {
-        console.warn("[Mini3DInspector] Failed to clone sourceMesh, falling back to procedural model:", err);
+          this.modelGroup.add(mesh);
+          this.fitCameraToObject(this.modelGroup);
+          this.spinShowcase(3);
+          return;
+        } catch (err) {
+          console.warn("[Mini3DInspector] Failed to clone sourceMesh, falling back to procedural model:", err);
+        }
       }
+
+      // 2. Dựng mô hình 3D thực tế theo Tầng (Procedural 3D Model theo Tier & Kích Thước Thật)
+      const tier = (data && data.tier) ? parseInt(data.tier) : 1;
+      const name = ((data && data.name) || "").toLowerCase();
+      const iconType = (data && data.icon_type) || "panel";
+
+      // Vật liệu chuẩn Studio
+      const woodOakMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.6, metalness: 0.1 });
+      const woodWalnutMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.5, metalness: 0.1 });
+      const metalBlackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.85 });
+      const metalChromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.15, metalness: 0.95 });
+      const glassCyanMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85, roughness: 0.1 });
+      const pvcEdgeMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4, metalness: 0.2 });
+
+      const modelType = ((data && (data.model_type || data.type)) || "").toLowerCase();
+      const isWardrobe = modelType === 'wardrobe' || name.includes('tủ áo') || name.includes('quần áo') || name.includes('wardrobe') || name.includes('closet') || (name.includes('tủ') && !name.includes('bếp'));
+      const isKitchen = modelType === 'kitchen_cabinet' || name.includes('bếp') || name.includes('kitchen');
+      const isBed = modelType === 'bed' || name.includes('giường') || name.includes('bed');
+      const isShelf = modelType === 'shelf' || name.includes('kệ') || name.includes('shelf') || name.includes('giá sách');
+      const isDesk = modelType === 'desk' || name.includes('bàn') || name.includes('desk') || name.includes('table');
+
+      if (tier === 1) {
+        if (isWardrobe) {
+          // Tủ quần áo 3 cánh 2 ngăn kéo chuẩn xác 100% như mô hình SketchUp của anh Huy
+          this.buildMiniWardrobe(woodOakMat, woodWalnutMat, metalChromeMat, pvcEdgeMat);
+        } else if (isKitchen) {
+          this.buildMiniKitchen(woodOakMat, metalChromeMat, glassCyanMat);
+        } else if (isBed) {
+          this.buildMiniBed(woodOakMat, woodWalnutMat);
+        } else if (isShelf) {
+          this.buildMiniShelf(woodOakMat);
+        } else {
+          this.buildMiniDesk(woodOakMat, metalBlackMat, woodWalnutMat, metalChromeMat);
+        }
+
+      } else if (tier === 2) {
+        // 📦 TẦNG 2: KHỐI LẺ (Module Thành Phần Độc Lập)
+        if (name.includes('chân') || name.includes('sat') || iconType === 'module' && name.includes('khung')) {
+          // Mô hình Khung Chân Sắt Chữ U Đôi Hộp 40x40
+          const leg1 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 10), metalBlackMat);
+          leg1.position.set(0, 0, -35);
+          const leg2 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 10), metalBlackMat);
+          leg2.position.set(0, 0, 35);
+          const botBar = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 80), metalBlackMat);
+          botBar.position.set(0, -45, 0);
+          const topBar = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 80), metalBlackMat);
+          topBar.position.set(0, 45, 0);
+          this.modelGroup.add(leg1, leg2, botBar, topBar);
+
+          // Nút đế chân cao su
+          [-35, 35].forEach(z => {
+            const foot = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 4, 16), metalChromeMat);
+            foot.position.set(0, -52, z);
+            this.modelGroup.add(foot);
+          });
+
+        } else if (name.includes('hộc') || name.includes('ngăn kéo')) {
+          // Mô hình Hộc Tủ 2 Ngăn Kéo Hoàn Chỉnh
+          const box = new THREE.Mesh(new THREE.BoxGeometry(60, 80, 70), woodOakMat);
+          this.modelGroup.add(box);
+
+          // Mặt ngăn kéo nổi
+          [-18, 18].forEach(y => {
+            const drawerFront = new THREE.Mesh(new THREE.BoxGeometry(56, 32, 4), woodWalnutMat);
+            drawerFront.position.set(0, y, 36);
+            const handle = new THREE.Mesh(new THREE.BoxGeometry(22, 4, 6), metalChromeMat);
+            handle.position.set(0, y, 39);
+            this.modelGroup.add(drawerFront, handle);
+          });
+
+        } else {
+          // Mô hình Mặt Bàn Gỗ Sồi Dày 25mm Bo Cạnh Tinh Xảo
+          const l = Math.min(Math.max((data.dim_x || 120) * 0.1, 70), 120);
+          const w = Math.min(Math.max((data.dim_y || 60) * 0.1, 45), 80);
+          const deskTop = new THREE.Mesh(new THREE.BoxGeometry(l, 10, w), woodOakMat);
+          const edges = new THREE.EdgesGeometry(deskTop.geometry);
+          const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2 }));
+          deskTop.add(line);
+          this.modelGroup.add(deskTop);
+        }
+
+      } else {
+        // 🪵 TẦNG 3: MIẾNG VÁN NHỎ / PHỤ KIỆN KIM KHÍ
+        if (name.includes('tay nắm') || iconType === 'hardware' && (name.includes('tay') || name.includes('handle') || name.includes('pull') || name.includes('knob'))) {
+          // Tay nắm hợp kim nhôm đúc sang trọng, tỉ lệ thanh thoát chuẩn thiết kế (vừa vặn, to hơn bản cũ một chút)
+          const barGeo = new THREE.CylinderGeometry(3.6, 3.6, 76, 24);
+          const bar = new THREE.Mesh(barGeo, metalChromeMat);
+          bar.rotation.z = Math.PI / 2;
+
+          const legGeo = new THREE.CylinderGeometry(4, 4, 22, 24);
+          const legL = new THREE.Mesh(legGeo, metalChromeMat);
+          legL.position.set(-29, -11, 0);
+          const legR = new THREE.Mesh(legGeo, metalChromeMat);
+          legR.position.set(29, -11, 0);
+
+          // Đế chân tiếp xúc Melamine cánh tủ
+          const footGeo = new THREE.CylinderGeometry(6, 6, 2.5, 24);
+          const footL = new THREE.Mesh(footGeo, metalBlackMat);
+          footL.position.set(-29, -22, 0);
+          const footR = new THREE.Mesh(footGeo, metalBlackMat);
+          footR.position.set(29, -22, 0);
+
+          this.modelGroup.add(bar, legL, legR, footL, footR);
+
+        } else if (name.includes('bản lề') || name.includes('hinge')) {
+          const cup = new THREE.Mesh(new THREE.CylinderGeometry(18, 18, 10, 24), metalChromeMat);
+          cup.position.set(-20, 0, 0);
+          const arm = new THREE.Mesh(new THREE.BoxGeometry(45, 12, 14), metalChromeMat);
+          arm.position.set(12, 0, 0);
+          this.modelGroup.add(cup, arm);
+
+        } else {
+          const panelGeo = new THREE.BoxGeometry(85, 8, 55);
+          const panel = new THREE.Mesh(panelGeo, woodOakMat);
+
+          const edgeL = new THREE.Mesh(new THREE.BoxGeometry(85, 9, 2), pvcEdgeMat);
+          edgeL.position.set(0, 0, 28);
+          const edgeR = new THREE.Mesh(new THREE.BoxGeometry(85, 9, 2), pvcEdgeMat);
+          edgeR.position.set(0, 0, -28);
+          this.modelGroup.add(panel, edgeL, edgeR);
+        }
+      }
+
+      this.fitCameraToObject(this.modelGroup);
+      this.spinShowcase(3);
+      this.renderFrame();
+    } catch (err) {
+      console.warn("[Mini3DInspector] inspect error:", err);
     }
+  }
 
-    // 2. Dựng mô hình 3D thực tế theo Tầng (Procedural 3D Model theo Tier & Kích Thước Thật)
-    const tier = (data && data.tier) ? parseInt(data.tier) : 1;
-    const name = ((data && data.name) || "").toLowerCase();
-    const iconType = (data && data.icon_type) || "panel";
-
-    // Vật liệu chuẩn Studio
-    const woodOakMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.6, metalness: 0.1 });
-    const woodWalnutMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.5, metalness: 0.1 });
-    const metalBlackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.85 });
-    const metalChromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.15, metalness: 0.95 });
-    const glassCyanMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85, roughness: 0.1 });
-    const pvcEdgeMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4, metalness: 0.2 });
-
-    if (tier === 1) {
-      // 🏰 TẦNG 1: KHỐI TỔNG (Tổ Hợp Bàn & Tủ Đa Khối Hoàn Chỉnh)
-      // a) Mặt bàn gỗ tự nhiên
+  buildMiniDesk(woodOakMat, metalBlackMat, woodWalnutMat, metalChromeMat) {
+    try {
       const topGeo = new THREE.BoxGeometry(120, 5, 60);
       const topMesh = new THREE.Mesh(topGeo, woodOakMat);
       topMesh.position.set(0, 36, 0);
       this.modelGroup.add(topMesh);
 
-      // b) Khung chân sắt chữ U đôi
       [-52, 52].forEach(x => {
         const leg1 = new THREE.Mesh(new THREE.BoxGeometry(6, 70, 6), metalBlackMat);
         leg1.position.set(x, 0, -24);
@@ -1017,111 +1304,174 @@ class Mini3DInspector {
         this.modelGroup.add(leg1, leg2, legBot, legTop);
       });
 
-      // c) Giằng ngang sau
       const brace = new THREE.Mesh(new THREE.BoxGeometry(100, 5, 5), metalBlackMat);
       brace.position.set(0, 28, -24);
       this.modelGroup.add(brace);
 
-      // d) Hộc tủ di động 2 ngăn
       const cabinet = new THREE.Mesh(new THREE.BoxGeometry(32, 42, 48), woodWalnutMat);
       cabinet.position.set(28, 6, 0);
       this.modelGroup.add(cabinet);
 
-      // 2 Tay nắm kim loại ngăn kéo
       [-3, 15].forEach(y => {
         const handle = new THREE.Mesh(new THREE.BoxGeometry(12, 2, 3), metalChromeMat);
         handle.position.set(28, y, 25);
         this.modelGroup.add(handle);
       });
-
-    } else if (tier === 2) {
-      // 📦 TẦNG 2: KHỐI LẺ (Module Thành Phần Độc Lập)
-      if (name.includes('chân') || name.includes('sat') || iconType === 'module' && name.includes('khung')) {
-        // Mô hình Khung Chân Sắt Chữ U Đôi Hộp 40x40
-        const leg1 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 10), metalBlackMat);
-        leg1.position.set(0, 0, -35);
-        const leg2 = new THREE.Mesh(new THREE.BoxGeometry(10, 100, 10), metalBlackMat);
-        leg2.position.set(0, 0, 35);
-        const botBar = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 80), metalBlackMat);
-        botBar.position.set(0, -45, 0);
-        const topBar = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 80), metalBlackMat);
-        topBar.position.set(0, 45, 0);
-        this.modelGroup.add(leg1, leg2, botBar, topBar);
-
-        // Nút đế chân cao su
-        [-35, 35].forEach(z => {
-          const foot = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 4, 16), metalChromeMat);
-          foot.position.set(0, -52, z);
-          this.modelGroup.add(foot);
-        });
-
-      } else if (name.includes('hộc') || name.includes('ngăn kéo')) {
-        // Mô hình Hộc Tủ 2 Ngăn Kéo Hoàn Chỉnh
-        const box = new THREE.Mesh(new THREE.BoxGeometry(60, 80, 70), woodOakMat);
-        this.modelGroup.add(box);
-
-        // Mặt ngăn kéo nổi
-        [-18, 18].forEach(y => {
-          const drawerFront = new THREE.Mesh(new THREE.BoxGeometry(56, 32, 4), woodWalnutMat);
-          drawerFront.position.set(0, y, 36);
-          const handle = new THREE.Mesh(new THREE.BoxGeometry(22, 4, 6), metalChromeMat);
-          handle.position.set(0, y, 39);
-          this.modelGroup.add(drawerFront, handle);
-        });
-
-      } else {
-        // Mô hình Mặt Bàn Gỗ Sồi Dày 25mm Bo Cạnh Tinh Xảo
-        const l = Math.min(Math.max((data.dim_x || 120) * 0.1, 70), 120);
-        const w = Math.min(Math.max((data.dim_y || 60) * 0.1, 45), 80);
-        const t = 10;
-        const deskTop = new THREE.Mesh(new THREE.BoxGeometry(l, t, w), woodOakMat);
-        // Viền chỉ nẹp cạnh PVC
-        const edges = new THREE.EdgesGeometry(deskTop.geometry);
-        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2 }));
-        deskTop.add(line);
-        this.modelGroup.add(deskTop);
-      }
-
-    } else {
-      // 🪵 TẦNG 3: MIẾNG VÁN NHỎ / PHỤ KIỆN KIM KHÍ
-      if (name.includes('tay nắm') || iconType === 'hardware' && name.includes('tay')) {
-        // Mô hình Tay Nắm Chữ U Inox Mạ Vàng Titan
-        const barGeo = new THREE.CylinderGeometry(3, 3, 70, 16);
-        const bar = new THREE.Mesh(barGeo, metalChromeMat);
-        bar.rotation.z = Math.PI / 2;
-
-        const legGeo = new THREE.CylinderGeometry(3.5, 3.5, 20, 16);
-        const legL = new THREE.Mesh(legGeo, metalChromeMat);
-        legL.position.set(-28, -10, 0);
-        const legR = new THREE.Mesh(legGeo, metalChromeMat);
-        legR.position.set(28, -10, 0);
-
-        this.modelGroup.add(bar, legL, legR);
-
-      } else if (name.includes('bản lề') || name.includes('hinge')) {
-        // Mô hình Bản Lề Giảm Chấn Inox 110°
-        const cup = new THREE.Mesh(new THREE.CylinderGeometry(18, 18, 10, 24), metalChromeMat);
-        cup.position.set(-20, 0, 0);
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(45, 12, 14), metalChromeMat);
-        arm.position.set(12, 0, 0);
-        this.modelGroup.add(cup, arm);
-
-      } else {
-        // Tấm ván gỗ mỏng chuẩn CNC (Panel)
-        const panelGeo = new THREE.BoxGeometry(85, 8, 55);
-        const panel = new THREE.Mesh(panelGeo, woodOakMat);
-
-        // Viền PVC dán cạnh bóng bẩy
-        const edgeL = new THREE.Mesh(new THREE.BoxGeometry(85, 9, 2), pvcEdgeMat);
-        edgeL.position.set(0, 0, 28);
-        const edgeR = new THREE.Mesh(new THREE.BoxGeometry(85, 9, 2), pvcEdgeMat);
-        edgeR.position.set(0, 0, -28);
-        this.modelGroup.add(panel, edgeL, edgeR);
-      }
+    } catch (err) {
+      console.warn("[Mini3DInspector] buildMiniDesk error:", err);
     }
+  }
 
-    this.fitCameraToObject(this.modelGroup);
-    this.renderFrame();
+  buildMiniWardrobe(woodOakMat, woodWalnutMat, metalChromeMat, pvcEdgeMat) {
+    try {
+      const w = 96, h = 136, d = 46, t = 4;
+      const sideL = new THREE.Mesh(new THREE.BoxGeometry(t, h, d), woodOakMat);
+      sideL.position.set(-w / 2 + t / 2, 0, 0);
+      const sideR = new THREE.Mesh(new THREE.BoxGeometry(t, h, d), woodOakMat);
+      sideR.position.set(w / 2 - t / 2, 0, 0);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * t, t, d), woodOakMat);
+      top.position.set(0, h / 2 - t / 2, 0);
+      const bottom = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * t, t, d), woodOakMat);
+      bottom.position.set(0, -h / 2 + t / 2 + 8, 0);
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * t, 8, t), woodOakMat);
+      plinth.position.set(0, -h / 2 + 4, d / 2 - 4);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * t, h - 12, 2), woodWalnutMat);
+      back.position.set(0, 2, -d / 2 + 2);
+
+      this.modelGroup.add(sideL, sideR, top, bottom, plinth, back);
+
+      const colW = (w - 2 * t) / 3;
+      const dividerX = -w / 2 + t + 2 * colW;
+      const divider = new THREE.Mesh(new THREE.BoxGeometry(t, h - t - 8, d - 4), woodOakMat);
+      divider.position.set(dividerX, 4, 0);
+      this.modelGroup.add(divider);
+
+      const drH = 34;
+      const shelfX = -w / 2 + t + colW;
+      const shelfY = -h / 2 + 8 + t + drH;
+      const shelf = new THREE.Mesh(new THREE.BoxGeometry(2 * colW, t, d - 4), woodOakMat);
+      shelf.position.set(shelfX, shelfY, 0);
+      this.modelGroup.add(shelf);
+
+      const posZ = d / 2 + 1;
+
+      const rightDoorW = colW - 1.5;
+      const rightDoorH = h - 10;
+      const rightDoorX = dividerX + colW / 2;
+      const rightDoor = new THREE.Mesh(new THREE.BoxGeometry(rightDoorW, rightDoorH, t), woodOakMat);
+      rightDoor.position.set(rightDoorX, 1, posZ);
+      const rightHandle = new THREE.Mesh(new THREE.BoxGeometry(2, 16, 2.5), metalChromeMat);
+      rightHandle.position.set(rightDoorX - rightDoorW / 2 + 4, 0, posZ + 2.5);
+      this.modelGroup.add(rightDoor, rightHandle);
+
+      const leftDoorW = colW - 1.5;
+      const leftDoorH = h - 10 - drH - t;
+      const upperY = shelfY + t / 2 + leftDoorH / 2;
+      [-0.5, 0.5].forEach((offset, idx) => {
+        const doorX = shelfX + offset * colW;
+        const door = new THREE.Mesh(new THREE.BoxGeometry(leftDoorW, leftDoorH, t), woodOakMat);
+        door.position.set(doorX, upperY, posZ);
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(2, 14, 2.5), metalChromeMat);
+        const hX = (idx === 0) ? doorX + leftDoorW / 2 - 4 : doorX - leftDoorW / 2 + 4;
+        handle.position.set(hX, upperY - 10, posZ + 2.5);
+        this.modelGroup.add(door, handle);
+      });
+
+      const singleDrH = (drH - 4) / 2;
+      const drW = 2 * colW - 2;
+      for (let j = 0; j < 2; j++) {
+        const drY = -h / 2 + 8 + t + j * (singleDrH + 2) + singleDrH / 2;
+        const drawerFront = new THREE.Mesh(new THREE.BoxGeometry(drW, singleDrH, t), woodWalnutMat);
+        drawerFront.position.set(shelfX, drY, posZ);
+        [-colW / 2, colW / 2].forEach(hx => {
+          const hMesh = new THREE.Mesh(new THREE.BoxGeometry(10, 2, 2.5), metalChromeMat);
+          hMesh.position.set(shelfX + hx, drY, posZ + 2.5);
+          this.modelGroup.add(hMesh);
+        });
+        this.modelGroup.add(drawerFront);
+      }
+    } catch (err) {
+      console.warn("[Mini3DInspector] buildMiniWardrobe error:", err);
+    }
+  }
+
+  buildMiniKitchen(woodOakMat, metalChromeMat, glassCyanMat) {
+    try {
+      const w = 110, lowerH = 46, upperH = 40, splashH = 34, d = 48;
+      const lower = new THREE.Mesh(new THREE.BoxGeometry(w, lowerH, d), woodOakMat);
+      lower.position.set(0, -35, 0);
+
+      const stoneMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.2, metalness: 0.1 });
+      const stoneTop = new THREE.Mesh(new THREE.BoxGeometry(w + 4, 4, d + 4), stoneMat);
+      stoneTop.position.set(0, -10, 0);
+
+      const splash = new THREE.Mesh(new THREE.BoxGeometry(w, splashH, 2), glassCyanMat);
+      splash.position.set(0, 10, -d / 2 + 2);
+
+      const upper = new THREE.Mesh(new THREE.BoxGeometry(w, upperH, d * 0.65), woodOakMat);
+      upper.position.set(0, 48, -d * 0.175);
+
+      const tap = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 14, 16), metalChromeMat);
+      tap.position.set(20, -1, 4);
+
+      this.modelGroup.add(lower, stoneTop, splash, upper, tap);
+    } catch (err) {
+      console.warn("[Mini3DInspector] buildMiniKitchen error:", err);
+    }
+  }
+
+  buildMiniBed(woodOakMat, woodWalnutMat) {
+    try {
+      const w = 90, l = 120, h = 22;
+      const headboard = new THREE.Mesh(new THREE.BoxGeometry(w, 54, 6), woodWalnutMat);
+      headboard.position.set(0, 12, -l / 2 + 3);
+
+      const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), woodOakMat);
+      bedFrame.position.set(0, -10, 0);
+
+      const mattressMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.8 });
+      const mattress = new THREE.Mesh(new THREE.BoxGeometry(w - 8, 14, l - 12), mattressMat);
+      mattress.position.set(0, 2, 4);
+
+      const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7 });
+      [-22, 22].forEach(px => {
+        const pillow = new THREE.Mesh(new THREE.BoxGeometry(28, 6, 20), pillowMat);
+        pillow.position.set(px, 11, -l / 2 + 22);
+        this.modelGroup.add(pillow);
+      });
+
+      this.modelGroup.add(headboard, bedFrame, mattress);
+    } catch (err) {
+      console.warn("[Mini3DInspector] buildMiniBed error:", err);
+    }
+  }
+
+  buildMiniShelf(woodOakMat) {
+    try {
+      const w = 76, h = 130, d = 32, t = 4;
+      const sideL = new THREE.Mesh(new THREE.BoxGeometry(t, h, d), woodOakMat);
+      sideL.position.set(-w / 2 + t / 2, 0, 0);
+      const sideR = new THREE.Mesh(new THREE.BoxGeometry(t, h, d), woodOakMat);
+      sideR.position.set(w / 2 - t / 2, 0, 0);
+      this.modelGroup.add(sideL, sideR);
+
+      for (let i = 0; i < 5; i++) {
+        const shelfY = -h / 2 + t / 2 + i * ((h - t) / 4);
+        const shelf = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * t, t, d), woodOakMat);
+        shelf.position.set(0, shelfY, 0);
+        this.modelGroup.add(shelf);
+      }
+    } catch (err) {
+      console.warn("[Mini3DInspector] buildMiniShelf error:", err);
+    }
+  }
+
+  spinShowcase(rotations = 3) {
+    this.rotationsPerCycle = rotations;
+    this.spinRemaining = Math.PI * 2 * rotations;
+    this.isPausedCycle = false;
+    this.pauseRemainingFrames = 0;
+    this.autoRotate = true;
   }
 
   // Tự động căn giữa tâm đối tượng và điều chỉnh camera vừa khít góc nhìn
@@ -1137,11 +1487,11 @@ class Mini3DInspector {
       child.position.sub(center);
     });
 
-    const maxDim = Math.max(size.x, size.y, size.z, 40);
-    // Phóng to tối đa vật thể trong khung avatar, có chừa biên nhỏ (~10-15%) theo yêu cầu anh Huy
+    const maxDim = Math.max(size.x, size.y, size.z, 35);
+    // Khoảng cách camera cân đối: cách viền biên vừa phải (~15-18% lề thoáng đãng), to hơn bản cũ một chút, tuyệt đối không cấn viền
     const dist = maxDim * 1.22;
 
-    this.camera.position.set(dist * 0.9, dist * 0.7, dist * 1.15);
+    this.camera.position.set(dist * 0.9, dist * 0.65, dist * 1.15);
     this.camera.lookAt(0, 0, 0);
   }
 }

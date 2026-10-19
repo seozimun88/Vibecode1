@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chill AI Interior - Game HUD Edition</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="game_hud.css"> <!-- New CSS for Game HUD -->
+  <link rel="stylesheet" href="style.css?v=20261016_1000">
+  <link rel="stylesheet" href="game_hud.css?v=20261016_1000"> <!-- New CSS for Game HUD -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body class="dark-theme game-theme dock-mode">
@@ -18,7 +18,10 @@
   <header class="game-top-bar">
     <div class="game-logo">🏰 Chill AI RTS</div>
     <div class="game-resources">
-       <button id="btn-toggle-dock-mode" class="btn-game-sys btn-toggle-dock" title="Chuyển chế độ Khay Đứng SketchUp (Tỉ lệ chuẩn Default Tray)">
+       <button id="btn-studio-header-cnc" class="btn-game-sys" style="background:linear-gradient(135deg, #ea580c, #c2410c); color:#fff; border:1px solid #fb923c; font-weight:bold; box-shadow:0 0 10px rgba(234, 88, 12, 0.5);" title="Xuất file CNC / G-Code / DXF Aspire / Nesting SU">
+          ⚡ Xuất CNC
+        </button>
+        <button id="btn-toggle-dock-mode" class="btn-game-sys btn-toggle-dock" title="Chuyển chế độ Khay Đứng SketchUp (Tỉ lệ chuẩn Default Tray)">
          <span id="dock-btn-icon">📐</span>
          <span id="dock-btn-label">Khay Đứng SU</span>
        </button>
@@ -33,6 +36,7 @@
          <span class="api-dot no-key"></span> Chờ API Key
        </div>
        <button id="btn-open-api-modal" class="btn-game-sys">⚙️ API Config</button>
+       <button id="btn-reload-studio-ui" class="btn-game-sys" title="Tải lại toàn bộ Plugin & Ruby (F5 / Refresh)" onclick="if(window.sketchup && window.sketchup.reload_plugin_all){ window.sketchup.reload_plugin_all(); } else { window.location.reload(true); }">🔄 Tải Lại</button>
        <button id="btn-open-projects" class="btn-game-sys">📁 Save/Load</button>
        <button id="btn-scan-camera" class="btn-game-sys">📷 Camera</button>
     </div>
@@ -68,7 +72,7 @@
           <div class="floating-form-grid">
              <div class="form-group-f"><label>Dài (X)</label><input type="number" id="f-input-length" value="1200" step="10"></div>
              <div class="form-group-f"><label>Rộng (Y)</label><input type="number" id="f-input-width" value="600" step="10"></div>
-             <div class="form-group-f"><label>Cao (Z)</label><input type="number" id="f-input-height" value="750" step="10"></div>
+             <div class="form-group-f"><label>Cao (Z)</label><input type="number" id="f-input-height" value="1800" step="10"></div>
              <div class="form-group-f">
                 <label>Ván Dày</label>
                 <select id="f-select-thickness">
@@ -215,7 +219,8 @@
            <button class="game-tab-btn tab-btn" id="tab-btn-scan" data-tab="tab-scan">Hồ Sơ Mặc Định</button>
            <button class="game-tab-btn tab-btn" id="tab-btn-edit" data-tab="tab-edit">Tùy Chỉnh Kỹ Thuật</button>
            <button class="game-tab-btn tab-btn" id="tab-btn-cam" data-tab="tab-cam">Bản Vẽ CNC</button>
-           <button class="game-tab-btn tab-btn" id="tab-btn-market" data-tab="tab-market">Thư Viện Mẫu</button>
+           <button class="game-tab-btn tab-btn" id="tab-btn-shopee" data-tab="tab-shopee" style="color:#f87171; font-weight:bold;">🛒 Mua Vật Tư</button>
+            <button class="game-tab-btn tab-btn" id="tab-btn-market" data-tab="tab-market">Thư Viện Mẫu</button>
         </div>
 
         <div class="game-tab-content">
@@ -328,6 +333,7 @@
                 <div class="profile-hint">💡 Kích chọn bất kỳ đối tượng nào trong <strong>SketchUp</strong> hoặc click vào mô hình <strong>3D Realtime</strong> để xem hồ sơ tức thời.</div>
                 <div style="display:flex; gap:6px;">
                   <button id="btn-refresh-selection" class="btn-hud-small" title="Làm mới vùng chọn từ SketchUp">🔄 Làm Mới Vùng Chọn</button>
+                  <button id="btn-switch-to-shopee" class="btn-hud-small highlight-gold" title="Xem thông tin hàng hóa & Nơi bán gần bạn">🛒 Mua Vật Tư</button>
                   <button id="btn-switch-to-cam" class="btn-hud-small" title="Bóc tách và cắt CNC đối tượng này">⚙️ Bóc Tách CNC</button>
                   <button id="btn-build-from-default" class="btn-game-accent" title="Dựng 3D trực tiếp vào SketchUp theo phương án này">🔨 Dựng 3D Vào SU</button>
                 </div>
@@ -351,7 +357,7 @@
              <div class="game-form-grid">
                <div class="form-group"><label>Dài (X) [mm]</label><input type="number" id="input-length" value="1200" step="10"></div>
                <div class="form-group"><label>Rộng (Y) [mm]</label><input type="number" id="input-width" value="600" step="10"></div>
-               <div class="form-group"><label>Cao (Z) [mm]</label><input type="number" id="input-height" value="750" step="10"></div>
+               <div class="form-group"><label>Cao (Z) [mm]</label><input type="number" id="input-height" value="1800" step="10"></div>
                <div class="form-group">
                  <label>Độ Dày Ván</label>
                  <select id="select-thickness">
@@ -438,7 +444,142 @@
                <canvas id="nesting-canvas"></canvas>
                <div id="nesting-legend" class="cam-legend"></div>
             </div>
+            
+            <div style="display:flex; gap:8px; margin: 6px 0;">
+                <button id="btn-studio-save-gcode" class="btn-game-accent" style="flex:1; background:linear-gradient(135deg, #ea580c, #c2410c); border:1px solid #fb923c; font-weight:bold; color:#fff; box-shadow:0 2px 8px rgba(234,88,12,0.5);" title="Lựa chọn A: Xuất file G-Code (.nc) cho máy CNC">
+                  ⚡ Xuất G-Code (.nc)
+                </button>
+                <button id="btn-studio-save-dxf" class="btn-hud-small" style="border-color:#06b6d4; color:#67e8f9; font-weight:bold;" title="Lựa chọn A: Lưu file DXF chuẩn CAD cho Vectric Aspire">
+                  📐 Xuất DXF (Aspire)
+                </button>
+                <button id="btn-studio-nest-to-su" class="btn-game-accent" style="flex:1.2; background:linear-gradient(135deg, #d97706, #b45309); color:#fff; font-weight:bold;" title="Lựa chọn B: Trải phẳng trực tiếp trên SketchUp như One Click làm">
+                  🪵 Trải Phẳng Lên Mặt Bàn SU
+                </button>
+             </div>
+
             <textarea id="gcode-output-area" class="gcode-textarea" readonly placeholder="GCode..."></textarea>
+          </div>
+
+          <!-- 4b. SHOPEE TAB (STUDIO FULL MODE) -->
+          <div class="tab-pane" id="tab-shopee" style="display:none;">
+            <div style="display:flex; gap:12px; height:100%; overflow:hidden;">
+              <!-- Cột trái: Thẻ sản phẩm -->
+              <div style="flex:1; max-width:360px; overflow-y:auto; max-height:calc(100vh - 160px); padding-right:6px;">
+                <div class="shopee-product-card" id="studio-shopee-product-card">
+                  <!-- Header: SKU, Rating -->
+                  <div class="shopee-card-badge-row">
+                    <span class="shopee-sku-tag" id="studio-shopee-item-sku">SKU: HDL-ALU-TITAN-128</span>
+                    <span class="shopee-rating-star">⭐ <b id="studio-shopee-item-rating">4.96</b>/5 (<span id="studio-shopee-item-sold">18.5k</span>)</span>
+                  </div>
+
+                  <!-- 1. TÊN SẢN PHẨM -->
+                  <div class="shopee-item-title" id="studio-shopee-item-title" style="font-size:12.5px;">
+                    [Chính Hãng Chill Decor / Hafele] Tay Nắm Hợp Kim Nhôm Đúc Nguyên Khối Anode Cao Cấp Cho Tủ Áo & Ngăn Kéo
+                  </div>
+
+                  <!-- 4. GIÁ CẢ -->
+                  <div class="shopee-price-row">
+                    <span class="shopee-price-current" id="studio-shopee-item-price-current">32.000 đ</span>
+                    <span class="shopee-price-original" id="studio-shopee-item-price-original">45.000 đ</span>
+                    <span class="shopee-discount-tag" id="studio-shopee-item-discount">-29%</span>
+                    <span class="shopee-unit-tag" id="studio-shopee-item-unit">/ Cái (Kèm 02 ốc vít M4)</span>
+                  </div>
+
+                  <!-- 2. PHÂN LOẠI SKU (MÃ MÀU & KÍCH THƯỚC) -->
+                  <div class="shopee-variation-container">
+                    <div class="shopee-var-block">
+                      <div class="shopee-var-label">🎨 <strong>MÃ MÀU / LỚP PHỦ:</strong></div>
+                      <div class="shopee-chip-list" id="studio-shopee-color-chips"></div>
+                    </div>
+                    <div class="shopee-var-block" style="margin-top:6px;">
+                      <div class="shopee-var-label">📐 <strong>KÍCH THƯỚC / TIM ỐC:</strong></div>
+                      <div class="shopee-chip-list" id="studio-shopee-size-chips"></div>
+                    </div>
+                  </div>
+
+                  <!-- 3. PHONG CÁCH & XUẤT XỨ -->
+                  <div class="shopee-meta-box">
+                    <div class="shopee-meta-row">
+                      <span class="shopee-meta-lbl">🏛️ Phong cách:</span>
+                      <span class="shopee-meta-val" id="studio-shopee-item-style">Hiện Đại Tối Giản</span>
+                    </div>
+                    <div class="shopee-meta-row">
+                      <span class="shopee-meta-lbl">🏭 Xuất xứ:</span>
+                      <span class="shopee-meta-val" id="studio-shopee-item-origin">OEM Chuẩn Xuất Khẩu Châu Âu</span>
+                    </div>
+                  </div>
+
+                  <!-- 5. CHÍNH SÁCH BẢO HÀNH & ĐỔI TRẢ -->
+                  <div class="shopee-policy-box">
+                    <div class="shopee-policy-row">
+                      <span class="policy-icon">🛡️</span>
+                      <span class="policy-txt"><strong>Bảo hành:</strong> <span id="studio-shopee-item-warranty">Bảo hành 24 tháng chính hãng</span></span>
+                    </div>
+                    <div class="shopee-policy-row">
+                      <span class="policy-icon">🔄</span>
+                      <span class="policy-txt"><strong>Đổi trả:</strong> <span id="studio-shopee-item-return">1 đổi 1 trong 30 ngày nếu lỗi</span></span>
+                    </div>
+                  </div>
+
+                  <!-- 6. ĐỘ BỀN ĐƯỢC NGƯỜI DÙNG ĐÁNH GIÁ -->
+                  <div class="shopee-durability-box">
+                    <div class="shopee-durability-header">
+                      <span>💪 ĐỘ BỀN NGƯỜI DÙNG ĐÁNH GIÁ:</span>
+                      <span class="durability-badge" id="studio-shopee-item-durability">⭐ 9.9 / 10 điểm</span>
+                    </div>
+                    <div class="shopee-durability-review" id="studio-shopee-item-review">
+                      “Chất nhôm đúc đầm tay chắc nịch, lớp mạ đen nhám mịn màng không bám vân tay...”
+                    </div>
+                  </div>
+
+                  <!-- 7. THÔNG TIN DO CHỦ SHOP ĐĂNG -->
+                  <div class="shopee-shop-desc-box">
+                    <div class="shopee-shop-desc-title">📋 THÔNG TIN DO CHỦ SHOP ĐĂNG:</div>
+                    <div class="shopee-shop-desc-body" id="studio-shopee-item-shop-desc">
+                      • Chất liệu: Hợp kim nhôm đặc đúc áp lực cao...
+                    </div>
+                  </div>
+
+                  <!-- QUY CÁCH KỸ THUẬT MỘC -->
+                  <div class="shopee-specs-box" id="studio-shopee-item-specs">
+                    Khổ ván 1220x2440x17.5mm • Tỷ trọng 730kg/m³ • Keo V313 chống nước • Nẹp dán 18.4m
+                  </div>
+                </div>
+
+                <!-- Bộ lọc bán kính -->
+                <div class="shopee-radius-filter-box" style="margin-top:8px;">
+                  <div class="shopee-filter-header">
+                    <span>📍 TÌM NƠI BÁN GẦN VỊ TRÍ:</span>
+                    <select id="studio-shopee-select-city" class="shopee-city-select">
+                      <option value="Hà Nội" selected>Hà Nội</option>
+                      <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                      <option value="Bình Dương">Bình Dương</option>
+                      <option value="Đà Nẵng">Đà Nẵng</option>
+                    </select>
+                  </div>
+                  <div class="shopee-slider-row">
+                    <div class="shopee-slider-label">
+                      <span>Bán kính tìm kiếm:</span>
+                      <span class="shopee-radius-val"><strong id="studio-shopee-radius-display">5</strong> km</span>
+                    </div>
+                    <input type="range" id="studio-shopee-radius-slider" min="1" max="50" step="1" value="5" class="shopee-slider">
+                    <div class="shopee-slider-ticks">
+                      <span>1km</span><span>5km</span><span>10km</span><span>20km</span><span>50km</span>
+                    </div>
+                  </div>
+                  <div class="shopee-found-count" id="studio-shopee-found-count">
+                    🔍 Tìm thấy <strong id="studio-shopee-count-num">3</strong> đại lý trong bán kính 5km
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột phải: Danh sách đại lý -->
+              <div style="flex:2; overflow-y:auto; padding-right:4px;">
+                <div class="shopee-supplier-list" id="studio-shopee-supplier-list" style="max-height:100%;">
+                  <!-- Render động qua JavaScript -->
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- 5. MARKET TAB -->
@@ -514,14 +655,18 @@
                <div class="cmd-icon">📤</div>
                <div class="cmd-txt">Xuất SU</div>
              </button>
-             <button class="cmd-btn real-btn" id="btn-save-gcode" title="Lưu File GCode CNC">
-               <div class="cmd-icon">💾</div>
-               <div class="cmd-txt">Lưu CNC</div>
-             </button>
-             <button class="cmd-btn real-btn" id="btn-send-cnc" title="Gửi Xưởng CNC">
-               <div class="cmd-icon">🏭</div>
-               <div class="cmd-txt">Sản Xuất</div>
-             </button>
+             <button class="cmd-btn real-btn" id="btn-cmd-export-cnc" title="Xuất file CNC: G-code (.nc) cho máy, DXF cho Aspire, hoặc Trải phẳng SU" style="border-color:#ea580c; background:linear-gradient(135deg, rgba(234, 88, 12, 0.4), rgba(194, 65, 12, 0.5)); box-shadow:0 0 10px rgba(234, 88, 12, 0.4);">
+                <div class="cmd-icon" style="color:#fb923c;">⚡</div>
+                <div class="cmd-txt" style="color:#fdba74; font-weight:bold;">Xuất CNC</div>
+              </button>
+              <button class="cmd-btn real-btn" id="btn-cmd-nest-to-su" title="Lựa chọn B: Trải phẳng ván lên SketchUp (One Click)" style="border-color:#d97706; background:rgba(217, 119, 6, 0.2);">
+                <div class="cmd-icon">🪵</div>
+                <div class="cmd-txt" style="color:#fbbf24; font-weight:bold;">Trải Phẳng SU</div>
+              </button>
+              <button class="cmd-btn real-btn" id="btn-cmd-shopee" title="Xem thông tin hàng hóa và Nơi bán gần bạn" style="border-color:#ef4444; background:rgba(239, 68, 68, 0.15);">
+                <div class="cmd-icon">🛒</div>
+                <div class="cmd-txt" style="color:#f87171; font-weight:bold;">Mua Vật Tư</div>
+              </button>
              
              <!-- Page 2 Skills (Moved from top floating buttons) -->
              <button class="cmd-btn real-btn" id="btn-hud-save-load" title="Quản lý dự án">
@@ -581,6 +726,10 @@
         <!-- Nút cấu hình API -->
         <button id="dock-btn-open-api" class="dock-btn-tool" title="Cấu hình Google Gemini AI Key">
           <span>⚙️</span>
+        </button>
+        <!-- Nút tải lại toàn bộ Plugin (Ruby + UI) -->
+        <button id="dock-btn-reload-ui" class="dock-btn-tool" title="Tải lại toàn bộ Plugin & Ruby (F5 / Refresh)" onclick="if(window.sketchup && window.sketchup.reload_plugin_all){ window.sketchup.reload_plugin_all(); } else { window.location.reload(true); }">
+          <span>🔄</span>
         </button>
       </div>
     </header>
@@ -656,6 +805,10 @@
       <div class="dock-blue-prompts-box" id="dock-blue-prompts-box">
         <div class="dock-blue-prompts-title">💡 GỢI Ý TÁC VỤ:</div>
         <div class="dock-blue-prompts-list">
+          <button class="dock-prompt-chip" id="chip-quick-export-dxf" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border-color:#38bdf8; font-weight:bold; box-shadow:0 0 8px rgba(2,132,199,0.6);" title="Bấm 1 chạm: Xuất ngay file DXF 2D Nesting cho Vectric Aspire">📐 Xuất DXF (Aspire)</button>
+          <button class="dock-prompt-chip" id="chip-quick-export-cnc" style="background:linear-gradient(135deg, #ea580c, #c2410c); color:#ffffff; border-color:#fb923c; font-weight:bold; box-shadow:0 0 8px rgba(234,88,12,0.6);" title="Bấm 1 chạm: Mở Hộp thoại Xuất CNC (G-code .nc, Aspire, hoặc Trải phẳng SU)">⚡ Xuất CNC</button>
+          <button class="dock-prompt-chip" id="chip-quick-nest-su" style="background:#78350f; color:#fbbf24; border-color:#d97706; font-weight:bold;" title="Bấm 1 chạm: Trải phẳng ván lên SketchUp như One Click">🪵 Trải Phẳng SU</button>
+          <button class="dock-prompt-chip" id="chip-quick-shopee" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;" title="Bấm 1 chạm: Mở Mua Vật Tư & Nơi bán gần bạn">🛒 Mua Vật Tư</button>
           <button class="dock-prompt-chip" data-prompt="Dựng tủ bếp chữ L hiện đại acrylic kích thước chuẩn" title="Dựng tủ bếp chữ L hiện đại">💡 Tủ bếp chữ L</button>
           <button class="dock-prompt-chip" data-prompt="Dựng bàn làm việc chân sắt hộp 1200x600x750mm" title="Dựng bàn làm việc chân sắt">💡 Bàn chân sắt</button>
           <button class="dock-prompt-chip" data-prompt="Kiểm tra kết cấu liên kết ván và Bounding Box CNC" title="Kiểm tra liên kết chuẩn CNC">💡 K.tra liên kết</button>
@@ -663,6 +816,28 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- ==================== BANNER CẢNH BÁO TẤM QUÁ KHỔ VÁN 1220x2440MM ==================== -->
+    <div class="dock-oversized-warning-banner" id="dock-oversized-warning-banner" style="display: none;">
+      <div class="warning-banner-top">
+        <div class="warning-banner-title">
+          <span class="warning-icon-pulse">🚨</span>
+          <span>CẢNH BÁO: TẤM VƯỢT QUÁ KHỔ VÁN!</span>
+        </div>
+        <span class="warning-badge-count" id="dock-oversized-badge-count">1 tấm</span>
+      </div>
+      <div class="warning-banner-body" id="dock-oversized-details">
+        <!-- Render động danh sách tấm quá khổ -->
+      </div>
+      <div class="warning-banner-footer">
+        <button class="btn-warning-action" id="btn-clamp-to-standard" title="Tự động thu kích thước về tối đa 2440mm">
+          ✂️ Thu Về 2440mm
+        </button>
+        <button class="btn-warning-action secondary" id="btn-switch-jumbo-sheet" title="Đổi cấu hình Nesting sang khổ lớn 1220x2745mm">
+          📐 Dùng Khổ 2745mm
+        </button>
+      </div>
     </div>
 
     <!-- 2. KHUNG THÂN CHÍNH: 2 CỘT (CỘT TRÁI SIDEBAR + CỘT PHẢI WORKSPACE) -->
@@ -712,6 +887,12 @@
           <button class="dock-sidebar-nav-btn" id="dock-nav-3d" data-tab="dock-pane-3d" title="Mô Phỏng 3D Xoay 360 Đa Chiều (Chuột trái kéo dọc nhìn đỉnh/đáy)">
             <span class="dock-nav-icon">👁️</span>
             <span class="dock-nav-label">3D Mini</span>
+          </button>
+
+          <!-- Nút 8: Mua Vật Tư & Nơi Bán Gần Bạn (Radius Store Finder) -->
+          <button class="dock-sidebar-nav-btn" id="dock-nav-shopee" data-tab="dock-pane-shopee" title="Mua Vật Tư & Tìm Nơi Bán Gần Bạn Theo Bán Kính">
+            <span class="dock-nav-icon">🛒</span>
+            <span class="dock-nav-label">Mua Vật Tư</span>
           </button>
         </nav>
       </aside>
@@ -841,11 +1022,11 @@
                 </div>
                 <div class="dock-dim-cell">
                   <label>Cao (Z) mm</label>
-                  <input type="number" id="dock-input-height" value="750" step="10">
+                  <input type="number" id="dock-input-height" value="1800" step="10">
                 </div>
               </div>
               <div class="dock-dim-summary-line" id="dock-specs-summary-display">
-                Dài: 1200mm | Rộng: 600mm | Cao: 750mm
+                Dài: 1200mm | Rộng: 600mm | Cao: 1800mm
               </div>
             </div>
 
@@ -967,19 +1148,60 @@
             </div>
           </section>
 
-          <!-- ==================== PANE 5: BÓC TÁCH CNC & G-CODE ==================== -->
+          <!-- ==================== PANE 5: BÓC TÁCH CNC & NESTING (2 LỰA CHỌN) ==================== -->
           <section class="dock-workspace-pane" id="dock-pane-cnc" style="display:none;">
             <div class="dock-cnc-stat-row">
-              <div class="dock-cnc-pill">Số Tấm: <b id="dock-cam-sheet-count">4 tấm</b></div>
-              <div class="dock-cnc-pill">Hao Phí: <b id="dock-cam-utilization">8.5%</b></div>
-              <div class="dock-cnc-pill">Đường Cắt: <b id="dock-cam-cut-length">42.5m</b></div>
+              <div class="dock-cnc-pill">Số Tấm: <b id="dock-cam-sheet-count">0 tấm</b></div>
+              <div class="dock-cnc-pill">Hiệu Suất: <b id="dock-cam-utilization">0%</b></div>
+              <div class="dock-cnc-pill">Đường Cắt: <b id="dock-cam-cut-length">0m</b></div>
             </div>
+            <div class="dock-cnc-section-box" style="padding:7px; margin:6px 0;">
+              <div class="cnc-section-title" style="font-size:10px;">THÔNG SỐ PHÔI & DAO</div>
+              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:4px; margin-top:5px;">
+                <label style="font-size:9px;">Khổ X<input id="dock-cam-sheet-w" type="number" min="100" value="1220" style="width:100%; box-sizing:border-box;"></label>
+                <label style="font-size:9px;">Khổ Y<input id="dock-cam-sheet-h" type="number" min="100" value="2440" style="width:100%; box-sizing:border-box;"></label>
+                <label style="font-size:9px;">Dao Ø<input id="dock-cam-tool-dia" type="number" min="1" max="50" step="0.1" value="6" style="width:100%; box-sizing:border-box;"></label>
+                <label style="font-size:9px;">Lề<input id="dock-cam-edge-margin" type="number" min="0" step="0.5" value="10" style="width:100%; box-sizing:border-box;"></label>
+                <label style="font-size:9px;">Khe tấm<input id="dock-cam-part-gap" type="number" min="0" step="0.5" value="4" style="width:100%; box-sizing:border-box;"></label>
+                <label style="font-size:9px;">Sâu/lớp<input id="dock-cam-pass-depth" type="number" min="0.1" step="0.1" value="6" style="width:100%; box-sizing:border-box;"></label>
+              </div>
+              <label style="display:block; font-size:9px; margin-top:5px;"><input id="dock-cam-use-tabs" type="checkbox" checked> Chừa tab giữ phôi (khuyến nghị khi không dùng vacuum)</label>
+            </div>
+
+            <!-- Canvas mô phỏng sơ đồ xếp tấm Nesting 2D -->
             <div class="dock-nesting-mini-box">
-              <canvas id="dock-nesting-canvas" height="95" style="width:100%; height:95px; background:#000; border-radius:4px;"></canvas>
+              <canvas id="dock-nesting-canvas" height="95" style="width:100%; height:95px; background:#050811; border-radius:4px; border:1px solid #1e293b;"></canvas>
             </div>
-            <div class="dock-cnc-btn-row">
-              <button id="dock-btn-switch-to-cam" class="dock-tree-action-btn highlight" style="flex:1;">⚙️ Bóc Tách Nesting</button>
-              <button id="dock-btn-save-gcode" class="dock-tree-action-btn" style="flex:1;">💾 Lưu G-Code (USB)</button>
+
+            <!-- CỤM LỰA CHỌN B: XUẤT TRỰC TIẾP TRÊN SKETCHUP (ONE CLICK STYLE) -->
+            <div class="dock-cnc-section-box highlight-su-box">
+              <div class="cnc-section-title">🌟 LỰA CHỌN B: TRẢI PHẲNG TRÊN SKETCHUP</div>
+              <div class="cnc-section-desc">Bung toàn bộ tấm ván phôi (1220x2440) ra nền đất SU kèm nhãn tên, kích thước và thớ gỗ như One Click Cabinet.</div>
+              <button id="dock-btn-nest-to-su" class="dock-btn-primary-build pulse-btn" style="margin-top:6px; background:linear-gradient(135deg, #d97706, #b45309); font-weight:bold;">
+                🪵 XUẤT NESTING RA SU (ONE CLICK)
+              </button>
+            </div>
+
+            <!-- CỤM LỰA CHỌN A: XUẤT CHO VECTRIC ASPIRE (G-CODE & DXF) -->
+            <div class="dock-cnc-section-box">
+              <div class="cnc-section-title">⚙️ LỰA CHỌN A: XUẤT CHO VECTRIC ASPIRE</div>
+              <div class="cnc-section-desc">Để chỉnh trong Aspire: xuất DXF, import vectors rồi gán Toolpath. G-code ISO chỉ dùng sau khi đã xác nhận cấu hình máy.</div>
+              <div class="dock-cnc-btn-row" style="margin-top:6px; gap:8px;">
+                <button id="dock-btn-save-gcode" class="dock-tree-action-btn highlight" style="flex:1.2; font-size:13px; font-weight:bold; background:linear-gradient(135deg, #ea580c, #c2410c); border-color:#fb923c; color:#fff; box-shadow:0 2px 8px rgba(234,88,12,0.5);" title="Xuất file CNC .nc — nạp vào máy CNC hoặc Aspire">
+                  ⚡ XUẤT G-CODE (.NC)
+                </button>
+                <button id="dock-btn-save-dxf" class="dock-tree-action-btn" style="flex:1; border-color:#06b6d4; color:#67e8f9; font-weight:bold;" title="Lưu file DXF chuẩn AutoCAD R12 cho Vectric Aspire">
+                  📐 XUẤT DXF (ASPIRE)
+                </button>
+              </div>
+              <div class="aspire-guide-box">
+                <span class="guide-tag">💡 Aspire:</span> Vào Aspire ➔ <em>Import Vectors</em> (.dxf) ➔ Chọn layer <code>CNC_CUT_OUTLINE</code> ➔ Gán Toolpath Profile 2D ➔ Post-process ra G-code của đúng máy.
+              </div>
+            </div>
+
+            <div class="dock-cnc-btn-row" style="margin-top:4px;">
+              <button id="dock-btn-recalculate-cam" class="dock-tree-action-btn" style="flex:1;">🔄 Tính Toán Lại Nesting</button>
+              <button id="dock-btn-copy-gcode-text" class="dock-tree-action-btn" style="flex:1;">📋 Copy Mã G-Code</button>
             </div>
           </section>
 
@@ -1014,15 +1236,167 @@
             </div>
           </section>
 
+          <!-- ==================== PANE 8: CHILL SHOPEE - VẬT TƯ & ĐẠI LÝ GẦN BẠN ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-shopee" style="display:none;">
+            <!-- THANH ĐIỀU HƯỚNG PHỤ KIỆN 1 CHẠM (SUB-SWITCHER 1 CLICK DÀNH CHO CÁNH CỬA & HỘC KÉO) -->
+            <div class="dock-shopee-switcher-bar" id="dock-shopee-switcher-bar" style="display:none;">
+              <span class="switcher-bar-label">⚡ VẬT TƯ / PHỤ KIỆN ĐI KÈM:</span>
+              <div class="switcher-chip-group">
+                <button type="button" class="switcher-chip active" id="chip-switch-door" data-target="door">🚪 Cánh Tủ / Gỗ</button>
+                <button type="button" class="switcher-chip" id="chip-switch-handle" data-target="handle">🔩 Tay Nắm (32k)</button>
+                <button type="button" class="switcher-chip" id="chip-switch-hinge" data-target="hinge">⛓️ Bản Lề (38k)</button>
+              </div>
+            </div>
+
+            <!-- 1. THẺ HÀNG HÓA CHUẨN SHOPEE (7 MỤC TOÀN DIỆN) -->
+            <div class="shopee-product-card" id="shopee-product-card">
+              <!-- Header: SKU, Rating -->
+              <div class="shopee-card-badge-row">
+                <span class="shopee-sku-tag" id="shopee-item-sku">SKU: HDL-ALU-TITAN-128</span>
+                <span class="shopee-rating-star">⭐ <b id="shopee-item-rating">4.96</b>/5 (<span id="shopee-item-sold">18.5k</span>)</span>
+              </div>
+
+              <!-- 1. TÊN SẢN PHẨM -->
+              <div class="shopee-item-title" id="shopee-item-title">
+                [Chính Hãng Chill Decor / Hafele] Tay Nắm Hợp Kim Nhôm Đúc Nguyên Khối Anode Cao Cấp Cho Tủ Áo & Ngăn Kéo
+              </div>
+
+              <!-- 4. GIÁ CẢ -->
+              <div class="shopee-price-row">
+                <span class="shopee-price-current" id="shopee-item-price-current">32.000 đ</span>
+                <span class="shopee-price-original" id="shopee-item-price-original">45.000 đ</span>
+                <span class="shopee-discount-tag" id="shopee-item-discount">-29%</span>
+                <span class="shopee-unit-tag" id="shopee-item-unit">/ Cái (Kèm 02 ốc vít M4)</span>
+              </div>
+
+              <!-- 2. PHÂN LOẠI SKU (MÃ MÀU & KÍCH THƯỚC) -->
+              <div class="shopee-variation-container">
+                <div class="shopee-var-block">
+                  <div class="shopee-var-label">🎨 <strong>MÃ MÀU / LỚP PHỦ:</strong></div>
+                  <div class="shopee-chip-list" id="shopee-color-chips"></div>
+                </div>
+                <div class="shopee-var-block" style="margin-top:6px;">
+                  <div class="shopee-var-label">📐 <strong>KÍCH THƯỚC / TIM ỐC:</strong></div>
+                  <div class="shopee-chip-list" id="shopee-size-chips"></div>
+                </div>
+              </div>
+
+              <!-- 3. PHONG CÁCH & XUẤT XỨ -->
+              <div class="shopee-meta-box">
+                <div class="shopee-meta-row">
+                  <span class="shopee-meta-lbl">🏛️ Phong cách:</span>
+                  <span class="shopee-meta-val" id="shopee-item-style">Hiện Đại Tối Giản</span>
+                </div>
+                <div class="shopee-meta-row">
+                  <span class="shopee-meta-lbl">🏭 Xuất xứ:</span>
+                  <span class="shopee-meta-val" id="shopee-item-origin">OEM Chuẩn Xuất Khẩu Châu Âu</span>
+                </div>
+              </div>
+
+              <!-- 5. CHÍNH SÁCH BẢO HÀNH & ĐỔI TRẢ -->
+              <div class="shopee-policy-box">
+                <div class="shopee-policy-row">
+                  <span class="policy-icon">🛡️</span>
+                  <span class="policy-txt"><strong>Bảo hành:</strong> <span id="shopee-item-warranty">Bảo hành 24 tháng chính hãng</span></span>
+                </div>
+                <div class="shopee-policy-row">
+                  <span class="policy-icon">🔄</span>
+                  <span class="policy-txt"><strong>Đổi trả:</strong> <span id="shopee-item-return">1 đổi 1 trong 30 ngày nếu lỗi</span></span>
+                </div>
+              </div>
+
+              <!-- 6. ĐỘ BỀN ĐƯỢC NGƯỜI DÙNG ĐÁNH GIÁ -->
+              <div class="shopee-durability-box">
+                <div class="shopee-durability-header">
+                  <span>💪 ĐỘ BỀN NGƯỜI DÙNG ĐÁNH GIÁ:</span>
+                  <span class="durability-badge" id="shopee-item-durability">⭐ 9.9 / 10 điểm</span>
+                </div>
+                <div class="shopee-durability-review" id="shopee-item-review">
+                  “Chất nhôm đúc đầm tay chắc nịch, lớp mạ đen nhám mịn màng không bám vân tay...”
+                </div>
+              </div>
+
+              <!-- 7. THÔNG TIN DO CHỦ SHOP ĐĂNG -->
+              <div class="shopee-shop-desc-box">
+                <div class="shopee-shop-desc-title">📋 THÔNG TIN DO CHỦ SHOP ĐĂNG:</div>
+                <div class="shopee-shop-desc-body" id="shopee-item-shop-desc">
+                  • Chất liệu: Hợp kim nhôm đặc đúc áp lực cao...
+                </div>
+              </div>
+
+              <!-- QUY CÁCH KỸ THUẬT MỘC -->
+              <div class="shopee-specs-box" id="shopee-item-specs">
+                Dài 128mm • Cao 22mm • Bản rộng 12mm • Tim ốc chuẩn CNC
+              </div>
+            </div>
+
+            <!-- 2. BỘ LỌC TÌM KIẾM THEO BÁN KÍNH (RADIUS SELECTOR) -->
+            <div class="shopee-radius-filter-box">
+              <div class="shopee-filter-header">
+                <span>📍 TÌM NƠI BÁN GẦN VỊ TRÍ:</span>
+                <select id="shopee-select-city" class="shopee-city-select">
+                  <option value="Hà Nội" selected>Hà Nội</option>
+                  <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                  <option value="Bình Dương">Bình Dương</option>
+                  <option value="Đà Nẵng">Đà Nẵng</option>
+                </select>
+              </div>
+
+              <!-- Thanh kéo bán kính Slider -->
+              <div class="shopee-slider-row">
+                <div class="shopee-slider-label">
+                  <span>Bán kính tìm kiếm:</span>
+                  <span class="shopee-radius-val"><strong id="shopee-radius-display">5</strong> km</span>
+                </div>
+                <input type="range" id="shopee-radius-slider" min="1" max="50" step="1" value="5" class="shopee-slider">
+                <div class="shopee-slider-ticks">
+                  <span>1km</span>
+                  <span>5km</span>
+                  <span>10km</span>
+                  <span>20km</span>
+                  <span>50km</span>
+                </div>
+              </div>
+
+              <div class="shopee-found-count" id="shopee-found-count">
+                🔍 Tìm thấy <strong id="shopee-count-num">3</strong> đại lý trong bán kính 5km
+              </div>
+            </div>
+
+            <!-- 3. DANH SÁCH ĐẠI LÝ / NHÀ CUNG CẤP TRONG BÁN KÍNH -->
+            <div class="shopee-supplier-list" id="shopee-supplier-list">
+              <!-- Render động qua JavaScript -->
+            </div>
+          </section>
+
         </div>
 
         <!-- WORKSPACE FOOTER: NÚT HÀNH ĐỘNG GHIM ĐÁY MÀN HÌNH CHÍNH -->
         <footer class="dock-workspace-footer" id="dock-workspace-footer">
-          <!-- NÚT CHÍNH TO NHẤT: XÂY 3D VÀO SKETCHUP -->
-          <button class="dock-btn-primary-build" id="dock-btn-build-3d" title="Dựng mô hình 3D trực tiếp vào không gian làm việc SketchUp">
-            <span class="dock-btn-build-icon">🔨</span>
-            <span class="dock-btn-build-txt">XÂY 3D VÀO SKETCHUP</span>
-          </button>
+          <!-- HÀNG NÚT CHÍNH: XÂY 3D VÀ XUẤT DXF ASPIRE TO RÕ NHẤT -->
+          <div class="dock-footer-primary-row" style="display:flex; gap:6px; margin-bottom:4px;">
+            <button class="dock-btn-primary-build" id="dock-btn-build-3d" style="flex:1; margin:0;" title="Dựng mô hình 3D trực tiếp vào không gian làm việc SketchUp">
+              <span class="dock-btn-build-icon">🔨</span>
+              <span class="dock-btn-build-txt">XÂY 3D SU</span>
+            </button>
+            <button class="dock-btn-primary-dxf pulse-btn" id="dock-btn-footer-dxf" style="flex:1.2; margin:0; background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border:1.5px solid #38bdf8; border-radius:4px; font-weight:bold; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 10px rgba(2,132,199,0.6);" title="Bấm 1 chạm: Xuất ngay file DXF 2D Nesting cho Vectric Aspire">
+              <span style="font-size:13px;">📐</span>
+              <span style="letter-spacing:0.3px;">XUẤT DXF (ASPIRE)</span>
+            </button>
+          </div>
+
+          <!-- HÀNG NÚT HÀNH ĐỘNG NHANH: TRẢI PHẲNG + MENU CNC + MUA VẬT TƯ -->
+          <div class="dock-footer-btn-row" style="display:flex; gap:4px; margin-bottom: 4px;">
+            <button class="dock-btn-secondary-action" id="dock-btn-footer-nest" style="flex:1; background:linear-gradient(135deg, #b45309, #78350f); color:#fbbf24; border:1px solid #d97706; font-weight:bold; font-size:10px; padding:6px 2px;" title="Lựa chọn B: Trải phẳng ván trực tiếp lên mặt bàn SketchUp (One Click)">
+              🪵 Trải Phẳng
+            </button>
+            <button class="dock-btn-secondary-action" id="dock-btn-main-cnc" style="flex:1; background:linear-gradient(135deg, #ea580c, #c2410c); color:#ffffff; border:1px solid #fb923c; font-weight:bold; font-size:10px; padding:6px 2px;" title="Mở menu tuỳ chọn nâng cao CNC & G-Code">
+              ⚡ Menu CNC
+            </button>
+            <button class="dock-btn-secondary-action" id="dock-btn-footer-shopee" style="flex:1; background:linear-gradient(135deg, #991b1b, #7f1d1d); color:#fecaca; border:1px solid #ef4444; font-weight:bold; font-size:10px; padding:6px 2px;" title="Mua Vật Tư & Báo Giá Phụ Kiện">
+              🛒 Mua Vật Tư
+            </button>
+          </div>
 
           <!-- HÀNG NÚT PHỤ 2 BÊN DƯỚI -->
           <div class="dock-footer-btn-row">
@@ -1235,10 +1609,10 @@
     </div>
   </div>
 
-  <script src="three_preview.js"></script>
-  <script src="avatar.js"></script>
-  <script src="account.js"></script>
-  <script src="app.js"></script>
+  <script src="three_preview.js?v=20261016_1000"></script>
+  <script src="avatar.js?v=20261016_1000"></script>
+  <script src="account.js?v=20261016_1000"></script>
+  <script src="app.js?v=20261016_1500"></script>
 
   <!-- MODAL GÓP Ý TRI THỨC MỘC CỘNG ĐỒNG (CROWDSOURCED KNOWLEDGE) -->
   <div id="modal-contribute-knowledge" class="acc-modal-backdrop" style="display: none;">
@@ -1274,6 +1648,56 @@
           <input type="text" id="contrib-author" class="acc-input" placeholder="Ví dụ: Xưởng Mộc Anh Huy - Hà Nội">
         </div>
         <button id="btn-submit-contribute" class="acc-btn-primary" style="margin-top: 5px;">🚀 Gửi Đóng Góp Vào Kho Tri Thức</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL XUẤT FILE CNC (G-CODE / ASPIRE / NESTING SU) ==================== -->
+  <div class="game-modal" id="modal-cnc-export" style="display: none; z-index: 100050;">
+    <div class="modal-box modal-cnc-box" style="max-width: 420px; background: #130e0a; border: 2px solid #ea580c; border-radius: 8px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.85);">
+      <div class="modal-cnc-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #451a03; padding-bottom:10px; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:15px; color:#fb923c; display:flex; align-items:center; gap:6px;">
+          <span>⚡</span> XUẤT FILE SẢN XUẤT CNC
+        </h3>
+        <button id="btn-close-cnc-modal" class="btn-close-modal" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+      </div>
+      <div class="modal-cnc-body" style="display:flex; flex-direction:column; gap:12px;">
+        <!-- LỰA CHỌN A: XUẤT CHO ASPIRE & MÁY CNC -->
+        <div class="cnc-modal-card" style="background:#1e140d; border:1px solid #d97706; border-radius:6px; padding:10px;">
+          <div style="font-weight:bold; font-size:12.5px; color:#fde68a; margin-bottom:4px; display:flex; align-items:center; gap:5px;">
+            <span>⚙️</span> LỰA CHỌN A: XUẤT CHO VECTRIC ASPIRE & MÁY CNC
+          </div>
+          <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px; line-height:1.35;">
+            Xuất file mã G-Code (.nc) nạp trực tiếp vào máy CNC hoặc xuất file DXF chuẩn layer để mở trong Aspire gán Toolpath dao (như video Kiếm Thu CNC).
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="modal-btn-save-gcode" style="flex:1; background:linear-gradient(135deg, #ea580c, #c2410c); color:#fff; border:1px solid #fb923c; border-radius:4px; padding:8px 6px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow:0 2px 6px rgba(234,88,12,0.4);" title="Tải file G-Code .nc">
+              🚀 Xuất G-Code (.nc)
+            </button>
+            <button id="modal-btn-save-dxf" style="flex:1; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:1px solid #38bdf8; border-radius:4px; padding:8px 6px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.4);" title="Tải file DXF cho Vectric Aspire">
+              📐 Xuất DXF (Aspire)
+            </button>
+          </div>
+        </div>
+
+        <!-- LỰA CHỌN B: XUẤT TRẢI PHẲNG TRÊN SKETCHUP -->
+        <div class="cnc-modal-card" style="background:#1e140d; border:1px solid #b45309; border-radius:6px; padding:10px;">
+          <div style="font-weight:bold; font-size:12.5px; color:#fde68a; margin-bottom:4px; display:flex; align-items:center; gap:5px;">
+            <span>🌟</span> LỰA CHỌN B: TRẢI PHẲNG TRÊN SKETCHUP (ONE CLICK)
+          </div>
+          <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px; line-height:1.35;">
+            Tự động bóc tách từng tấm ván (1220x2440), xếp gọn lên nền đất SketchUp kèm nhãn tên, kích thước và thớ gỗ trực quan.
+          </div>
+          <button id="modal-btn-nest-su" style="width:100%; background:linear-gradient(135deg, #d97706, #b45309); color:#fff; border:1px solid #fcd34d; border-radius:4px; padding:8px 6px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow:0 2px 6px rgba(217,119,6,0.4);" title="Bung ván ra mặt đất SketchUp">
+            🪵 Trải Phẳng Lên Mặt Bàn SU
+          </button>
+        </div>
+      </div>
+      <div style="text-align:right; margin-top:12px;">
+        <button id="modal-btn-open-cnc-tab" style="background:none; border:none; color:#fb923c; font-size:11.5px; text-decoration:underline; cursor:pointer;">
+          Mở Bảng Tùy Chỉnh Thông Số Dao & Lề ➔
+        </button>
       </div>
     </div>
   </div>

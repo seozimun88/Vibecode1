@@ -25,72 +25,104 @@ module ChillAIInterior
     dir = File.dirname(__FILE__)
     ['selection_observer.rb', 'model_generator.rb', 'dynamic_component.rb', 'cam_gcode.rb', 'audio_player.rb', 'structural_engine.rb'].each do |f|
       fpath = File.join(dir, f)
-      load fpath if File.exist?(fpath)
+      begin
+        load fpath if File.exist?(fpath)
+      rescue => e
+        puts "[Chill AI] Lỗi nạp module #{f}: #{e.message}"
+      end
     end
     puts "[Chill AI] Đã nạp lại toàn bộ module Ruby mới nhất!"
+  rescue => e
+    puts "[Chill AI] Lỗi reload_modules: #{e.message}"
   end
 
-  def self.show_dialog
-    reload_modules
-
-    if @dialog
-      begin
-        @dialog.close
-      rescue => e
+  def self.reset_dialog_position
+    begin
+      if @dialog && @dialog.visible?
+        @dialog.set_position(100, 80)
+        @dialog.set_size(340, 840)
+        @dialog.bring_to_front
+        UI.messagebox("Đã đặt lại vị trí cửa sổ Chill AI về góc trên bên trái màn hình (100, 80)!")
+      else
+        show_dialog(force_default_pos: true)
       end
-      @dialog = nil
+    rescue => err
+      UI.messagebox("Lỗi khi đặt lại vị trí cửa sổ: #{err.message}")
     end
+  end
 
-    html_path = File.join(File.dirname(__FILE__), 'ui', 'index.html')
-    unless File.exist?(html_path)
-      UI.messagebox("Không tìm thấy tệp giao diện UI tại: #{html_path}")
-      return
-    end
+  def self.show_dialog(force_default_pos: false)
+    begin
+      reload_modules
 
-    AudioPlayer.ensure_tts_server
+      # 1. Nếu dialog đang mở và hiển thị, chỉ cần mang lên phía trước
+      if @dialog && @dialog.visible?
+        @dialog.bring_to_front
+        return @dialog
+      end
 
-    # Kích thước mặc định vừa khít sát mép trên thanh status bar màu trắng của SketchUp
-    dock_w = 320
-    dock_h = 875
-    dock_top = 58
-    dock_left = 1208
-
-    @dialog = UI::HtmlDialog.new(
-      dialog_title: "Chill AI Interior - Trợ Lý Thiết Kế 3D & Sản Xuất CNC",
-      scrollable: false,
-      resizable: true,
-      width: dock_w,
-      height: dock_h,
-      min_width: 280,
-      min_height: 360,
-      left: dock_left,
-      top: dock_top
-    )
-
-    setup_callbacks(@dialog)
-
-    @dialog.set_on_closed do
-      SelectionManager.detach
-    end
-
-    @dialog.set_file(html_path)
-    @dialog.show
-
-    # Định vị và ép chuẩn kích thước mặc định như ảnh khoanh đỏ của anh Huy
-    [0.05, 0.15, 0.4].each do |sec|
-      UI.start_timer(sec, false) do
+      # 2. Thu dọn tham chiếu cũ nếu dialog đã đóng
+      if @dialog
         begin
-          if @dialog
-            @dialog.set_size(dock_w, dock_h)
-            @dialog.set_position(dock_left, dock_top)
-          end
-        rescue => e
+          @dialog.close rescue nil
+        rescue => _e
         end
+        @dialog = nil
       end
-    end
 
-    # Gắn observer giám sát đối tượng 3 tầng vào SketchUp
-    SelectionManager.attach(@dialog)
+      html_path = File.join(File.dirname(__FILE__), 'ui', 'index.html')
+      unless File.exist?(html_path)
+        UI.messagebox("Không tìm thấy tệp giao diện UI tại:\n#{html_path}")
+        return nil
+      end
+
+      # Kích thước mặc định chuẩn khay dock
+      dock_w = 330
+      dock_h = 850
+      dock_top = 60
+      dock_left = 1100
+
+      dialog_options = {
+        dialog_title: "Chill AI Interior - Trợ Lý Thiết Kế 3D & Sản Xuất CNC",
+        scrollable: false,
+        resizable: true,
+        width: dock_w,
+        height: dock_h,
+        min_width: 280,
+        min_height: 360,
+        left: dock_left,
+        top: dock_top
+      }
+      dialog_options[:preferences_key] = "ChillAIInterior_MainWindow_v2026" unless force_default_pos
+
+      @dialog = UI::HtmlDialog.new(dialog_options)
+
+      setup_callbacks(@dialog)
+
+      @dialog.set_on_closed do
+        SelectionManager.detach rescue nil
+        @dialog = nil
+      end
+
+      @dialog.set_file(html_path)
+      @dialog.show
+      @dialog.bring_to_front
+
+      # Gắn observer giám sát đối tượng 3 tầng vào SketchUp
+      SelectionManager.attach(@dialog) rescue nil
+
+      # Kích hoạt TTS Server ngầm
+      UI.start_timer(0.4, false) do
+        AudioPlayer.ensure_tts_server rescue nil
+      end
+
+      @dialog
+    rescue => err
+      msg = "Lỗi khi mở giao diện Chill AI Interior:\n#{err.message}\n\nChi tiết:\n#{err.backtrace ? err.backtrace.first(4).join("\n") : ''}"
+      puts "[Chill AI Fatal] #{msg}"
+      UI.messagebox(msg)
+      nil
+    end
   end
 
   def self.setup_callbacks(dialog)
@@ -140,7 +172,7 @@ module ChillAIInterior
       end
     end
 
-    # 4. Lưu file G-Code trực tiếp vào máy tính / USB
+    # 4. Lưu file G-Code trực tiếp vào máy tính / USB (Lựa chọn A - Xuất Aspire / CNC)
     dialog.add_action_callback("save_gcode_file") do |_action_context, *args|
       begin
         payload = args.first
@@ -148,13 +180,101 @@ module ChillAIInterior
         content = data['content'] || ''
         default_name = data['filename'] || 'CNC_CUT_CODE.nc'
 
-        chosen_path = UI.savepanel("Lưu file G-Code cho máy CNC (Cắm USB)", "", default_name)
+        chosen_path = UI.savepanel("Lưu file G-Code cho máy CNC (Cắm USB / Nạp Aspire)", "", default_name)
         if chosen_path
           File.open(chosen_path, "w:UTF-8") { |f| f.write(content) }
-          UI.messagebox("Đã lưu file G-Code thành công tại:\n#{chosen_path}\nBạn có thể copy file này vào USB để cắm trực tiếp vào máy cắt CNC!")
+          UI.messagebox("Đã lưu file G-Code thành công tại:\n#{chosen_path}\nBạn có thể copy file này vào USB hoặc nạp trực tiếp vào phần mềm CNC / Aspire!")
         end
       rescue => e
         UI.messagebox("Không thể lưu file G-Code: #{e.message}")
+      end
+    end
+
+    # 4a. Xuất trực tiếp G-Code 1-chạm (Tự động tính Nesting và mở hộp thoại Lưu G-Code .nc)
+    dialog.add_action_callback("export_gcode_direct") do |_action_context, *args|
+      begin
+        json_params = args.first
+        params = (json_params && json_params.is_a?(String)) ? JSON.parse(json_params) : (json_params || {})
+        result = CamGCodeExporter.process(params)
+        gcode_content = result['gcode'] || ''
+        model_name = (params['name'] || 'NESTING').to_s.gsub(/\s+/, '_')
+        default_name = "CNC_GCODE_#{model_name}_#{Time.now.strftime('%d%m_%H%M%S')}.nc"
+        chosen_path = UI.savepanel("Lưu file G-Code cho máy CNC Router", "", default_name)
+        if chosen_path
+          File.open(chosen_path, "w:UTF-8") { |f| f.write(gcode_content) }
+          UI.messagebox("Đã xuất file G-Code thành công tại:\n#{chosen_path}\n\nTổng cộng #{result['total_parts']} chi tiết trên #{result['sheets'].length} khổ ván.\nBạn có thể nạp thẳng file này vào máy CNC Router để cắt phôi!")
+          dialog.execute_script("if(window.onGCodeGenerated) window.onGCodeGenerated(#{result.to_json});")
+        end
+      rescue => e
+        UI.messagebox("Không thể xuất file G-Code: #{e.message}")
+      end
+    end
+
+    # 4b. Lưu file DXF cho phần mềm Vectric Aspire (Lựa chọn A - Xuất sang Aspire chỉnh sửa)
+    dialog.add_action_callback("save_dxf_file") do |_action_context, *args|
+      begin
+        payload = args.first
+        data = payload.is_a?(String) ? JSON.parse(payload) : payload
+        content = data['content'] || ''
+        default_name = data['filename'] || 'CNC_ASPIRE_NESTING.dxf'
+
+        chosen_path = UI.savepanel("Lưu file DXF cho Vectric Aspire", "", default_name)
+        if chosen_path
+          File.open(chosen_path, "w:UTF-8") { |f| f.write(content) }
+          UI.messagebox("Đã lưu file DXF thành công tại:\n#{chosen_path}\nBạn có thể mở trực tiếp vào Vectric Aspire (Import Vectors) để gán đường dao như video Kiếm Thu CNC!")
+        end
+      rescue => e
+        UI.messagebox("Không thể lưu file DXF: #{e.message}")
+      end
+    end
+
+    # 4c. Xuất trực tiếp DXF 1-chạm (Tự động bóc tách Nesting và mở hộp thoại Lưu DXF)
+    dialog.add_action_callback("export_dxf_direct") do |_action_context, *args|
+      begin
+        result = CamGCodeExporter.export_selected_dxf
+        if result && result['status'] == 'success'
+          UI.messagebox("Đã xuất DXF 2D thành công:\n#{result['path']}\n\n#{result['total_parts']} chi tiết / #{result['total_sheets']} khổ ván.\nMở file này trong Aspire bằng Import Vectors.")
+          dialog.execute_script("if(window.onDxfExported) window.onDxfExported(#{result.to_json});")
+        end
+      rescue => e
+        UI.messagebox("Không thể xuất file DXF: #{e.message}")
+      end
+    end
+
+    # 4c. Nhận lệnh trải phẳng ván trực tiếp lên mặt bàn SketchUp (Lựa chọn B - Như One Click làm)
+    dialog.add_action_callback("nest_to_sketchup") do |_action_context, *args|
+      begin
+        json_params = args.first
+        params = json_params.is_a?(String) ? JSON.parse(json_params) : (json_params || {})
+        result = CamGCodeExporter.nest_to_sketchup(params)
+        dialog.execute_script("if(window.onNestingToSUCompleted) window.onNestingToSUCompleted(#{result.to_json});")
+        if result['status'] == 'success'
+          Sketchup.status_text = "Chill AI: Đã trải phẳng #{result['total_sheets']} khổ ván lên mặt bàn SketchUp!"
+        else
+          UI.messagebox("Lỗi trải phẳng SU: #{result['message']}")
+        end
+      rescue => e
+        UI.messagebox("Lỗi trải phẳng lên SketchUp: #{e.message}")
+        puts e.backtrace
+      end
+    end
+
+    # 4d. Thu về khổ ván tiêu chuẩn 2440mm
+    dialog.add_action_callback("clamp_oversized_to_standard") do |_action_context, *args|
+      begin
+        SelectionManager.clamp_to_standard
+      rescue => e
+        UI.messagebox("Lỗi khi co kích thước: #{e.message}")
+      end
+    end
+
+    # 4e. Zoom tiêu điểm đến chi tiết được chọn
+    dialog.add_action_callback("zoom_to_entity") do |_action_context, *args|
+      begin
+        entity_id = args.first
+        SelectionManager.zoom_to_entity(entity_id) if entity_id
+      rescue => e
+        puts "[Chill AI] Lỗi zoom: #{e.message}"
       end
     end
 
@@ -193,10 +313,21 @@ module ChillAIInterior
     dialog.add_action_callback("get_current_selection") do |_action_context, *args|
       model = Sketchup.active_model
       if model && model.selection.count > 0
-        SelectionManager.handle_selection(model.selection, dialog)
+        SelectionManager.handle_selection(model.selection, dialog, force: true)
       else
         SelectionManager.handle_cleared(dialog)
       end
+    end
+
+    # 9b. Tải lại toàn bộ mã nguồn Ruby & Refresh giao diện
+    dialog.add_action_callback("reload_plugin_all") do |_action_context, *args|
+      reload_modules
+      model = Sketchup.active_model
+      SelectionManager.reconnect(model)
+      if model && model.selection.count > 0
+        SelectionManager.handle_selection(model.selection, dialog, force: true)
+      end
+      dialog.execute_script("window.location.reload(true);")
     end
 
     # 10. JavaScript báo UI đã sẵn sàng tiếp nhận sự kiện 2 chiều (Handshake)
@@ -213,15 +344,15 @@ module ChillAIInterior
       mode = args.first.to_s
       begin
         if mode == 'dock_tray'
-          # Kích thước khay đứng vừa vặn giữa Toolbar và Status bar của SketchUp (320x455)
+          # Kích thước khay đứng vừa vặn giữa Toolbar và Status bar của SketchUp (320x875)
           dialog.set_size(320, 875)
-          dialog.set_position(1208, 70)
-          puts "[Chill AI]: Đã chuyển sang Chế độ Khay Đứng (320x455) vị trí (1208, 70)"
+          dialog.set_position(1208, 58)
+          puts "[Chill AI]: Đã chuyển sang Chế độ Khay Đứng (320x875)"
         else
           # Chế độ Toàn Cảnh Studio ngang rộng
-          dialog.set_size(1120, 680)
-          dialog.set_position(100, 70)
-          puts "[Chill AI]: Đã chuyển sang Chế độ Toàn Cảnh Studio (1120x680)"
+          dialog.set_size(1180, 750)
+          dialog.set_position(80, 50)
+          puts "[Chill AI]: Đã chuyển sang Chế độ Toàn Cảnh Studio (1180x750)"
         end
       rescue => e
         puts "[Chill AI Resize Error]: #{e.message}"
@@ -230,11 +361,13 @@ module ChillAIInterior
 
     # 12. Cho phép người dùng tự do co kéo chiều ngang mà không bị ngắt quãng
     dialog.add_action_callback("lock_dock_height") do |_action_context, *args|
+      dialog.set_size(320, 875)
       # Không ép set_size trong khi user đang kéo chuột để tránh làm đơ thao tác resize của Windows
     end
 
     # Callback phụ trợ tương thích ngược
     dialog.add_action_callback("clamp_dock_size") do |_action_context, *args|
+      dialog.set_size(320, 875)
     end
 
     # 13. Lấy danh sách Preset kết cấu tri thức mộc
@@ -294,23 +427,47 @@ module ChillAIInterior
     cmd.small_icon = File.join(icon_dir, 'icon_16.png')
     cmd.large_icon = File.join(icon_dir, 'icon_24.png')
 
+    cmd_export_dxf = UI::Command.new('Xuất DXF 2D (Nesting)') do
+      result = CamGCodeExporter.export_selected_dxf
+      if result['status'] == 'success'
+        UI.messagebox("Đã xuất DXF 2D thành công:\n#{result['path']}\n\n#{result['total_parts']} chi tiết / #{result['total_sheets']} khổ ván.\nMở file này trong Aspire bằng Import Vectors.")
+      end
+    end
+    cmd_export_dxf.tooltip = 'Xuất DXF 2D từ model đang chọn cho Vectric Aspire'
+    cmd_export_dxf.status_bar_text = 'Chọn model/tấm ván, sau đó xuất sơ đồ Nesting DXF 2D cho Aspire'
+    cmd_export_dxf.small_icon = File.join(icon_dir, 'icon_dxf_16.png')
+    cmd_export_dxf.large_icon = File.join(icon_dir, 'icon_dxf_24.png')
+
     # Menu
     menu = UI.menu("Plugins") || UI.menu("Extensions")
     menu.add_item(cmd)
     submenu = menu.add_submenu("Chill AI Interior")
     submenu.add_item(cmd)
+    submenu.add_item(cmd_export_dxf)
+    submenu.add_item("🔄 Đặt Lại Vị Trí Cửa Sổ (Reset Vị Trí)") do
+      reset_dialog_position
+    end
     submenu.add_item("🔄 Tải Lại Plugin (Force Reload)") do
-      load __FILE__
-      show_dialog
+      reload_modules
+      if @dialog && @dialog.visible?
+        @dialog.execute_script("location.reload();")
+      else
+        show_dialog
+      end
     end
 
     # Toolbar
     toolbar = UI::Toolbar.new("Chill AI Interior")
     toolbar.add_item(cmd)
+    toolbar.add_item(cmd_export_dxf)
     toolbar.show
 
-    UI.start_timer(0.2, false) { AudioPlayer.ensure_tts_server }
-    UI.start_timer(0.6, false) { show_dialog }
+    UI.start_timer(0.4, false) do
+      AudioPlayer.ensure_tts_server rescue nil
+    end
+    UI.start_timer(0.8, false) do
+      show_dialog rescue nil
+    end
 
     file_loaded(__FILE__)
   end

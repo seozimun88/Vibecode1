@@ -3362,6 +3362,77 @@ body.dock-mode #view-dock-mode {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
+.dock-ws-badge.tier-1 {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #93c5fd !important;
+  border-color: #3b82f6 !important;
+}
+.dock-ws-badge.tier-2 {
+  background: rgba(16, 185, 129, 0.25) !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+}
+.dock-ws-badge.tier-3 {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fde047 !important;
+  border-color: #f59e0b !important;
+}
+.dock-ws-badge.hw {
+  background: rgba(236, 72, 153, 0.25) !important;
+  color: #f472b6 !important;
+  border-color: #ec4899 !important;
+}
+
+/* Thanh điều hướng phụ kiện 1 chạm (Sub-Switcher) */
+.dock-shopee-switcher-bar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+  margin-bottom: 6px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+.switcher-bar-label {
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  color: #fbbf24 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+.switcher-chip-group {
+  display: flex !important;
+  gap: 4px !important;
+  width: 100% !important;
+}
+.switcher-chip {
+  flex: 1 !important;
+  padding: 4px 6px !important;
+  font-size: 8.5px !important;
+  font-weight: 600 !important;
+  color: #cbd5e1 !important;
+  background: rgba(30, 41, 59, 0.9) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+.switcher-chip:hover {
+  background: rgba(51, 65, 85, 1) !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+}
+.switcher-chip.active {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border-color: #fef08a !important;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4) !important;
+}
 
 /* Vùng nội dung cuộn độc lập */
 .dock-workspace-content {
@@ -3762,9 +3833,43 @@ body.dock-mode #view-dock-mode {
   box-sizing: border-box !important;
 }
 
-/* NÚT CHÍNH TO NHẤT CHIẾM FULL BỀ NGANG MÀU CAM */
-.dock-btn-primary-build {
+/* HÀNG NÚT CHÍNH GHIM ĐÁY: 🔨 XÂY 3D SU & ⚡ XUẤT CNC (SONG HÀNH 50/50 RÕ RÀNG) */
+.dock-footer-primary-row {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 5px !important;
   width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 3.5px !important;
+}
+
+.dock-footer-primary-row .dock-btn-primary-build,
+.dock-footer-primary-row .dock-btn-primary-cnc,
+.dock-footer-primary-row .dock-btn-primary-dxf {
+  flex: 1 1 0% !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  box-sizing: border-box !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-shadow: 1px 1px 2px #000 !important;
+  transition: all 0.15s ease !important;
+}
+
+/* NÚT CHÍNH XÂY 3D VÀO SU */
+.dock-btn-primary-build {
+  width: 100%;
   height: 32px !important;
   background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%) !important;
   border: 1.5px solid #fef08a !important;
@@ -3781,6 +3886,41 @@ body.dock-mode #view-dock-mode {
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.45) !important;
   text-shadow: 1px 1px 2px #000 !important;
   transition: all 0.15s ease !important;
+}
+
+/* NÚT CHÍNH XUẤT DXF ASPIRE (MÀU CYAN/XANH BIỂN ĐẶC TRƯNG) */
+.dock-btn-primary-dxf {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%) !important;
+  border: 1.5px solid #7dd3fc !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.5) !important;
+}
+.dock-btn-primary-dxf:hover {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%) !important;
+  box-shadow: 0 0 14px rgba(14, 165, 233, 0.75) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* NÚT CHÍNH XUẤT CNC (ĐẬP VÀO MẮT ANH HUY NGAY TỪ MẶT TIỀN) */
+.dock-btn-primary-cnc {
+  background: linear-gradient(180deg, #ea580c 0%, #9a3412 100%) !important;
+  border: 1.5px solid #fed7aa !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(234, 88, 12, 0.5) !important;
+}
+.dock-btn-primary-cnc:hover {
+  background: linear-gradient(180deg, #f97316 0%, #c2410c 100%) !important;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.75) !important;
+  transform: translateY(-1px) !important;
+}
+.dock-btn-cnc-icon {
+  font-size: 13px !important;
+  flex-shrink: 0 !important;
+}
+.dock-btn-cnc-txt {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.4px !important;
 }
 .dock-btn-primary-build:hover {
   background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%) !important;
@@ -4018,10 +4158,17 @@ body.dock-mode #view-dock-mode {
 }
 
 .dock-btn-primary-build {
-  width: 100% !important;
+  width: 100%;
   box-sizing: border-box !important;
   height: 30px !important;
   font-size: 10.5px !important;
+}
+
+.dock-footer-primary-row .dock-btn-primary-build,
+.dock-footer-primary-row .dock-btn-primary-cnc {
+  width: auto !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
 }
 
 .dock-footer-btn-row {
@@ -4209,10 +4356,17 @@ body.dock-mode #view-dock-mode,
 }
 
 .dock-btn-primary-build {
-  width: 100% !important;
+  width: 100%;
   box-sizing: border-box !important;
   height: 30px !important;
   font-size: 10.5px !important;
+}
+
+.dock-footer-primary-row .dock-btn-primary-build,
+.dock-footer-primary-row .dock-btn-primary-cnc {
+  width: auto !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
 }
 
 .dock-footer-btn-row {
@@ -4766,4 +4920,715 @@ body.dock-mode #view-dock-mode,
   width: 100% !important;
   height: 100% !important;
   display: block !important;
+}
+
+
+/* ============================================================================== */
+/* CHILL AI INTERIOR - CNC 2 OPTIONS & SHOPEE RADIUS STORE FINDER                */
+/* ============================================================================== */
+
+/* CNC Section Boxes */
+.dock-cnc-section-box {
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  background: rgba(15, 23, 42, 0.7);
+  box-sizing: border-box;
+}
+
+.dock-cnc-section-box.highlight-su-box {
+  border: 1px solid #d97706;
+  background: rgba(180, 83, 9, 0.12);
+  box-shadow: 0 0 12px rgba(217, 119, 6, 0.18);
+}
+
+.cnc-section-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cnc-section-desc {
+  font-size: 9.5px;
+  color: #94a3b8;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.aspire-guide-box {
+  background: rgba(6, 182, 212, 0.1);
+  border-left: 2px solid #06b6d4;
+  padding: 4px 6px;
+  font-size: 9px;
+  color: #cbd5e1;
+  margin-top: 6px;
+  border-radius: 2px;
+  line-height: 1.3;
+}
+
+.aspire-guide-box code {
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+.guide-tag {
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+/* ============================================================================== */
+/* SHOPEE VẬT TƯ & TÌM NHÀ CUNG CẤP THEO BÁN KÍNH                                 */
+/* ============================================================================== */
+
+.shopee-product-card {
+  background: #090e1a;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.15);
+}
+
+.shopee-card-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9.5px;
+  margin-bottom: 4px;
+}
+
+.shopee-mall-badge {
+  display: none !important;
+}
+
+.shopee-sku-tag {
+  color: #64748b;
+  font-size: 9px;
+  font-family: monospace;
+}
+
+.shopee-rating-star {
+  color: #fbbf24;
+  font-size: 9.5px;
+}
+
+.shopee-item-title {
+  font-size: 11.5px;
+  font-weight: bold;
+  color: #f8fafc;
+  line-height: 1.35;
+  margin: 3px 0 5px 0;
+}
+
+.shopee-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.shopee-price-current {
+  color: #ef4444;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.shopee-price-original {
+  color: #64748b;
+  font-size: 10.5px;
+  text-decoration: line-through;
+}
+
+.shopee-discount-tag {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 2px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.shopee-unit-tag {
+  color: #94a3b8;
+  font-size: 9.5px;
+}
+
+.shopee-specs-box {
+  font-size: 9.5px;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 5px 7px;
+  border-radius: 4px;
+  border-left: 2px solid #fbbf24;
+  line-height: 1.35;
+}
+
+/* 7 MUC CHI TIET HANG HOA SHOPEE (MUA VAT TU) */
+.shopee-variation-container {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+
+.shopee-var-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.shopee-var-label {
+  font-size: 9px;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+}
+
+.shopee-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.shopee-chip {
+  font-size: 8.5px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(30, 41, 59, 0.8);
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.shopee-chip:hover {
+  border-color: #ef4444;
+  color: #f8fafc;
+}
+
+.shopee-chip.active {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fca5a5;
+  font-weight: bold;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
+}
+
+.shopee-meta-box {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid #1e293b;
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.shopee-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.shopee-meta-lbl {
+  color: #94a3b8;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.shopee-meta-val {
+  color: #f1f5f9;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.shopee-policy-box {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.shopee-policy-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.policy-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.policy-txt {
+  color: #e2e8f0;
+}
+
+.policy-txt strong {
+  color: #34d399;
+}
+
+.shopee-durability-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin: 6px 0;
+}
+
+.shopee-durability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: #fbbf24;
+  margin-bottom: 3px;
+}
+
+.durability-badge {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: bold;
+}
+
+.shopee-durability-review {
+  font-size: 9px;
+  font-style: italic;
+  color: #fef3c7;
+  line-height: 1.35;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 6px;
+  border-radius: 3px;
+  border-left: 2px solid #f59e0b;
+}
+
+.shopee-shop-desc-box {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px dashed #475569;
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin: 6px 0;
+}
+
+.shopee-shop-desc-title {
+  font-size: 9px;
+  font-weight: bold;
+  color: #94a3b8;
+  margin-bottom: 3px;
+}
+
+.shopee-shop-desc-body {
+  font-size: 9px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+
+
+/* Radius Filter Box */
+.shopee-radius-filter-box {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.shopee-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: bold;
+  color: #38bdf8;
+  margin-bottom: 6px;
+}
+
+.shopee-city-select {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.shopee-slider-row {
+  margin-top: 4px;
+}
+
+.shopee-slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: #cbd5e1;
+}
+
+.shopee-radius-val {
+  color: #fbbf24;
+  font-weight: bold;
+  font-size: 10.5px;
+}
+
+.shopee-slider {
+  width: 100%;
+  accent-color: #ef4444;
+  cursor: pointer;
+  margin: 4px 0 2px 0;
+}
+
+.shopee-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #64748b;
+}
+
+.shopee-found-count {
+  font-size: 9.5px;
+  color: #34d399;
+  margin-top: 5px;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Supplier Cards List */
+.shopee-supplier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.shopee-supplier-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 7px 9px;
+  transition: all 0.2s ease;
+}
+
+.shopee-supplier-card:hover {
+  border-color: #38bdf8;
+  background: #1e293b;
+}
+
+.sup-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.sup-name {
+  font-size: 10.5px;
+  font-weight: bold;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.sup-distance-badge {
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.sup-distance-badge.near {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid #22c55e;
+}
+
+.sup-distance-badge.mid {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border: 1px solid #eab308;
+}
+
+.sup-distance-badge.far {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid #64748b;
+}
+
+.sup-addr {
+  font-size: 9px;
+  color: #94a3b8;
+  margin: 3px 0;
+  line-height: 1.3;
+}
+
+.sup-stock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #cbd5e1;
+  margin-bottom: 5px;
+}
+
+.sup-actions-row {
+  display: flex;
+  gap: 5px;
+}
+
+.btn-sup-phone {
+  flex: 1;
+  background: #047857;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  font-size: 9.5px;
+  padding: 3px 6px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: 0.15s;
+}
+
+.btn-sup-phone:hover {
+  background: #059669;
+}
+
+.btn-sup-map {
+  flex: 1;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  font-size: 9.5px;
+  padding: 3px 6px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: 0.15s;
+}
+
+.btn-sup-map:hover {
+  background: #0369a1;
+}
+
+.highlight-gold {
+  border-color: #fbbf24 !important;
+  color: #fbbf24 !important;
+}
+
+/* ==============================================================================
+   RESPONSIVE SCALING & DYNAMIC RESIZING OVERRIDES (STUDIO & DOCK TRAY)
+   ============================================================================== */
+/* 1. Cho phep phong to/thu nho khong bi mat nut o Studio mode */
+.game-top-bar {
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+.game-top-bar::-webkit-scrollbar {
+  display: none !important;
+}
+.game-resources {
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  gap: 8px !important;
+}
+
+/* 2. Gi? nguy n 100% c?t n t l?nh b n ph?i kh ng bao gi? b? c?t x n */
+.hud-command-panel {
+  flex-shrink: 0 !important;
+}
+.hud-portrait {
+  flex-shrink: 0 !important;
+}
+
+/* 3. Cho ph p c?t gi?a co gi n mu?t m  v  tab cu?n ngang mu?t n?u m n h nh nh? */
+.hud-center-panel {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+.game-tabs {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  flex-wrap: nowrap !important;
+}
+.game-tabs::-webkit-scrollbar {
+  display: none !important;
+}
+.game-tab-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  padding: 8px 12px !important;
+}
+
+/* 4. Khay d?ng Dock Tray: Cho ph p co k o chi?u ngang t? do v  co gi n mu?t m  */
+body.dock-mode .dock-tray-app {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+}
+body.dock-mode .dock-body-container {
+  width: 100% !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+body.dock-mode .dock-main-workspace {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+
+/* ==============================================================
+   6. REALTIME OVERSIZED PANEL WARNING BANNER (CO KÉO 3D & DYNAMIC COMPONENT)
+   ============================================================== */
+.dock-oversized-warning-banner {
+  margin: 3px 6px 4px 6px !important;
+  padding: 6px 8px !important;
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)) !important;
+  border: 1.5px solid #ef4444 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
+  box-sizing: border-box !important;
+  animation: oversizedPulse 1.8s infinite alternate ease-in-out !important;
+}
+
+@keyframes oversizedPulse {
+  0% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); border-color: #ef4444; }
+  100% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.8); border-color: #fca5a5; }
+}
+
+.warning-banner-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+.warning-banner-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #fecaca !important;
+  letter-spacing: 0.3px !important;
+}
+
+.warning-icon-pulse {
+  font-size: 13px !important;
+  animation: bounceWarning 0.8s infinite alternate !important;
+}
+
+@keyframes bounceWarning {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.25); }
+}
+
+.warning-badge-count {
+  background: #dc2626 !important;
+  color: #fff !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  padding: 1px 5px !important;
+  border-radius: 10px !important;
+  border: 1px solid #f87171 !important;
+}
+
+.warning-banner-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  margin-bottom: 5px !important;
+  font-size: 10px !important;
+  color: #fef2f2 !important;
+  line-height: 1.35 !important;
+}
+
+.oversized-item {
+  background: rgba(0, 0, 0, 0.35) !important;
+  padding: 3px 6px !important;
+  border-radius: 4px !important;
+  border-left: 3px solid #ef4444 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.excess-pill {
+  background: rgba(239, 68, 68, 0.4) !important;
+  color: #fee2e2 !important;
+  font-weight: 800 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-size: 9px !important;
+}
+
+.warning-banner-footer {
+  display: flex !important;
+  gap: 4px !important;
+}
+
+.btn-warning-action {
+  flex: 1 !important;
+  height: 22px !important;
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  border: 1px solid #fca5a5 !important;
+  border-radius: 3px !important;
+  color: #ffffff !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+}
+
+.btn-warning-action:hover {
+  background: #dc2626 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+}
+
+.btn-warning-action.secondary {
+  background: linear-gradient(135deg, #475569, #334155) !important;
+  border-color: #94a3b8 !important;
+  color: #f1f5f9 !important;
+}
+
+.btn-warning-action.secondary:hover {
+  background: #64748b !important;
 }

@@ -12,11 +12,20 @@ module ChillAIInterior
       entities = model.active_entities
       type = (params['type'] || 'desk').to_s.downcase
 
-      # Kích thước đầu vào (tính bằng mm, chuyển đổi sang đơn vị chuẩn SketchUp)
+      # ĐẶC BIỆT: Nếu là Tủ Quần Áo / Cabinet: Dựng trực tiếp qua Cỗ Máy Kết Cấu StructuralEngine
+      # Đảm bảo 100% các tấm ván (Hồi, Đáy, Nóc, Hậu, Cánh, Ngăn kéo) đều có công thức Dynamic Component
+      # Tuyệt đối không bao giờ bị vỡ hay hở mép khi co kéo kích thước trong SketchUp!
+      if type == 'wardrobe' || type == 'cabinet' || type.include?('tu')
+        model.abort_operation
+        return StructuralEngine.build_wardrobe_structural(params)
+      end
+
+      # Kích thước đầu vào chuẩn xưởng (Dài 1200mm, Rộng 600mm, Tủ áo Cao 1800mm, Bàn 750mm)
+      default_h = 750
       length = (params['length'] || 1200).to_f.mm
       width  = (params['width']  || 600).to_f.mm
-      height = (params['height'] || 750).to_f.mm
-      thick  = (params['thickness'] || 18).to_f.mm
+      height = (params['height'] || default_h).to_f.mm
+      thick  = (params['thickness'] || 17.5).to_f.mm
 
       # Tùy chọn nâng cao
       wood_type = params['material'] || 'oak'
@@ -48,6 +57,14 @@ module ChillAIInterior
         build_bed(main_group, length, width, height, thick, wood_type)
       else
         build_desk(main_group, length, width, height, thick, leg_style, drawers, wood_type)
+      end
+
+      # Tự động chuyển đổi thành Dynamic Component có đầy đủ thông số và cảnh báo khổ ván
+      begin
+        dc_inst = DynamicComponentBuilder.convert_to_dynamic_component(main_group, params)
+        main_group = dc_inst if dc_inst && dc_inst.valid?
+      rescue => dc_err
+        puts "[Chill AI] Chuyển đổi DC ban đầu: #{dc_err.message}"
       end
 
       # Tự động chọn mô hình vừa tạo và căn khung nhìn
