@@ -71,12 +71,12 @@ module ChillAIInterior
             if sub.is_a?(Sketchup::Group) || sub.is_a?(Sketchup::ComponentInstance)
               # Bỏ qua các group lỗ khoan cũ nếu có
               next if sub.name =~ /Chill_AI_Fittings/i
-              panels << { entity: sub, parent: entity, transform: entity.transformation * sub.transformation }
+              panels << { entity: sub, parent: entity }
               has_subs = true
             end
           end
           # Nếu là tấm ván đơn lẻ
-          panels << { entity: entity, parent: nil, transform: entity.transformation } unless has_subs
+          panels << { entity: entity, parent: nil } unless has_subs
         end
       end
       panels
@@ -115,17 +115,21 @@ module ChillAIInterior
         length: length,
         width: width,
         thin_axis: thin_axis,
-        bounds_world: get_world_bounds(ent, panel_info[:transform])
+        bounds_world: get_world_bounds(ent, panel_info[:parent])
       }
     end
 
-    def self.get_world_bounds(entity, transform)
-      bb = entity.bounds
-      pts = [
-        Geom::Point3d.new(bb.min.x, bb.min.y, bb.min.z),
-        Geom::Point3d.new(bb.max.x, bb.max.y, bb.max.z)
-      ].map { |p| p.transform(transform) }
-      Geom::BoundingBox.new.add(pts)
+    # TÍNH TOÁN TOẠ ĐỘ WORLD BOUNDS CHUẨN XÁC 100% (KHÔNG NHÂN ĐÔI TRANSFORMATION, BIẾN ĐỔI CẢ 8 ĐỈNH)
+    def self.get_world_bounds(entity, parent = nil)
+      if parent.nil?
+        return entity.bounds
+      end
+      p_trans = parent.transformation
+      bbox = Geom::BoundingBox.new
+      (0..7).each do |i|
+        bbox.add(entity.bounds.corner(i).transform(p_trans))
+      end
+      bbox
     end
 
     # ==========================================================================

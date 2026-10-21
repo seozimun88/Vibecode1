@@ -24,7 +24,6 @@ module ChillAIInterior
       @hover_panel = nil
       @hover_joints = []
       @all_panels = []
-      @ip = Sketchup::InputPoint.new
 
       @presets_quick = [
         { id: 'cam_1_hole', name: 'CAM 1 LỖ', d_count: 1 },
@@ -59,126 +58,236 @@ module ChillAIInterior
       Sketchup.status_text = msg
     end
 
+    # NẠP TOÀN BỘ CÁC TẤM VÁN MỘC TRONG BẢN VẼ
     def refresh_panel_cache
       return unless @model
       ents = @model.active_entities
       @all_panels = []
+
       ents.each do |e|
-        if e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance)
-          next if e.name =~ /Chill_AI_Fittings/i
-          # Kiểm tra nếu là tủ tổ hợp cha chứa nhiều tấm
-          sub_ents = e.is_a?(Sketchup::Group) ? e.entities : e.definition.entities
-          has_subs = false
-          sub_ents.each do |sub|
-            if sub.is_a?(Sketchup::Group) || sub.is_a?(Sketchup::ComponentInstance)
-              next if sub.name =~ /Chill_AI_Fittings/i
-              @all_panels << { entity: sub, parent: e, transform: e.transformation * sub.transformation }
-              has_subs = true
-            end
+        next unless e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance)
+        next if e.name =~ /Chill_AI_Fittings/i
+
+        sub_ents = e.is_a?(Sketchup::Group) ? e.entities : e.definition.entities
+        has_subs = false
+        sub_ents.each do |sub|
+          next unless sub.is_a?(Sketchup::Group) || sub.is_a?(Sketchup::ComponentInstance)
+          next if sub.name =~ /Chill_AI_Fittings/i
+          @all_panels << { entity: sub, parent: e }
+          has_subs = true
+        end
+
+        @all_panels << { entity: e, parent: nil } unless has_subs
+      end
+    end
+
+    # BẮT ĐỐI TƯỢNG TẤM VÁN CHUẨN XÁC KHI DI CHUỘT / CLICK
+    def get_picked_panel(x, y, view)
+      ph = view.pick_helper
+      ph.do_pick(x, y)
+
+      # 1. Duyệt qua toàn bộ path phân cấp từ sâu nhất (lá) lên gốc
+      (0...ph.count).each do |idx|
+        path = ph.path_at(idx)
+        next unless path
+        path.reverse_each do |item|
+          found = @all_panels.find { |p| p[:entity] == item }
+          return found if found
+        end
+      end
+
+      # 2. Duyệt all_picked
+      if ph.all_picked
+        ph.all_picked.each do |item|
+          found = @all_panels.find { |p| p[:entity] == item }
+          return found if found
+        end
+      end
+
+      # 3. Fallback best_picked
+      best = ph.best_picked
+      if best
+        found = @all_panels.find { |p| p[:entity] == best }
+        return found if found
+        # Nếu trúng face hoặc edge con bên trong group
+        @all_panels.find do |p|
+          ent = p[:entity]
+          if ent.is_a?(Sketchup::Group)
+            ent.entities.include?(best)
+          elsif ent.is_a?(Sketchup::ComponentInstance)
+            ent.definition.entities.include?(best)
+          else
+            false
           end
-          @all_panels << { entity: e, parent: nil, transform: e.transformation } unless has_subs
         end
       end
     end
 
-    # Tìm đối tượng tấm ván từ pick helper
-    def find_panel_from_picked(picked)
-      return nil unless picked
-      # Tìm trong cache
-      found = @all_panels.find { |p| p[:entity] == picked }
-      return found if found
-
-      # Tìm cha nếu pick trúng mặt hoặc cạnh bên trong
-      @all_panels.find do |p|
-        ent = p[:entity]
-        if ent.is_a?(Sketchup::Group)
-          ent.entities.include?(picked)
-        elsif ent.is_a?(Sketchup::ComponentInstance)
-          ent.definition.entities.include?(picked)
-        else
-          false
-        end
-      end
-    end
-
-    # TÍNH TOÁN CÁC MỐI NỐI TIẾP XÚC VUÔNG GÓC VỚI CÁC TẤM LÂN CẬN
+    # ==========================================================================
+    # THUẬT TOÁN QUÉT TIẾP XÚC 3 CHIỀU TOÀN DIỆN (X, Y, Z) VỚI DUNG SAI MỘNG
+    # ==========================================================================
     def calculate_joints_for_panel(panel_info)
       return [] unless panel_info && @all_panels
       ent_a = panel_info[:entity]
-      bb_a = FittingEngine.get_world_bounds(ent_a, panel_info[:transform])
+      bb_a = FittingEngine.get_world_bounds(ent_a, panel_info[:parent])
 
       joints = []
+      tol = 12.mm # Dung sai tiếp xúc: Hỗ trợ cả mộng âm -10mm lẫn khe hở +12mm
 
       @all_panels.each do |other_info|
         ent_b = other_info[:entity]
         next if ent_a == ent_b
 
-        bb_b = FittingEngine.get_world_bounds(ent_b, other_info[:transform])
+        bb_b = FittingEngine.get_world_bounds(ent_b, other_info[:parent])
 
-        # 1. KIỂM TRA TIẾP XÚC THEO TRỤC X (Mối nối hồi - đáy/đợt phổ biến nhất)
-        touch_x_left  = (bb_a.min.x - bb_b.max.x).abs < 3.mm
-        touch_x_right = (bb_a.max.x - bb_b.min.x).abs < 3.mm
+        # ----------------------------------------------------------------------
+        # 1. TIẾP XÚC THEO TRỤC X (Mối nối Hồi - Đáy/Đợt phổ biến nhất)
+        # ----------------------------------------------------------------------
+        touch_x_left  = (bb_a.min.x - bb_b.max.x).abs <= tol || (bb_a.min.x >= bb_b.min.x - tol && bb_a.min.x <= bb_b.max.x + tol)
+        touch_x_right = (bb_a.max.x - bb_b.min.x).abs <= tol || (bb_a.max.x >= bb_b.min.x - tol && bb_a.max.x <= bb_b.max.x + tol)
 
         if touch_x_left || touch_x_right
           overlap_y = [bb_a.max.y, bb_b.max.y].min - [bb_a.min.y, bb_b.min.y].max
           overlap_z = [bb_a.max.z, bb_b.max.z].min - [bb_a.min.z, bb_b.min.z].max
 
-          if overlap_y > 100.mm && overlap_z > 5.mm
-            joint_x = touch_x_left ? bb_a.min.x : bb_a.max.x
+          # 1a. Cạnh theo Y (Chiều sâu), chiều dày theo Z
+          if overlap_y > 80.mm && overlap_z > 4.mm
+            joint_x = touch_x_left ? [bb_a.min.x, bb_b.max.x].max : [bb_a.max.x, bb_b.min.x].min
             y_min = [bb_a.min.y, bb_b.min.y].max
             y_max = [bb_a.max.y, bb_b.max.y].min
-            z_mid = (bb_a.min.z + bb_a.max.z) / 2.0
-
-            line_pts = [
-              Geom::Point3d.new(joint_x, y_min, z_mid),
-              Geom::Point3d.new(joint_x, y_max, z_mid)
-            ]
-
-            # Tính các điểm đặt cam/chốt dọc theo cạnh tiếp xúc
-            cam_pts = calculate_cam_points_on_line(joint_x, y_min, y_max, z_mid, :y, touch_x_left ? 1 : -1)
+            z_mid = [bb_a.min.z, bb_b.min.z].max + overlap_z / 2.0
+            direction = touch_x_left ? 1 : -1
 
             joints << {
               panel_a: panel_info,
               panel_b: other_info,
               axis: :x,
+              run_axis: :y,
               joint_coord: joint_x,
-              line_pts: line_pts,
-              cam_points: cam_pts,
-              direction: touch_x_left ? 1 : -1,
+              line_pts: [Geom::Point3d.new(joint_x, y_min, z_mid), Geom::Point3d.new(joint_x, y_max, z_mid)],
+              cam_points: calculate_cam_points_on_line(joint_x, y_min, y_max, z_mid, :y, direction),
+              direction: direction,
               length: overlap_y
+            }
+          # 1b. Cạnh theo Z (Chiều cao), chiều dày theo Y
+          elsif overlap_z > 80.mm && overlap_y > 4.mm
+            joint_x = touch_x_left ? [bb_a.min.x, bb_b.max.x].max : [bb_a.max.x, bb_b.min.x].min
+            z_min = [bb_a.min.z, bb_b.min.z].max
+            z_max = [bb_a.max.z, bb_b.max.z].min
+            y_mid = [bb_a.min.y, bb_b.min.y].max + overlap_y / 2.0
+            direction = touch_x_left ? 1 : -1
+
+            joints << {
+              panel_a: panel_info,
+              panel_b: other_info,
+              axis: :x,
+              run_axis: :z,
+              joint_coord: joint_x,
+              line_pts: [Geom::Point3d.new(joint_x, y_mid, z_min), Geom::Point3d.new(joint_x, y_mid, z_max)],
+              cam_points: calculate_cam_points_on_line(joint_x, z_min, z_max, y_mid, :z, direction),
+              direction: direction,
+              length: overlap_z
             }
           end
         end
 
-        # 2. KIỂM TRA TIẾP XÚC THEO TRỤC Y (Mối nối mặt trước / hậu)
-        touch_y_front = (bb_a.min.y - bb_b.max.y).abs < 3.mm
-        touch_y_back  = (bb_a.max.y - bb_b.min.y).abs < 3.mm
+        # ----------------------------------------------------------------------
+        # 2. TIẾP XÚC THEO TRỤC Y (Mặt hoặc Cạnh gặp nhau theo phương Y)
+        # ----------------------------------------------------------------------
+        touch_y_front = (bb_a.min.y - bb_b.max.y).abs <= tol || (bb_a.min.y >= bb_b.min.y - tol && bb_a.min.y <= bb_b.max.y + tol)
+        touch_y_back  = (bb_a.max.y - bb_b.min.y).abs <= tol || (bb_a.max.y >= bb_b.min.y - tol && bb_a.max.y <= bb_b.max.y + tol)
 
         if touch_y_front || touch_y_back
           overlap_x = [bb_a.max.x, bb_b.max.x].min - [bb_a.min.x, bb_b.min.x].max
           overlap_z = [bb_a.max.z, bb_b.max.z].min - [bb_a.min.z, bb_b.min.z].max
 
-          if overlap_x > 100.mm && overlap_z > 5.mm
-            joint_y = touch_y_front ? bb_a.min.y : bb_a.max.y
+          # 2a. Cạnh theo X (Chiều ngang), chiều dày theo Z
+          if overlap_x > 80.mm && overlap_z > 4.mm
+            joint_y = touch_y_front ? [bb_a.min.y, bb_b.max.y].max : [bb_a.max.y, bb_b.min.y].min
             x_min = [bb_a.min.x, bb_b.min.x].max
             x_max = [bb_a.max.x, bb_b.max.x].min
-            z_mid = (bb_a.min.z + bb_a.max.z) / 2.0
-
-            line_pts = [
-              Geom::Point3d.new(x_min, joint_y, z_mid),
-              Geom::Point3d.new(x_max, joint_y, z_mid)
-            ]
-
-            cam_pts = calculate_cam_points_on_line(joint_y, x_min, x_max, z_mid, :x, touch_y_front ? 1 : -1)
+            z_mid = [bb_a.min.z, bb_b.min.z].max + overlap_z / 2.0
+            direction = touch_y_front ? 1 : -1
 
             joints << {
               panel_a: panel_info,
               panel_b: other_info,
               axis: :y,
+              run_axis: :x,
               joint_coord: joint_y,
-              line_pts: line_pts,
-              cam_points: cam_pts,
-              direction: touch_y_front ? 1 : -1,
+              line_pts: [Geom::Point3d.new(x_min, joint_y, z_mid), Geom::Point3d.new(x_max, joint_y, z_mid)],
+              cam_points: calculate_cam_points_on_line(joint_y, x_min, x_max, z_mid, :x, direction),
+              direction: direction,
+              length: overlap_x
+            }
+          # 2b. Cạnh theo Z (Chiều cao), chiều dày theo X
+          elsif overlap_z > 80.mm && overlap_x > 4.mm
+            joint_y = touch_y_front ? [bb_a.min.y, bb_b.max.y].max : [bb_a.max.y, bb_b.min.y].min
+            z_min = [bb_a.min.z, bb_b.min.z].max
+            z_max = [bb_a.max.z, bb_b.max.z].min
+            x_mid = [bb_a.min.x, bb_b.min.x].max + overlap_x / 2.0
+            direction = touch_y_front ? 1 : -1
+
+            joints << {
+              panel_a: panel_info,
+              panel_b: other_info,
+              axis: :y,
+              run_axis: :z,
+              joint_coord: joint_y,
+              line_pts: [Geom::Point3d.new(x_mid, joint_y, z_min), Geom::Point3d.new(x_mid, joint_y, z_max)],
+              cam_points: calculate_cam_points_on_line(joint_y, z_min, z_max, x_mid, :z, direction),
+              direction: direction,
+              length: overlap_z
+            }
+          end
+        end
+
+        # ----------------------------------------------------------------------
+        # 3. TIẾP XÚC THEO TRỤC Z (Tấm ngồi trên tấm khác theo phương đứng)
+        # ----------------------------------------------------------------------
+        touch_z_bot = (bb_a.min.z - bb_b.max.z).abs <= tol || (bb_a.min.z >= bb_b.min.z - tol && bb_a.min.z <= bb_b.max.z + tol)
+        touch_z_top = (bb_a.max.z - bb_b.min.z).abs <= tol || (bb_a.max.z >= bb_b.min.z - tol && bb_a.max.z <= bb_b.max.z + tol)
+
+        if touch_z_bot || touch_z_top
+          overlap_x = [bb_a.max.x, bb_b.max.x].min - [bb_a.min.x, bb_b.min.x].max
+          overlap_y = [bb_a.max.y, bb_b.max.y].min - [bb_a.min.y, bb_b.min.y].max
+
+          # 3a. Cạnh theo Y (Chiều sâu)
+          if overlap_y > 80.mm && overlap_x > 4.mm
+            joint_z = touch_z_bot ? [bb_a.min.z, bb_b.max.z].max : [bb_a.max.z, bb_b.min.z].min
+            y_min = [bb_a.min.y, bb_b.min.y].max
+            y_max = [bb_a.max.y, bb_b.max.y].min
+            x_mid = [bb_a.min.x, bb_b.min.x].max + overlap_x / 2.0
+            direction = touch_z_bot ? 1 : -1
+
+            joints << {
+              panel_a: panel_info,
+              panel_b: other_info,
+              axis: :z,
+              run_axis: :y,
+              joint_coord: joint_z,
+              line_pts: [Geom::Point3d.new(x_mid, y_min, joint_z), Geom::Point3d.new(x_mid, y_max, joint_z)],
+              cam_points: calculate_cam_points_on_line(joint_z, y_min, y_max, x_mid, :y, direction),
+              direction: direction,
+              length: overlap_y
+            }
+          # 3b. Cạnh theo X (Chiều ngang)
+          elsif overlap_x > 80.mm && overlap_y > 4.mm
+            joint_z = touch_z_bot ? [bb_a.min.z, bb_b.max.z].max : [bb_a.max.z, bb_b.min.z].min
+            x_min = [bb_a.min.x, bb_b.min.x].max
+            x_max = [bb_a.max.x, bb_b.max.x].min
+            y_mid = [bb_a.min.y, bb_b.min.y].max + overlap_y / 2.0
+            direction = touch_z_bot ? 1 : -1
+
+            joints << {
+              panel_a: panel_info,
+              panel_b: other_info,
+              axis: :z,
+              run_axis: :x,
+              joint_coord: joint_z,
+              line_pts: [Geom::Point3d.new(x_min, y_mid, joint_z), Geom::Point3d.new(x_max, y_mid, joint_z)],
+              cam_points: calculate_cam_points_on_line(joint_z, x_min, x_max, y_mid, :x, direction),
+              direction: direction,
               length: overlap_x
             }
           end
@@ -189,25 +298,31 @@ module ChillAIInterior
     end
 
     # TÍNH CÁC ĐIỂM CAM/CHỐT DỌC THEO CẠNH TIẾP XÚC
-    def calculate_cam_points_on_line(fixed_val, min_val, max_val, z_mid, running_axis, _dir)
+    def calculate_cam_points_on_line(fixed_val, min_val, max_val, mid_val, running_axis, _dir)
       len = max_val - min_val
-      return [] if len < 100.mm
+      return [] if len < 80.mm
 
       pts = []
       offset_L = 34.mm
       offset_C = 34.mm
 
       if running_axis == :y
-        pts << Geom::Point3d.new(fixed_val, min_val + offset_L, z_mid)
-        pts << Geom::Point3d.new(fixed_val, max_val - offset_C, z_mid)
+        pts << Geom::Point3d.new(fixed_val, min_val + offset_L, mid_val)
+        pts << Geom::Point3d.new(fixed_val, max_val - offset_C, mid_val)
         if len > 450.mm
-          pts << Geom::Point3d.new(fixed_val, min_val + (len / 2.0), z_mid)
+          pts << Geom::Point3d.new(fixed_val, min_val + (len / 2.0), mid_val)
         end
-      else
-        pts << Geom::Point3d.new(min_val + offset_L, fixed_val, z_mid)
-        pts << Geom::Point3d.new(max_val - offset_C, fixed_val, z_mid)
+      elsif running_axis == :x
+        pts << Geom::Point3d.new(min_val + offset_L, fixed_val, mid_val)
+        pts << Geom::Point3d.new(max_val - offset_C, fixed_val, mid_val)
         if len > 450.mm
-          pts << Geom::Point3d.new(min_val + (len / 2.0), fixed_val, z_mid)
+          pts << Geom::Point3d.new(min_val + (len / 2.0), fixed_val, mid_val)
+        end
+      else # :z
+        pts << Geom::Point3d.new(fixed_val, mid_val, min_val + offset_L)
+        pts << Geom::Point3d.new(fixed_val, mid_val, max_val - offset_C)
+        if len > 450.mm
+          pts << Geom::Point3d.new(fixed_val, mid_val, min_val + (len / 2.0))
         end
       end
 
@@ -219,9 +334,7 @@ module ChillAIInterior
     # ==========================================================================
 
     def onMouseMove(_flags, x, y, view)
-      ph = view.pick_helper(x, y)
-      picked = ph.best_picked
-      panel = find_panel_from_picked(picked)
+      panel = get_picked_panel(x, y, view)
 
       if panel != @hover_panel
         @hover_panel = panel
@@ -234,10 +347,19 @@ module ChillAIInterior
       end
     end
 
+    # CLICK ĐƠN: CHỌN VÀ HIGHLIGHT TẤM VÁN
+    def onLButtonDown(_flags, x, y, view)
+      panel = get_picked_panel(x, y, view)
+      if panel
+        @hover_panel = panel
+        @hover_joints = calculate_joints_for_panel(@hover_panel)
+        view.invalidate
+      end
+    end
+
     # KÍCH ĐÚP CHUỘT TRÁI (DOUBLE CLICK) -> KÍCH HOẠT LIÊN KẾT NGANG!
     def onLButtonDoubleClick(_flags, x, y, view)
-      ph = view.pick_helper(x, y)
-      panel = find_panel_from_picked(ph.best_picked)
+      panel = get_picked_panel(x, y, view)
 
       unless panel
         UI.messagebox("Vui lòng click đúp vào 1 tấm ván mộc để đục lỗ liên kết.")
@@ -246,16 +368,11 @@ module ChillAIInterior
 
       joints = calculate_joints_for_panel(panel)
       if joints.empty?
-        UI.messagebox("Tấm ván này không có cạnh nào tiếp xúc vuông góc với các tấm ván lân cận.")
+        UI.messagebox("Tấm ván này không có cạnh nào tiếp xúc vuông góc với các tấm ván lân cận.\n(Khoảng cách vượt quá dung sai 12mm hoặc không giao nhau)")
         return
       end
 
       apply_joints_to_panel(panel, joints)
-      view.invalidate
-    end
-
-    def onLButtonDown(_flags, _x, _y, view)
-      # Cho phép click đơn để chọn nếu cần
       view.invalidate
     end
 
@@ -305,12 +422,20 @@ module ChillAIInterior
 
       joints.each do |joint|
         cam_direction = joint[:direction]
-        joint_x = joint[:joint_coord]
 
         joint[:cam_points].each do |pt|
           # 1. Bầu cam 15mm trên mặt tấm ngang
-          cam_center_x = pt.x + (cam_direction * 34.mm)
-          cam_center = Geom::Point3d.new(cam_center_x, pt.y, pt.z - 8.mm)
+          cam_center = nil
+          if joint[:axis] == :x
+            cam_cx = pt.x + (cam_direction * 34.mm)
+            cam_center = Geom::Point3d.new(cam_cx, pt.y, pt.z - 8.mm)
+          elsif joint[:axis] == :y
+            cam_cy = pt.y + (cam_direction * 34.mm)
+            cam_center = Geom::Point3d.new(pt.x, cam_cy, pt.z - 8.mm)
+          else
+            cam_cz = pt.z + (cam_direction * 34.mm)
+            cam_center = Geom::Point3d.new(pt.x, pt.y, cam_cz)
+          end
 
           FittingEngine.create_cylinder_hole(
             fittings_group.entities,
@@ -325,13 +450,31 @@ module ChillAIInterior
 
           # 2. Chốt gỗ 8mm (nếu là preset 2 lỗ hoặc cam+chốt)
           if preset_info[:d_count] >= 2
-            dowel_y = pt.y + 32.mm
-            dowel_center = Geom::Point3d.new(pt.x + (cam_direction * 9.5.mm), dowel_y, pt.z)
+            dowel_center = nil
+            if joint[:run_axis] == :y
+              dowel_y = pt.y + 32.mm
+              dowel_center = Geom::Point3d.new(pt.x + (cam_direction * 9.5.mm), dowel_y, pt.z)
+            elsif joint[:run_axis] == :x
+              dowel_x = pt.x + 32.mm
+              dowel_center = Geom::Point3d.new(dowel_x, pt.y + (cam_direction * 9.5.mm), pt.z)
+            else
+              dowel_z = pt.z + 32.mm
+              dowel_center = Geom::Point3d.new(pt.x, pt.y + (cam_direction * 9.5.mm), dowel_z)
+            end
+
+            edge_normal = nil
+            if joint[:axis] == :x
+              edge_normal = Geom::Vector3d.new(cam_direction, 0, 0)
+            elsif joint[:axis] == :y
+              edge_normal = Geom::Vector3d.new(0, cam_direction, 0)
+            else
+              edge_normal = Geom::Vector3d.new(0, 0, cam_direction)
+            end
 
             FittingEngine.create_cylinder_hole(
               fittings_group.entities,
               dowel_center,
-              Geom::Vector3d.new(cam_direction, 0, 0),
+              edge_normal,
               4.0.mm,
               25.0.mm,
               layer_dowel,
@@ -341,11 +484,19 @@ module ChillAIInterior
           end
 
           # 3. Ty cam 5mm trên vách hồi
-          pin_center = Geom::Point3d.new(pt.x, pt.y, pt.z)
+          pin_normal = nil
+          if joint[:axis] == :x
+            pin_normal = Geom::Vector3d.new(-cam_direction, 0, 0)
+          elsif joint[:axis] == :y
+            pin_normal = Geom::Vector3d.new(0, -cam_direction, 0)
+          else
+            pin_normal = Geom::Vector3d.new(0, 0, -cam_direction)
+          end
+
           FittingEngine.create_cylinder_hole(
             fittings_group.entities,
-            pin_center,
-            Geom::Vector3d.new(-cam_direction, 0, 0),
+            pt,
+            pin_normal,
             2.5.mm,
             12.0.mm,
             layer_pin,
@@ -363,7 +514,7 @@ module ChillAIInterior
 
       AudioPlayer.play({ 'text' => "Đã kích hoạt liên kết #{preset_info[:name]} cho tấm ván rồi anh Huy nhé!" }) rescue nil if defined?(AudioPlayer)
 
-      # Refresh joints
+      # Cập nhật lại danh sách joints sau khi đã đục
       @hover_joints = calculate_joints_for_panel(panel)
     rescue => e
       model.abort_operation rescue nil
