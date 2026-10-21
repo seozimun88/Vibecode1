@@ -18,6 +18,14 @@ module ChillAIInterior
 
     PRESETS_FILE = File.expand_path(File.join(File.dirname(__FILE__), '..', 'knowledge_base', 'fitting_presets.json')).freeze
 
+    def self.log_debug(msg)
+      log_file = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..', 'scratch', 'fitting_debug.log'))
+      File.open(log_file, 'a:UTF-8') do |f|
+        f.puts "[#{Time.now.strftime('%H:%M:%S')}] #{msg}"
+      end
+    rescue => _e
+    end
+
     # Đọc danh sách cấu hình Preset từ JSON
     def self.load_presets
       return {} unless File.exist?(PRESETS_FILE)
@@ -84,7 +92,6 @@ module ChillAIInterior
       panels = []
       selection.each do |entity|
         if entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance)
-          # Nếu đây là tổ hợp tủ cha (Root Cabinet), duyệt các tấm con bên trong
           sub_entities = entity.is_a?(Sketchup::Group) ? entity.entities : entity.definition.entities
           has_subs = false
           sub_entities.each do |sub|
@@ -94,7 +101,6 @@ module ChillAIInterior
               has_subs = true
             end
           end
-          # Nếu là tấm ván đơn lẻ
           panels << { entity: entity, parent: nil } unless has_subs
         end
       end
@@ -118,12 +124,10 @@ module ChillAIInterior
     def self.analyze_panel_orientation(panel_info)
       ent = panel_info[:entity]
       bb = ent.bounds
-      # Kích thước theo toạ độ địa phương (mm)
       dx = bb.width.to_m * 1000.0
       dy = bb.height.to_m * 1000.0
       dz = bb.depth.to_m * 1000.0
 
-      # Tìm trục có độ dày mỏng nhất (15mm - 25mm)
       dims = [{ axis: :x, val: dx }, { axis: :y, val: dy }, { axis: :z, val: dz }].sort_by { |d| d[:val] }
       thickness = dims[0][:val]
       length    = dims[2][:val]
@@ -149,6 +153,7 @@ module ChillAIInterior
 
     # ==========================================================================
     # 🌟 VẼ ĐƯỜNG TRÒN / MẶT TRÒN DÍNH TRỰC TIẾP TRÊN BỀ MẶT VÁN (CHUẨN ABF & CNC)
+    # TỰ ĐỘNG CHIẾU CHUẨN XÁC VÀO FACE THỰC TẾ (COPLANAR PROJECTION)
     # ==========================================================================
     def self.add_circle_to_panel(panel_info, center_world, normal_world, radius, layer_name, depth = 0)
       return nil unless panel_info && panel_info[:entity]
@@ -178,18 +183,41 @@ module ChillAIInterior
         return nil
       end
 
-      # 4. Vẽ đường tròn 24 cạnh chuẩn xác vào entities của tấm ván
+      # 4. CHIẾU CHUẨN XÁC VÀO FACE THỰC TẾ CỦA TẤM VÁN ĐỂ CHỐNG LỆCH CAO ĐỘ (COPLANAR PROJECTION)
+      best_face = nil
+      min_dist = 1000.0
+
+      target_entities.grep(Sketchup::Face).each do |f|
+        dot = f.normal.dot(local_normal)
+        if dot > 0.85
+          dist = (f.plane[0] * local_center.x + f.plane[1] * local_center.y + f.plane[2] * local_center.z + f.plane[3]).abs
+          if dist < min_dist
+            min_dist = dist
+            best_face = f
+          end
+        end
+      end
+
+      if best_face && min_dist < 30.mm
+        local_center = local_center.project_to_plane(best_face.plane)
+        local_normal = best_face.normal
+      end
+
+      # 5. Vẽ đường tròn 24 cạnh chuẩn xác vào entities của tấm ván
       circle_edges = target_entities.add_circle(local_center, local_normal, radius, 24)
       return nil unless circle_edges && !circle_edges.empty?
 
-      # 5. Gán Layer cho tất cả các đoạn cạnh của đường tròn
+      # 6. Gán Layer cho tất cả các đoạn cạnh của đường tròn
       circle_edges.each { |e| e.layer = target_layer }
 
-      # 6. Tạo mặt phẳng tròn dính trên bề mặt ván và gán Layer
-      face = target_entities.add_face(circle_edges) rescue nil
+      # 7. Tìm Face tròn đã tự động cắt trên bề mặt tấm ván, hoặc tạo Face mới
+      radius_val = radius.to_f
+      area_target = Math::PI * radius_val * radius_val
+      face = circle_edges.first.faces.find { |f| (f.area - area_target).abs < 25.0 }
+      face ||= target_entities.add_face(circle_edges) rescue nil
       face.layer = target_layer if face
 
-      # 7. Gán thuộc tính kỹ thuật phục vụ Nesting / DXF
+      # 8. Gán thuộc tính kỹ thuật phục vụ Nesting / DXF
       curve = circle_edges.first.curve
       if curve
         dia_mm = (radius * 2.0).to_m * 1000.0
@@ -200,8 +228,10 @@ module ChillAIInterior
         curve.set_attribute('chill_ai_drill', 'type', 'circle_face')
       end
 
+      log_debug("  [OK Circle] #{layer_name} dia=#{radius*2.to_m*1000}mm at world=#{center_world} local=#{local_center} face=#{!face.nil?}")
       circle_edges
     rescue => e
+      log_debug("  [ERR Circle] #{layer_name}: #{e.message}")
       puts "[Chill AI FittingEngine] Lỗi add_circle_to_panel: #{e.message}"
       nil
     end
@@ -274,12 +304,14 @@ module ChillAIInterior
 
     # ==========================================================================
     # 🎯 3. THI CÔNG KHOAN LIÊN KẾT CAM CHỐT DÍNH TRỰC TIẾP TRÊN 2 TẤM VÁN
+    # TỰ ĐỘNG ĐẢO CHIỀU RẢI Ở ĐẦU CUỐI (CHỐNG TRÀO RA NGOÀI BIÊN VÁN)
     # ==========================================================================
     def self.apply_joint_pair(panel_a, panel_b, axis, run_axis, joint_coord, base_pts, preset, flip_face = false)
       roles = identify_joint_roles(panel_a, panel_b, axis, joint_coord)
       edge_panel    = roles[:edge_panel]
       face_panel    = roles[:face_panel]
       edge_bb       = roles[:edge_bb]
+      face_bb       = roles[:face_bb]
       dir_into_edge = roles[:dir_into_edge]
 
       offset_L = (preset['L'] || 34.0).to_f.mm
@@ -288,7 +320,6 @@ module ChillAIInterior
       side_holes = (preset['Dside'] || []).select { |h| h['active'] && h['dia'].to_f > 0 }
       n_dists    = (preset['n'] || []).map { |item| (item['val'] || 32.0).to_f.mm }
 
-      # Fallback nếu preset chưa có danh sách lỗ
       if d_holes.empty?
         d_holes = [{ 'dia' => 15.0, 'depth' => 13.5, 'layer' => LAYER_CAM_15 }]
       end
@@ -299,8 +330,6 @@ module ChillAIInterior
         side_holes = [{ 'dia' => 5.0, 'depth' => 12.0, 'layer' => LAYER_PIN_5 }]
       end
 
-      # Xác định toạ độ trục thứ 3 (độ dày mỏng) của edge_panel
-      # Nếu axis là :x và run_axis là :y -> trục độ dày là :z
       thick_axis = ([:x, :y, :z] - [axis, run_axis]).first
       mid_thick = case thick_axis
                   when :z then (edge_bb.min.z + edge_bb.max.z) / 2.0
@@ -308,12 +337,10 @@ module ChillAIInterior
                   when :x then (edge_bb.min.x + edge_bb.max.x) / 2.0
                   end
 
-      # Mặt ngoài của ván edge_panel để khoét bầu cam (Mặt dưới hoặc Mặt trên)
       cam_face_coord = nil
       cam_face_normal = nil
       case thick_axis
       when :z
-        # Nếu flip_face = true hoặc nóc tủ (ở vị trí cao), bắt cam mặt trên
         if flip_face
           cam_face_coord = edge_bb.max.z
           cam_face_normal = Geom::Vector3d.new(0, 0, 1)
@@ -329,28 +356,36 @@ module ChillAIInterior
         cam_face_normal = flip_face ? Geom::Vector3d.new(1, 0, 0) : Geom::Vector3d.new(-1, 0, 0)
       end
 
-      # Vector pháp tuyến cạnh đầu ván của edge_panel
       edge_drill_normal = case axis
                           when :x then Geom::Vector3d.new(-dir_into_edge, 0, 0)
                           when :y then Geom::Vector3d.new(0, -dir_into_edge, 0)
                           when :z then Geom::Vector3d.new(0, 0, -dir_into_edge)
                           end
 
-      # Vector pháp tuyến mặt vách của face_panel
       face_drill_normal = case axis
                           when :x then Geom::Vector3d.new(dir_into_edge, 0, 0)
                           when :y then Geom::Vector3d.new(0, dir_into_edge, 0)
                           when :z then Geom::Vector3d.new(0, 0, dir_into_edge)
                           end
 
-      count_applied = 0
+      # Xác định giới hạn tiếp xúc theo trục run_axis
+      run_min = [edge_bb.min.send(run_axis), face_bb.min.send(run_axis)].max
+      run_max = [edge_bb.max.send(run_axis), face_bb.max.send(run_axis)].min
 
-      base_pts.each do |base_pt|
-        base_run_val = case run_axis
-                       when :x then base_pt.x
-                       when :y then base_pt.y
-                       when :z then base_pt.z
-                       end
+      count_applied = 0
+      log_debug("--- BẮT ĐẦU LIÊN KẾT: axis=#{axis} run=#{run_axis} joint_coord=#{joint_coord} run_min=#{run_min} run_max=#{run_max} flip=#{flip_face}")
+
+      base_pts.each_with_index do |base_pt, b_idx|
+        base_run_val = base_pt.send(run_axis)
+
+        # 🎯 XÁC ĐỊNH HƯỚNG CHẠY TIẾN/LÙI CỦA CỤM:
+        # Nếu cụm nằm gần đầu cuối (run_max): run_dir = -1 (LÙI VÀO TRONG LÒNG, CHỐNG TRÀO RA BIÊN!)
+        # Nếu cụm nằm gần đầu đầu (run_min): run_dir = +1 (TIẾN VÀO TRONG LÒNG VÁN)
+        dist_to_min = (base_run_val - run_min).abs
+        dist_to_max = (base_run_val - run_max).abs
+        run_dir = (dist_to_max < dist_to_min) ? -1 : 1
+
+        log_debug("  [Cụm #{b_idx+1}] base_run=#{base_run_val} run_dir=#{run_dir}")
 
         # ----------------------------------------------------------------------
         # 1. RẢI CÁC LỖ D (BẦU CAM TRÊN MẶT VÁN EDGE_PANEL)
@@ -358,7 +393,7 @@ module ChillAIInterior
         d_holes.each_with_index do |dh, idx|
           step_val = 0.mm
           (0...idx).each { |k| step_val += (n_dists[k] || 32.mm) }
-          cur_run = base_run_val + step_val
+          cur_run = base_run_val + (run_dir * step_val)
 
           cam_coord_axis = joint_coord + (dir_into_edge * offset_L)
           cam_world_center = case axis
@@ -396,7 +431,7 @@ module ChillAIInterior
         edge_holes.each_with_index do |eh, idx|
           step_val = 0.mm
           (0...idx).each { |k| step_val += (n_dists[k] || 32.mm) }
-          cur_run = base_run_val + step_val
+          cur_run = base_run_val + (run_dir * step_val)
 
           edge_world_center = case axis
                               when :x
@@ -433,7 +468,7 @@ module ChillAIInterior
         side_holes.each_with_index do |sh, idx|
           step_val = 0.mm
           (0...idx).each { |k| step_val += (n_dists[k] || 32.mm) }
-          cur_run = base_run_val + step_val
+          cur_run = base_run_val + (run_dir * step_val)
 
           side_world_center = case axis
                               when :x
@@ -607,10 +642,8 @@ module ChillAIInterior
 
           z_positions.each do |z_pos|
             cup_center = Geom::Point3d.new(hinge_edge_x, back_face_y, z_pos)
-            # Chén bản lề 35mm dính trực tiếp trên cánh
             add_circle_to_panel(panel_info, cup_center, normal, 17.5.mm, LAYER_HINGE_35, 11.5.mm)
 
-            # Hai lỗ mồi vít 3mm
             [-22.5.mm, 22.5.mm].each do |z_offset|
               screw_center = Geom::Point3d.new(hinge_edge_x + 9.5.mm, back_face_y, z_pos + z_offset)
               add_circle_to_panel(panel_info, screw_center, normal, 1.5.mm, LAYER_HINGE_BASE_5, 10.0.mm)
@@ -651,7 +684,6 @@ module ChillAIInterior
       deleted_groups = 0
       deleted_circles = 0
 
-      # 1. Xóa các Group cũ (nếu còn)
       model.active_entities.grep(Sketchup::Group).each do |g|
         if g.name =~ /^Chill_AI_Fittings_/i
           g.erase! rescue nil
@@ -659,7 +691,6 @@ module ChillAIInterior
         end
       end
 
-      # 2. Xóa các Circle & Face khoan lỗ bên trong từng tấm ván
       drill_layer_names = [LAYER_CAM_15, LAYER_DOWEL_8, LAYER_PIN_5, LAYER_HINGE_35, LAYER_HINGE_BASE_5]
       
       clean_panel_entities = lambda do |entities|
@@ -682,7 +713,6 @@ module ChillAIInterior
         end
       end
 
-      # Quét toàn bộ model
       model.definitions.each do |defn|
         clean_panel_entities.call(defn.entities)
       end
@@ -700,7 +730,7 @@ module ChillAIInterior
       { status: 'success', deleted: deleted_circles + deleted_groups }
     end
 
-    # Tương thích ngược: Hàm vẽ khối trụ cũ (nếu có module khác tham chiếu)
+    # Tương thích ngược: Hàm vẽ khối trụ cũ
     def self.create_cylinder_hole(entities, center, normal, radius, depth, layer, label)
       group = entities.add_group
       group.name = label

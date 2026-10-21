@@ -309,24 +309,26 @@ module ChillAIInterior
 
       if running_axis == :y
         pts << Geom::Point3d.new(fixed_val, min_val + offset_L, mid_val)
-        pts << Geom::Point3d.new(fixed_val, max_val - offset_C, mid_val)
         if len > 450.mm
           pts << Geom::Point3d.new(fixed_val, min_val + (len / 2.0), mid_val)
         end
+        pts << Geom::Point3d.new(fixed_val, max_val - offset_C, mid_val)
       elsif running_axis == :x
         pts << Geom::Point3d.new(min_val + offset_L, fixed_val, mid_val)
-        pts << Geom::Point3d.new(max_val - offset_C, fixed_val, mid_val)
         if len > 450.mm
           pts << Geom::Point3d.new(min_val + (len / 2.0), fixed_val, mid_val)
         end
+        pts << Geom::Point3d.new(max_val - offset_C, fixed_val, mid_val)
       else # :z
         pts << Geom::Point3d.new(fixed_val, mid_val, min_val + offset_L)
-        pts << Geom::Point3d.new(fixed_val, mid_val, max_val - offset_C)
         if len > 450.mm
           pts << Geom::Point3d.new(fixed_val, mid_val, min_val + (len / 2.0))
         end
+        pts << Geom::Point3d.new(fixed_val, mid_val, max_val - offset_C)
       end
 
+      # Sắp xếp các điểm tăng dần theo trục chạy dài
+      pts.sort_by! { |p| p.send(running_axis) }
       pts
     end
 
