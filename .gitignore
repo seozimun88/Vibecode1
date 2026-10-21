@@ -193,6 +193,8 @@ lerna-debug.log*
 tmp/
 temp/
 scratch/
+_backups/
+exam-app/sketchup-plugin/_backups/
 
 # ==============================================================================
 # Common Development Dependencies & Build Artifacts
@@ -256,3 +258,6 @@ Cargo.lock
 # Go
 /bin/
 /pkg/
+
+.codegraph/
+exam-app/.codegraph/

@@ -69,11 +69,18 @@ class ChillAIApp {
     try { this.initStructuralEngine(); } catch (e) { console.error("[Chill AI] Error in initStructuralEngine:", e); }
     try { this.initAccordionTray(); } catch (e) { console.error("[Chill AI] Error in initAccordionTray:", e); }
     try { this.initShopeeMarketplace(); } catch (e) { console.error("[Chill AI] Error in initShopeeMarketplace:", e); }
+    try { this.initFittingControls(); } catch (e) { console.error("[Chill AI] Error in initFittingControls:", e); }
 
     // Báo cho SketchUp Ruby biết JS đã sẵn sàng kết nối 2 chiều và đồng bộ kích thước chuẩn
     setTimeout(() => {
       if (window.sketchup && window.sketchup.app_ready) {
-        window.sketchup.app_ready();
+        const metrics = {
+          availWidth: window.screen.availWidth || window.innerWidth,
+          availHeight: window.screen.availHeight || window.innerHeight,
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height
+        };
+        window.sketchup.app_ready(JSON.stringify(metrics));
       } else if (window.sketchup && window.sketchup.get_current_selection) {
         window.sketchup.get_current_selection();
       }
@@ -133,6 +140,62 @@ class ChillAIApp {
         this.showMiniToast(`Lỗi trải phẳng SU: ${result.message}`, 'error');
       }
     };
+
+    window.onFittingsApplied = (data) => {
+      this.showMiniToast(data.message || `Đã tạo ${data.cams || 0} cụm cam chốt!`, 'success');
+      if (this.avatar) {
+        this.avatar.setEmotion('happy');
+        this.avatar.addMessage('bot', `Tuyệt vời anh Huy ơi! ${data.message || 'Đã tạo xong cam chốt Minifix 15mm rồi nhé!'} 🔩✨`);
+      }
+    };
+
+    window.onHingesApplied = (data) => {
+      this.showMiniToast(data.message || `Đã tạo ${data.hinges || 0} chén bản lề!`, 'success');
+      if (this.avatar) {
+        this.avatar.setEmotion('happy');
+        this.avatar.addMessage('bot', `Tuyệt vời anh Huy ơi! ${data.message || 'Đã tạo xong chén bản lề 35mm cho cánh tủ rồi nhé!'} 🚪✨`);
+      }
+    };
+
+    window.onFittingsCleared = (data) => {
+      this.showMiniToast(`Đã dọn sạch các lỗ khoan phụ kiện!`, 'info');
+    };
+  }
+
+  initFittingControls() {
+    const btnCams = document.getElementById('dock-btn-apply-cams');
+    const btnHinges = document.getElementById('dock-btn-apply-hinges');
+    const btnClear = document.getElementById('dock-btn-clear-fittings');
+
+    if (btnCams) {
+      btnCams.addEventListener('click', () => {
+        if (this.isSketchUpAvailable && window.sketchup && window.sketchup.apply_cam_locks) {
+          this.showMiniToast("Đang quét tiếp xúc và khoan lỗ Cam Chốt Minifix 15mm...", "info");
+          window.sketchup.apply_cam_locks(JSON.stringify({}));
+        } else {
+          this.showMiniToast("Tính năng chỉ hoạt động bên trong SketchUp", "warning");
+        }
+      });
+    }
+
+    if (btnHinges) {
+      btnHinges.addEventListener('click', () => {
+        if (this.isSketchUpAvailable && window.sketchup && window.sketchup.apply_hinges) {
+          this.showMiniToast("Đang khoan lỗ chén bản lề 35mm cho cánh tủ...", "info");
+          window.sketchup.apply_hinges(JSON.stringify({}));
+        } else {
+          this.showMiniToast("Tính năng chỉ hoạt động bên trong SketchUp", "warning");
+        }
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        if (this.isSketchUpAvailable && window.sketchup && window.sketchup.clear_fittings) {
+          window.sketchup.clear_fittings();
+        }
+      });
+    }
   }
 
   initStatusIndicator() {

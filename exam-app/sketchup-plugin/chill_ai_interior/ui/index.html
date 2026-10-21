@@ -1173,6 +1173,23 @@
               <canvas id="dock-nesting-canvas" height="95" style="width:100%; height:95px; background:#050811; border-radius:4px; border:1px solid #1e293b;"></canvas>
             </div>
 
+            <!-- CỤM TÍNH NĂNG CHƯNG CẤT TỪ ABF: LIÊN KẾT PHỤ KIỆN TỰ ĐỘNG -->
+            <div class="dock-cnc-section-box" style="border-color:#10b981; background:rgba(16, 185, 129, 0.08); padding:8px; margin:6px 0;">
+              <div class="cnc-section-title" style="color:#34d399; font-size:10.5px; font-weight:bold;">🔩 LIÊN KẾT PHỤ KIỆN (CHƯNG CẤT ABF)</div>
+              <div class="cnc-section-desc" style="font-size:9.5px; color:#cbd5e1; margin-top:2px;">Tự động quét tiếp xúc vuông góc: Bầu cam Ø15mm, Chốt gỗ Ø8mm, Bản lề Ø35mm chuẩn Hafele/Blum.</div>
+              <div class="dock-cnc-btn-row" style="margin-top:6px; display:flex; gap:5px;">
+                <button id="dock-btn-apply-cams" class="dock-tree-action-btn highlight" style="flex:1.2; font-size:10.5px; font-weight:bold; background:linear-gradient(135deg, #059669, #047857); border-color:#34d399; color:#fff; padding:5px 4px;" title="Tự động tính toán và khoan lỗ Cam Chốt Minifix 15mm">
+                  🔩 Khoan Cam Chốt
+                </button>
+                <button id="dock-btn-apply-hinges" class="dock-tree-action-btn" style="flex:1; font-size:10.5px; border-color:#10b981; color:#6ee7b7; font-weight:bold; background:rgba(16, 185, 129, 0.2); padding:5px 4px;" title="Tự động khoan chén bản lề 35mm cho cánh tủ">
+                  🚪 Khoan Bản Lề
+                </button>
+                <button id="dock-btn-clear-fittings" class="dock-tree-action-btn" style="flex:0.6; font-size:10px; border-color:#64748b; color:#94a3b8; background:rgba(15, 23, 42, 0.6); padding:5px 2px;" title="Xóa các lỗ khoan để xem 3D sạch">
+                  🧹 Xóa
+                </button>
+              </div>
+            </div>
+
             <!-- CỤM LỰA CHỌN B: XUẤT TRỰC TIẾP TRÊN SKETCHUP (ONE CLICK STYLE) -->
             <div class="dock-cnc-section-box highlight-su-box">
               <div class="cnc-section-title">🌟 LỰA CHỌN B: TRẢI PHẲNG TRÊN SKETCHUP</div>
@@ -1374,36 +1391,36 @@
         <!-- WORKSPACE FOOTER: NÚT HÀNH ĐỘNG GHIM ĐÁY MÀN HÌNH CHÍNH -->
         <footer class="dock-workspace-footer" id="dock-workspace-footer">
           <!-- HÀNG NÚT CHÍNH: XÂY 3D VÀ XUẤT DXF ASPIRE TO RÕ NHẤT -->
-          <div class="dock-footer-primary-row" style="display:flex; gap:6px; margin-bottom:4px;">
+          <div class="dock-footer-primary-row" style="display:flex; gap:5px; margin-bottom:3px;">
             <button class="dock-btn-primary-build" id="dock-btn-build-3d" style="flex:1; margin:0;" title="Dựng mô hình 3D trực tiếp vào không gian làm việc SketchUp">
               <span class="dock-btn-build-icon">🔨</span>
               <span class="dock-btn-build-txt">XÂY 3D SU</span>
             </button>
-            <button class="dock-btn-primary-dxf pulse-btn" id="dock-btn-footer-dxf" style="flex:1.2; margin:0; background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border:1.5px solid #38bdf8; border-radius:4px; font-weight:bold; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 10px rgba(2,132,199,0.6);" title="Bấm 1 chạm: Xuất ngay file DXF 2D Nesting cho Vectric Aspire">
-              <span style="font-size:13px;">📐</span>
-              <span style="letter-spacing:0.3px;">XUẤT DXF (ASPIRE)</span>
+            <button class="dock-btn-primary-dxf pulse-btn" id="dock-btn-footer-dxf" style="flex:1.1; margin:0; background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border:1.5px solid #38bdf8; border-radius:4px; font-weight:bold; font-size:10.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:3px; box-shadow:0 2px 8px rgba(2,132,199,0.5);" title="Bấm 1 chạm: Xuất ngay file DXF 2D Nesting cho Vectric Aspire">
+              <span style="font-size:12px;">📐</span>
+              <span style="font-size:10px; font-weight:800; white-space:nowrap;">XUẤT DXF</span>
             </button>
           </div>
 
           <!-- HÀNG NÚT HÀNH ĐỘNG NHANH: TRẢI PHẲNG + MENU CNC + MUA VẬT TƯ -->
-          <div class="dock-footer-btn-row" style="display:flex; gap:4px; margin-bottom: 4px;">
-            <button class="dock-btn-secondary-action" id="dock-btn-footer-nest" style="flex:1; background:linear-gradient(135deg, #b45309, #78350f); color:#fbbf24; border:1px solid #d97706; font-weight:bold; font-size:10px; padding:6px 2px;" title="Lựa chọn B: Trải phẳng ván trực tiếp lên mặt bàn SketchUp (One Click)">
+          <div class="dock-footer-btn-row" style="display:flex; gap:3px; margin-bottom:3px;">
+            <button class="dock-btn-secondary-action" id="dock-btn-footer-nest" style="flex:1; background:linear-gradient(135deg, #b45309, #78350f); color:#fbbf24; border:1px solid #d97706; font-weight:bold; font-size:9.5px; padding:5px 2px;" title="Lựa chọn B: Trải phẳng ván trực tiếp lên mặt bàn SketchUp (One Click)">
               🪵 Trải Phẳng
             </button>
-            <button class="dock-btn-secondary-action" id="dock-btn-main-cnc" style="flex:1; background:linear-gradient(135deg, #ea580c, #c2410c); color:#ffffff; border:1px solid #fb923c; font-weight:bold; font-size:10px; padding:6px 2px;" title="Mở menu tuỳ chọn nâng cao CNC & G-Code">
+            <button class="dock-btn-secondary-action" id="dock-btn-main-cnc" style="flex:1; background:linear-gradient(135deg, #ea580c, #c2410c); color:#ffffff; border:1px solid #fb923c; font-weight:bold; font-size:9.5px; padding:5px 2px;" title="Mở menu tuỳ chọn nâng cao CNC & G-Code">
               ⚡ Menu CNC
             </button>
-            <button class="dock-btn-secondary-action" id="dock-btn-footer-shopee" style="flex:1; background:linear-gradient(135deg, #991b1b, #7f1d1d); color:#fecaca; border:1px solid #ef4444; font-weight:bold; font-size:10px; padding:6px 2px;" title="Mua Vật Tư & Báo Giá Phụ Kiện">
-              🛒 Mua Vật Tư
+            <button class="dock-btn-secondary-action" id="dock-btn-footer-shopee" style="flex:1; background:linear-gradient(135deg, #991b1b, #7f1d1d); color:#fecaca; border:1px solid #ef4444; font-weight:bold; font-size:9.5px; padding:5px 2px;" title="Mua Vật Tư & Báo Giá Phụ Kiện">
+              🛒 Vật Tư
             </button>
           </div>
 
           <!-- HÀNG NÚT PHỤ 2 BÊN DƯỚI -->
-          <div class="dock-footer-btn-row">
-            <button class="dock-btn-secondary-action" id="dock-btn-generate-dc" title="Tạo Dynamic Component có thể đổi kích thước">
-              🪄 Tạo Dynamic DC
+          <div class="dock-footer-btn-row" style="display:flex; gap:3px;">
+            <button class="dock-btn-secondary-action" id="dock-btn-generate-dc" style="font-size:9.5px; padding:5px 2px;" title="Tạo Dynamic Component có thể đổi kích thước">
+              🪄 Dynamic DC
             </button>
-            <button class="dock-btn-secondary-action" id="dock-btn-refresh-selection" title="Làm mới vùng chọn từ SketchUp">
+            <button class="dock-btn-secondary-action" id="dock-btn-refresh-selection" style="font-size:9.5px; padding:5px 2px;" title="Làm mới vùng chọn từ SketchUp">
               🔄 Đồng Bộ SU
             </button>
           </div>

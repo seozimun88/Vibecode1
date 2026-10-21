@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bản Vẽ Sơ Đồ Kiến Trúc Chill AI Interior - Trợ Lý AI Lan & Anh Huy</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --accent: #f59e0b;
+      --accent-hover: #d97706;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: #1e293b;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header-title h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-title p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #000;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-tool {
+      background: #334155;
+      color: var(--text);
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: 0.15s;
+    }
+    .btn-tool:hover {
+      background: #475569;
+      border-color: #64748b;
+    }
+    .btn-download {
+      background: #059669;
+      border-color: #10b981;
+      font-weight: 600;
+    }
+    .btn-download:hover {
+      background: #047857;
+    }
+    main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+      cursor: grab;
+    }
+    main:active {
+      cursor: grabbing;
+    }
+    #viewport-container {
+      position: absolute;
+      transform-origin: center center;
+      transition: transform 0.05s ease-out;
+      user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #diagram-img {
+      max-width: none;
+      pointer-events: none;
+      filter: drop-shadow(0 15px 30px rgba(0,0,0,0.6));
+      border-radius: 8px;
+    }
+    footer {
+      background: #1e293b;
+      border-top: 1px solid var(--border);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .tip-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>🏛️ Chill AI Interior — Bản Vẽ Sơ Đồ Kiến Trúc Hệ Thống</h1>
+      <p>Chủ nhiệm: Anh Huy (The Architect) & Trợ lý AI Lan — Chuẩn ByteByteGo & Design Patterns</p>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchDiagram(1)">1. Kiến Trúc Hiện Tại (Bóc Tách Điểm Nghẽn)</button>
+      <button class="tab-btn" onclick="switchDiagram(2)">2. Kiến Trúc Mới (Xưởng Mộc Lego 4 Tầng)</button>
+    </div>
+
+    <div class="toolbar-actions">
+      <button class="btn-tool" onclick="zoomIn()" title="Phóng to">➕ Phóng To</button>
+      <button class="btn-tool" onclick="zoomOut()" title="Thu nhỏ">➖ Thu Nhỏ</button>
+      <button class="btn-tool" onclick="resetZoom()" title="Vừa màn hình">🔄 Vừa Màn Hình</button>
+      <button class="btn-tool btn-download" onclick="downloadCurrentPNG()" title="Tải ảnh PNG độ nét cao">📥 Tải Ảnh PNG</button>
+      <button class="btn-tool" onclick="downloadCurrentSVG()" title="Tải vector SVG phóng to vô cực">📐 Tải File SVG</button>
+    </div>
+  </header>
+
+  <main id="diagram-stage">
+    <div id="viewport-container">
+      <img id="diagram-img" src="so_do_1_kien_truc_hien_tai_chill_ai.png" alt="Sơ đồ kiến trúc Chill AI">
+    </div>
+  </main>
+
+  <footer>
+    <div class="tip-box">
+      <span class="badge">Mẹo xem:</span>
+      <span>Lăn chuột để Phóng to / Thu nhỏ | Bấm giữ chuột trái và kéo để Di chuyển tự do | Bấm đúp để Đặt lại</span>
+    </div>
+    <div id="file-indicator">
+      Đang xem: <strong>Sơ đồ 1 — Hiện trạng & 3 Điểm nghẽn lỗi chéo</strong> (2400 x 1400 px Ultra HD)
+    </div>
+  </footer>
+
+  <script>
+    let currentDiagram = 1;
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX, startY;
+
+    const container = document.getElementById('viewport-container');
+    const stage = document.getElementById('diagram-stage');
+    const img = document.getElementById('diagram-img');
+    const indicator = document.getElementById('file-indicator');
+
+    const diagrams = {
+      1: {
+        png: 'so_do_1_kien_truc_hien_tai_chill_ai.png',
+        svg: 'so_do_1_kien_truc_hien_tai_chill_ai.svg',
+        name: 'Sơ đồ 1 — Hiện trạng & 3 Điểm nghẽn lỗi chéo',
+        info: '2400 x 1400 px Ultra HD'
+      },
+      2: {
+        png: 'so_do_2_kien_truc_moi_lego_4_tang.png',
+        svg: 'so_do_2_kien_truc_moi_lego_4_tang.svg',
+        name: 'Sơ đồ 2 — Xưởng Mộc Lego 4 Tầng (Miễn Nhiễm Lỗi Chéo)',
+        info: '2400 x 1400 px Ultra HD'
+      }
+    };
+
+    function updateTransform() {
+      container.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    function switchDiagram(id) {
+      currentDiagram = id;
+      document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === (id - 1));
+      });
+      img.src = diagrams[id].png;
+      indicator.innerHTML = `Đang xem: <strong>${diagrams[id].name}</strong> (${diagrams[id].info})`;
+      resetZoom();
+    }
+
+    function zoomIn() {
+      scale = Math.min(scale * 1.25, 5);
+      updateTransform();
+    }
+
+    function zoomOut() {
+      scale = Math.max(scale / 1.25, 0.2);
+      updateTransform();
+    }
+
+    function resetZoom() {
+      scale = 0.9;
+      panX = 0;
+      panY = 0;
+      updateTransform();
+    }
+
+    // Mouse wheel zoom
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      scale = Math.min(Math.max(0.15, scale * zoomFactor), 6);
+      updateTransform();
+    });
+
+    // Pan drag
+    stage.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    stage.addEventListener('dblclick', () => {
+      resetZoom();
+    });
+
+    function downloadCurrentPNG() {
+      const a = document.createElement('a');
+      a.href = diagrams[currentDiagram].png;
+      a.download = diagrams[currentDiagram].png;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function downloadCurrentSVG() {
+      const a = document.createElement('a');
+      a.href = diagrams[currentDiagram].svg;
+      a.download = diagrams[currentDiagram].svg;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Init fit
+    window.onload = () => {
+      resetZoom();
+    };
+  </script>
+</body>
+</html>

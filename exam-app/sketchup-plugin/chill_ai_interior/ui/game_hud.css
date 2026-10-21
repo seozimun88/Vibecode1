@@ -4504,12 +4504,12 @@ body.dock-mode #view-dock-mode,
   gap: 5px !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  padding: 3px 5px !important;
+  padding: 2px 4px !important;
   background: linear-gradient(180deg, #180d05 0%, #110803 100%) !important;
   border-bottom: 1.5px solid #5a3c1f !important;
   flex-shrink: 0 !important;
-  height: 120px !important;
-  max-height: 120px !important;
+  height: 102px !important;
+  max-height: 102px !important;
 }
 
 /* 1. Ô ĐỎ (CHIẾM 52% CHIỀU NGANG): AVATAR VUÔNG TO & 3D OBJECT INSPECTOR */
@@ -4551,8 +4551,8 @@ body.dock-mode #view-dock-mode,
 }
 
 .dock-hero-avatar-view .dock-avatar-viewport {
-  width: 90px !important;
-  height: 90px !important;
+  width: 76px !important;
+  height: 76px !important;
   overflow: hidden !important;
   position: relative !important;
 }
@@ -5631,4 +5631,120 @@ body.dock-mode .dock-main-workspace {
 
 .btn-warning-action.secondary:hover {
   background: #64748b !important;
+}
+
+/* ==============================================================================
+   7. ADAPTIVE VIEWPORT ENGINE: TỰ ĐỘNG CO GIÃN THEO CHIỀU CAO MÀN HÌNH (HEIGHT BREAKPOINTS)
+   ============================================================================== */
+
+/* Mọi chế độ Dock Tray: Đảm bảo bố cục flexbox không bao giờ bị overflow hay chém đáy */
+body.dock-mode .dock-main-workspace {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+body.dock-mode .dock-workspace-content {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+body.dock-mode .dock-workspace-footer {
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 🟢 CẤP ĐỘ 1: MÀN HÌNH NHỎ (Laptop 1366x768 hoặc cửa sổ nhỏ: height <= 580px) */
+@media (max-height: 580px) {
+  .dock-hero-top-row {
+    height: 68px !important;
+    max-height: 68px !important;
+    padding: 2px 3px !important;
+    gap: 3px !important;
+  }
+  .dock-avatar-preview-box {
+    flex: 0 0 45% !important;
+    max-width: 45% !important;
+  }
+  .dock-hero-avatar-view .dock-avatar-viewport {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  .dock-hero-avatar-title {
+    font-size: 6.5px !important;
+    padding: 1px 0 !important;
+  }
+  .dock-blue-prompts-box {
+    padding: 2px 3px !important;
+  }
+  .dock-blue-prompts-title {
+    font-size: 6.5px !important;
+    margin-bottom: 0px !important;
+  }
+  .dock-blue-prompts-list .dock-prompt-chip {
+    padding: 1.5px 3px !important;
+    font-size: 7px !important;
+  }
+  .dock-sidebar-nav-btn {
+    height: 32px !important;
+    font-size: 7px !important;
+  }
+  .dock-sidebar-nav-btn span {
+    font-size: 11px !important;
+  }
+  .dock-workspace-footer {
+    padding: 2px 4px !important;
+  }
+  .dock-btn-primary-build {
+    height: 24px !important;
+    font-size: 9px !important;
+  }
+  .dock-btn-primary-dxf {
+    height: 24px !important;
+    font-size: 9px !important;
+  }
+  .dock-footer-btn-row button {
+    padding: 3px 2px !important;
+    font-size: 8.5px !important;
+  }
+}
+
+/* 🟡 CẤP ĐỘ 2: MÀN HÌNH TIÊU CHUẨN (Chiều cao 581px - 720px - như máy anh Huy 628px) */
+@media (min-height: 581px) and (max-height: 720px) {
+  .dock-hero-top-row {
+    height: 98px !important;
+    max-height: 98px !important;
+    padding: 2px 4px !important;
+  }
+  .dock-hero-avatar-view .dock-avatar-viewport {
+    width: 72px !important;
+    height: 72px !important;
+  }
+  .dock-workspace-footer {
+    padding: 3px 5px !important;
+  }
+  .dock-btn-primary-build {
+    height: 28px !important;
+    font-size: 10px !important;
+  }
+  .dock-btn-primary-dxf {
+    height: 28px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* 🔵 CẤP ĐỘ 3: MÀN HÌNH LỚN / MÁY BÀN ĐỒ HỌA (height >= 721px) */
+@media (min-height: 721px) {
+  .dock-hero-top-row {
+    height: 118px !important;
+    max-height: 118px !important;
+  }
+  .dock-hero-avatar-view .dock-avatar-viewport {
+    width: 88px !important;
+    height: 88px !important;
+  }
 }
