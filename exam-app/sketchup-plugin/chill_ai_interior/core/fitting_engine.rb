@@ -96,7 +96,7 @@ module ChillAIInterior
           has_subs = false
           sub_entities.each do |sub|
             if sub.is_a?(Sketchup::Group) || sub.is_a?(Sketchup::ComponentInstance)
-              next if sub.name =~ /Chill_AI_Fittings/i
+              next if sub.name =~ /Chill_AI_Fitting/i || sub.name =~ /Chill_AI_Joint/i
               panels << { entity: sub, parent: entity }
               has_subs = true
             end
@@ -152,10 +152,10 @@ module ChillAIInterior
     end
 
     # ==========================================================================
-    # 🌟 VẼ ĐƯỜNG TRÒN / MẶT TRÒN DÍNH TRỰC TIẾP TRÊN BỀ MẶT VÁN (CHUẨN ABF & CNC)
-    # TỰ ĐỘNG CHIẾU CHUẨN XÁC VÀO FACE THỰC TẾ (COPLANAR PROJECTION)
+    # 🌟 VẼ ĐƯỜNG TRÒN / MẶT TRÒN DÍNH TRÊN MẶT VÁN (CHUẨN ABF & CNC)
+    # GOM VÀO GROUP CON TRÊN TẤM VÁN: CLICK VÀO LÀ CHỌN CẢ CHÙM & XOÁ NHANH!
     # ==========================================================================
-    def self.add_circle_to_panel(panel_info, center_world, normal_world, radius, layer_name, depth = 0)
+    def self.add_circle_to_panel(panel_info, center_world, normal_world, radius, layer_name, depth = 0, target_group = nil)
       return nil unless panel_info && panel_info[:entity]
       ent = panel_info[:entity]
       parent = panel_info[:parent]
@@ -168,26 +168,31 @@ module ChillAIInterior
       world_trans = parent.nil? ? ent.transformation : (parent.transformation * ent.transformation)
       inv_trans = world_trans.inverse
 
-      # 2. Chuyển toạ độ tâm thế giới và vector pháp tuyến sang hệ toạ độ Local
+      # 2. Chuyển toạ độ tâm thế giới và vector pháp tuyến sang hệ toạ độ Local của tấm ván
       local_center = center_world.transform(inv_trans)
       local_normal = normal_world.transform(inv_trans)
       local_normal.normalize!
 
-      # 3. Lấy entities của tấm ván (sau khi make_unique nếu là ComponentInstance)
-      if ent.is_a?(Sketchup::ComponentInstance)
-        ent.make_unique rescue nil
-        target_entities = ent.definition.entities
-      elsif ent.is_a?(Sketchup::Group)
-        target_entities = ent.entities
+      # 3. Lấy entities để vẽ: Nếu có target_group thì vẽ vào target_group.entities!
+      if target_group
+        target_entities = target_group.entities
       else
-        return nil
+        if ent.is_a?(Sketchup::ComponentInstance)
+          ent.make_unique rescue nil
+          target_entities = ent.definition.entities
+        elsif ent.is_a?(Sketchup::Group)
+          target_entities = ent.entities
+        else
+          return nil
+        end
       end
 
       # 4. CHIẾU CHUẨN XÁC VÀO FACE THỰC TẾ CỦA TẤM VÁN ĐỂ CHỐNG LỆCH CAO ĐỘ (COPLANAR PROJECTION)
+      panel_base_entities = ent.is_a?(Sketchup::Group) ? ent.entities : ent.definition.entities
       best_face = nil
       min_dist = 1000.0
 
-      target_entities.grep(Sketchup::Face).each do |f|
+      panel_base_entities.grep(Sketchup::Face).each do |f|
         dot = f.normal.dot(local_normal)
         if dot > 0.85
           dist = (f.plane[0] * local_center.x + f.plane[1] * local_center.y + f.plane[2] * local_center.z + f.plane[3]).abs
@@ -198,23 +203,20 @@ module ChillAIInterior
         end
       end
 
-      if best_face && min_dist < 30.mm
+      if best_face && min_dist < 35.mm
         local_center = local_center.project_to_plane(best_face.plane)
         local_normal = best_face.normal
       end
 
-      # 5. Vẽ đường tròn 24 cạnh chuẩn xác vào entities của tấm ván
+      # 5. Vẽ đường tròn 24 cạnh vào target_entities (Group con của tấm ván)
       circle_edges = target_entities.add_circle(local_center, local_normal, radius, 24)
       return nil unless circle_edges && !circle_edges.empty?
 
       # 6. Gán Layer cho tất cả các đoạn cạnh của đường tròn
       circle_edges.each { |e| e.layer = target_layer }
 
-      # 7. Tìm Face tròn đã tự động cắt trên bề mặt tấm ván, hoặc tạo Face mới
-      radius_val = radius.to_f
-      area_target = Math::PI * radius_val * radius_val
-      face = circle_edges.first.faces.find { |f| (f.area - area_target).abs < 25.0 }
-      face ||= target_entities.add_face(circle_edges) rescue nil
+      # 7. Tạo Face tròn phẳng bên trong Group và gán Layer
+      face = target_entities.add_face(circle_edges) rescue nil
       face.layer = target_layer if face
 
       # 8. Gán thuộc tính kỹ thuật phục vụ Nesting / DXF
@@ -228,7 +230,7 @@ module ChillAIInterior
         curve.set_attribute('chill_ai_drill', 'type', 'circle_face')
       end
 
-      log_debug("  [OK Circle] #{layer_name} dia=#{radius*2.to_m*1000}mm at world=#{center_world} local=#{local_center} face=#{!face.nil?}")
+      log_debug("  [OK Circle] #{layer_name} dia=#{radius*2.to_m*1000}mm at world=#{center_world} local=#{local_center} in_group=#{!target_group.nil?}")
       circle_edges
     rescue => e
       log_debug("  [ERR Circle] #{layer_name}: #{e.message}")
@@ -304,7 +306,8 @@ module ChillAIInterior
 
     # ==========================================================================
     # 🎯 3. THI CÔNG KHOAN LIÊN KẾT CAM CHỐT DÍNH TRỰC TIẾP TRÊN 2 TẤM VÁN
-    # TỰ ĐỘNG ĐẢO CHIỀU RẢI Ở ĐẦU CUỐI (CHỐNG TRÀO RA NGOÀI BIÊN VÁN)
+    # GOM VÀO GROUP CON TRÊN TẤM VÁN (CHUẨN ABF - CLICK VÀO LÀ XOÁ NHANH SẠCH SẼ)
+    # TỰ ĐỘNG XOÁ SẠCH CHÙM CŨ TRƯỚC KHI TẠO (CHỐNG TRÙNG LẶP 3 LỖ)
     # ==========================================================================
     def self.apply_joint_pair(panel_a, panel_b, axis, run_axis, joint_coord, base_pts, preset, flip_face = false)
       roles = identify_joint_roles(panel_a, panel_b, axis, joint_coord)
@@ -368,19 +371,61 @@ module ChillAIInterior
                           when :z then Geom::Vector3d.new(0, 0, dir_into_edge)
                           end
 
-      # Xác định giới hạn tiếp xúc theo trục run_axis
       run_min = [edge_bb.min.send(run_axis), face_bb.min.send(run_axis)].max
       run_max = [edge_bb.max.send(run_axis), face_bb.max.send(run_axis)].min
 
+      # ------------------------------------------------------------------------
+      # 📦 KHỞI TẠO GROUP CON CHỨA CHÙM LIÊN KẾT TRÊN TỪNG TẤM VÁN (CHUẨN ABF)
+      # TỰ ĐỘNG DỌN DẸP SẠCH CÁC GROUP CŨ VÀ CÁC LỖ RỜI CŨ ĐỂ CHỐNG LẶP 3 LỖ
+      # ------------------------------------------------------------------------
+      ent_edge = edge_panel[:entity]
+      edge_entities = ent_edge.is_a?(Sketchup::Group) ? ent_edge.entities : (ent_edge.make_unique rescue nil; ent_edge.definition.entities)
+
+      # 1. Dọn dẹp group cũ của mối nối này trên edge_panel
+      joint_tag = "Chill_AI_Joint_#{axis}_#{joint_coord.round}"
+      edge_entities.grep(Sketchup::Group).each do |g|
+        g.erase! if g.name =~ /^#{joint_tag}/i || g.name =~ /^Chill_AI_Joint_#{axis}_/i rescue nil
+      end
+
+      # Dọn dẹp cả các edge/face rời cũ có layer DRILL_* nằm gần mối nối này
+      drill_layers = [LAYER_CAM_15, LAYER_DOWEL_8, LAYER_PIN_5]
+      to_clean_edge = []
+      edge_entities.each do |e|
+        if (e.is_a?(Sketchup::Edge) || e.is_a?(Sketchup::Face)) && e.layer && drill_layers.include?(e.layer.name)
+          to_clean_edge << e
+        end
+      end
+      to_clean_edge.each { |e| e.erase! rescue nil }
+
+      # Tạo Group con trên tấm edge_panel
+      edge_joint_group = edge_entities.add_group
+      edge_joint_group.name = "#{joint_tag}_Edge"
+
+      # 2. Dọn dẹp và tạo Group con trên face_panel
+      ent_face = face_panel[:entity]
+      face_entities = ent_face.is_a?(Sketchup::Group) ? ent_face.entities : (ent_face.make_unique rescue nil; ent_face.definition.entities)
+
+      face_entities.grep(Sketchup::Group).each do |g|
+        g.erase! if g.name =~ /^#{joint_tag}/i || g.name =~ /^Chill_AI_Joint_#{axis}_/i rescue nil
+      end
+
+      to_clean_face = []
+      face_entities.each do |e|
+        if (e.is_a?(Sketchup::Edge) || e.is_a?(Sketchup::Face)) && e.layer && drill_layers.include?(e.layer.name)
+          to_clean_face << e
+        end
+      end
+      to_clean_face.each { |e| e.erase! rescue nil }
+
+      face_joint_group = face_entities.add_group
+      face_joint_group.name = "#{joint_tag}_Face"
+
       count_applied = 0
-      log_debug("--- BẮT ĐẦU LIÊN KẾT: axis=#{axis} run=#{run_axis} joint_coord=#{joint_coord} run_min=#{run_min} run_max=#{run_max} flip=#{flip_face}")
+      log_debug("--- BẮT ĐẦU LIÊN KẾT (GROUP CHÙM ABF): tag=#{joint_tag} run_min=#{run_min} run_max=#{run_max}")
 
       base_pts.each_with_index do |base_pt, b_idx|
         base_run_val = base_pt.send(run_axis)
 
-        # 🎯 XÁC ĐỊNH HƯỚNG CHẠY TIẾN/LÙI CỦA CỤM:
-        # Nếu cụm nằm gần đầu cuối (run_max): run_dir = -1 (LÙI VÀO TRONG LÒNG, CHỐNG TRÀO RA BIÊN!)
-        # Nếu cụm nằm gần đầu đầu (run_min): run_dir = +1 (TIẾN VÀO TRONG LÒNG VÁN)
         dist_to_min = (base_run_val - run_min).abs
         dist_to_max = (base_run_val - run_max).abs
         run_dir = (dist_to_max < dist_to_min) ? -1 : 1
@@ -421,7 +466,7 @@ module ChillAIInterior
           depth = (dh['depth'] || 13.5).to_f.mm
           layer_name = (dh['layer'] && !dh['layer'].empty?) ? dh['layer'] : LAYER_CAM_15
 
-          res = add_circle_to_panel(edge_panel, cam_world_center, cam_face_normal, dia / 2.0, layer_name, depth)
+          res = add_circle_to_panel(edge_panel, cam_world_center, cam_face_normal, dia / 2.0, layer_name, depth, edge_joint_group)
           count_applied += 1 if res
         end
 
@@ -458,7 +503,7 @@ module ChillAIInterior
           depth = (eh['depth'] || 34.0).to_f.mm
           layer_name = (eh['layer'] && !eh['layer'].empty?) ? eh['layer'] : LAYER_DOWEL_8
 
-          res = add_circle_to_panel(edge_panel, edge_world_center, edge_drill_normal, dia / 2.0, layer_name, depth)
+          res = add_circle_to_panel(edge_panel, edge_world_center, edge_drill_normal, dia / 2.0, layer_name, depth, edge_joint_group)
           count_applied += 1 if res
         end
 
@@ -495,7 +540,7 @@ module ChillAIInterior
           depth = (sh['depth'] || 12.0).to_f.mm
           layer_name = (sh['layer'] && !sh['layer'].empty?) ? sh['layer'] : LAYER_PIN_5
 
-          res = add_circle_to_panel(face_panel, side_world_center, face_drill_normal, dia / 2.0, layer_name, depth)
+          res = add_circle_to_panel(face_panel, side_world_center, face_drill_normal, dia / 2.0, layer_name, depth, face_joint_group)
           count_applied += 1 if res
         end
       end
@@ -562,10 +607,10 @@ module ChillAIInterior
 
               base_pts = []
               base_pts << Geom::Point3d.new(joint_x, contact_y_min + offset_L, h_center_z)
-              base_pts << Geom::Point3d.new(joint_x, contact_y_max - offset_C, h_center_z)
               if contact_len > 480.mm
                 base_pts << Geom::Point3d.new(joint_x, contact_y_min + contact_len / 2.0, h_center_z)
               end
+              base_pts << Geom::Point3d.new(joint_x, contact_y_max - offset_C, h_center_z)
 
               cnt = apply_joint_pair(horiz, vert, :x, :y, joint_x, base_pts, preset, false)
               total_applied += cnt
@@ -640,13 +685,18 @@ module ChillAIInterior
           hinge_edge_x = bb.min.x + 22.5.mm
           normal = Geom::Vector3d.new(0, 1, 0)
 
+          # Gom chén bản lề vào 1 Group con trên cánh tủ
+          hinge_entities = entity.is_a?(Sketchup::Group) ? entity.entities : (entity.make_unique rescue nil; entity.definition.entities)
+          hinge_group = hinge_entities.add_group
+          hinge_group.name = "Chill_AI_Hinges_35"
+
           z_positions.each do |z_pos|
             cup_center = Geom::Point3d.new(hinge_edge_x, back_face_y, z_pos)
-            add_circle_to_panel(panel_info, cup_center, normal, 17.5.mm, LAYER_HINGE_35, 11.5.mm)
+            add_circle_to_panel(panel_info, cup_center, normal, 17.5.mm, LAYER_HINGE_35, 11.5.mm, hinge_group)
 
             [-22.5.mm, 22.5.mm].each do |z_offset|
               screw_center = Geom::Point3d.new(hinge_edge_x + 9.5.mm, back_face_y, z_pos + z_offset)
-              add_circle_to_panel(panel_info, screw_center, normal, 1.5.mm, LAYER_HINGE_BASE_5, 10.0.mm)
+              add_circle_to_panel(panel_info, screw_center, normal, 1.5.mm, LAYER_HINGE_BASE_5, 10.0.mm, hinge_group)
             end
 
             total_hinges += 1
@@ -674,7 +724,7 @@ module ChillAIInterior
     end
 
     # ==========================================================================
-    # 🧹 6. XÓA CÁC LỖ KHOAN PHỤ KIỆN (DỌN SẠCH CẢ KHỐI CŨ LẪN CIRCLE TRÊN MẶT VÁN)
+    # 🧹 6. XÓA CÁC LỖ KHOAN PHỤ KIỆN (DỌN SẠCH CẢ KHỐI CŨ LẪN GROUP CHÙM VÀ CIRCLE)
     # ==========================================================================
     def self.clear_fittings(dialog = nil)
       model = Sketchup.active_model
@@ -684,19 +734,25 @@ module ChillAIInterior
       deleted_groups = 0
       deleted_circles = 0
 
+      # 1. Xóa các Group ngoài active_entities
       model.active_entities.grep(Sketchup::Group).each do |g|
-        if g.name =~ /^Chill_AI_Fittings_/i
+        if g.name =~ /^Chill_AI_Fittings_/i || g.name =~ /^Chill_AI_Joint_/i
           g.erase! rescue nil
           deleted_groups += 1
         end
       end
 
+      # 2. Xóa các Group chùm liên kết và các Circle rời bên trong từng tấm ván
       drill_layer_names = [LAYER_CAM_15, LAYER_DOWEL_8, LAYER_PIN_5, LAYER_HINGE_35, LAYER_HINGE_BASE_5]
       
       clean_panel_entities = lambda do |entities|
         to_erase = []
         entities.each do |item|
-          if item.is_a?(Sketchup::Edge)
+          if item.is_a?(Sketchup::Group)
+            if item.name =~ /^Chill_AI_Joint_/i || item.name =~ /^Chill_AI_Hinges/i || item.name =~ /^ABF_Minifix/i
+              to_erase << item
+            end
+          elsif item.is_a?(Sketchup::Edge)
             c = item.curve
             if c && (c.get_attribute('chill_ai_drill', 'diameter') || (item.layer && drill_layer_names.include?(item.layer.name)))
               to_erase << item
@@ -720,7 +776,7 @@ module ChillAIInterior
 
       model.commit_operation
 
-      msg = "Đã dọn sạch #{deleted_circles} lỗ khoan và #{deleted_groups} cụm phụ kiện cũ để tối ưu tốc độ 3D!"
+      msg = "Đã dọn sạch #{deleted_circles} lỗ khoan và #{deleted_groups} chùm phụ kiện cũ để tối ưu tốc độ 3D!"
       Sketchup.status_text = msg
       puts "[Chill AI FittingEngine] #{msg}"
 
