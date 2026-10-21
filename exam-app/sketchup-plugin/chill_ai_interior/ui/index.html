@@ -230,6 +230,11 @@
                  <div class="chat-bubble bot">"Xin chào anh Huy! Mình là Anh Thợ Mộc (Tin Tin AI). Hãy nói cho mình biết anh muốn đóng đồ gỗ hay nội thất gì, hoặc gửi 1 tấm ảnh để mình bóc tách kết cấu nhé!"</div>
                </div>
                  <div style="display:flex; justify-content: flex-end; align-items: center; margin-bottom: 5px; gap: 6px; color: #94a3b8; font-size: 11px; flex-wrap: wrap;">
+                   <select id="select-ai-engine" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; border-radius: 4px; padding: 2px 4px; font-size: 11px; max-width: 175px;" title="Bộ não AI Chatbot">
+                     <option value="gemma4:e4b" selected>⚡ Ollama: gemma4:e4b</option>
+                     <option value="gemini-3.5-flash">☁️ Gemini 3.5 Flash</option>
+                     <option value="gemini-3.8-flash">☁️ Gemini 3.8 Flash</option>
+                   </select>
                    <select id="select-voice-ai" style="background: rgba(0,0,0,0.6); color: #e2e8f0; border: 1px solid #4a5568; border-radius: 4px; padding: 2px 4px; font-size: 11px; max-width: 180px;">
                      <option value="namminh" selected>🪵 Nam Minh (Giọng Anh Thợ Mộc - Trầm ấm)</option>
                     <option value="hoaimy">👩‍🦰 Hoài My (Nữ Nam - Trẻ trung)</option>
@@ -1470,10 +1475,12 @@
         <div style="margin-bottom: 15px;">
           <label style="display:block; margin-bottom: 5px; font-size:12px; color:#94a3b8; text-align:center;">Chọn Mô Hình Trí Tuệ Nhân Tạo:</label>
           <select id="input-gemini-model" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.6); color: #fbbf24; border: 1px solid #4a5568; border-radius: 4px; text-align: center; font-family: inherit;">
-            <option value="gemini-3.5-flash">Gemini 3.5 Flash (Phản hồi <1s, Ổn định & Khuyên dùng)</option>
-            <option value="gemini-3.8-flash">Gemini 3.8 Flash (Mô hình mới nhất)</option>
-            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite (Siêu nhẹ)</option>
+            <option value="gemma4:e4b" selected>⚡ Ollama Local: gemma4:e4b (100% Offline, Riêng tư, Miễn phí)</option>
+            <option value="gemini-3.5-flash">☁️ Gemini 3.5 Flash (Google Cloud API, Phản hồi &lt;1s)</option>
+            <option value="gemini-3.8-flash">☁️ Gemini 3.8 Flash (Mô hình mới nhất)</option>
+            <option value="gemini-3.5-flash-lite">☁️ Gemini 3.5 Flash Lite (Siêu nhẹ)</option>
           </select>
+          <div id="ollama-local-hint" style="font-size: 11px; color: #34d399; text-align: center; margin-top: 6px;">🟢 Đang chọn Ollama Local: Không cần nhập API Key Google, chạy 100% trên máy tính!</div>
         </div>
 
         <div class="modal-actions">

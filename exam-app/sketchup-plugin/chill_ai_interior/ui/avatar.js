@@ -1,3 +1,20 @@
+
+// ==============================================================================
+// GLOBAL BRIDGE CALLBACKS FOR OLLAMA LOCAL (gemma4:e4b)
+// ==============================================================================
+window._ollamaCallbacks = window._ollamaCallbacks || {};
+window.onOllamaChatResponse = function(payload) {
+  try {
+    const data = typeof payload === 'string' ? JSON.parse(payload) : payload;
+    const cb = window._ollamaCallbacks[data.callback_id];
+    if (cb) {
+      cb(data);
+    }
+  } catch(e) {
+    console.error("[Ollama Bridge Callback Error]:", e);
+  }
+};
+
 // ==============================================================================
 // Chill AI Interior - 2D Virtual Avatar & Storytelling Consultant ("Lyly")
 // Version: 6.0 - Ultra-Fast Instant-Intelligence Engine & True Multi-Voice Bridge
@@ -552,6 +569,80 @@ class AvatarConsultant {
         principle: "Đề cao sự mộc mạc Wabi-Sabi và công năng tinh tế."
       }
     };
+  }
+
+  async callOllama(messages, timeoutMs = 90000) {
+    // Luồng 1: Trong môi trường SketchUp HtmlDialog - Gọi qua Ruby Bridge (Net::HTTP) hoàn toàn không bị CORS
+    if (window.sketchup && window.sketchup.call_ollama) {
+      return new Promise((resolve, reject) => {
+        const callbackId = 'cb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const timer = setTimeout(() => {
+          delete window._ollamaCallbacks[callbackId];
+          reject(new Error('Thời gian chờ mô hình Ollama gemma4:e4b phản hồi quá lâu (>90s).'));
+        }, timeoutMs);
+
+        window._ollamaCallbacks[callbackId] = (res) => {
+          clearTimeout(timer);
+          delete window._ollamaCallbacks[callbackId];
+          if (res && res.success) {
+            resolve(res.text || '');
+          } else {
+            reject(new Error(res ? (res.error || 'Lỗi không xác định từ Ollama') : 'Không nhận được dữ liệu từ Ollama'));
+          }
+        };
+
+        window.sketchup.call_ollama(JSON.stringify({
+          model: 'gemma4:e4b',
+          messages: messages,
+          callback_id: callbackId
+        }));
+      });
+    }
+
+    // Luồng 2: Khi test độc lập qua Google Chrome (file:///):
+    // Gọi qua Python TTS Proxy (port 57821 hỗ trợ CORS), nếu lỗi thì thử trực tiếp cổng 11434
+    const payload = JSON.stringify({
+      model: 'gemma4:e4b',
+      messages: messages,
+      stream: false
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      let res = await fetch('http://127.0.0.1:57821/ollama_chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        signal: controller.signal
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch('http://127.0.0.1:11434/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          signal: controller.signal
+        }).catch(err => {
+          if (err.name === 'AbortError') throw err;
+          return null;
+        });
+      }
+
+      clearTimeout(timer);
+      if (!res || !res.ok) {
+        throw new Error(`Không thể kết nối Ollama local gemma4:e4b (HTTP ${res ? res.status : 'Offline'}). Hãy đảm bảo Ollama đang chạy!`);
+      }
+
+      const data = await res.json();
+      const reply = data.message?.content || data.response;
+      if (!reply) throw new Error('Ollama gemma4:e4b trả về phản hồi trống.');
+      return reply;
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
+    }
   }
 
   // ========================
@@ -1160,9 +1251,16 @@ Khi anh Huy hỏi về đối tượng/bàn/tủ đang kích chọn (ví dụ: '
       removeTyping();
       this.setEmotion('sad');
       const errDetail = error.message || 'Lỗi kết nối không xác định';
-      const msg = error.name === 'AbortError'
-        ? 'Thời gian chờ AI phản hồi quá lâu (>8s), vui lòng thử lại câu hỏi ngắn hơn nhé!'
-        : `Dạ anh Huy ơi! Google AI phản hồi lỗi: "<strong>${errDetail}</strong>".<br><br>Anh Huy vui lòng nhấn nút <strong>⚙️ API Key</strong> bên dưới để dán lại mã API Key chính xác từ Google AI Studio nhé!`;
+      let msg = '';
+      if (isOllama) {
+        msg = `Dạ anh Huy ơi! Lan không thể kết nối tới mô hình Ollama <strong>gemma4:e4b</strong>.<br><br>` +
+          `Chi tiết lỗi: "<em>${errDetail}</em>".<br><br>` +
+          `👉 Anh Huy hãy kiểm tra xem ứng dụng Ollama đã chạy chưa (gõ <code>ollama list</code> trong CMD để kiểm tra nhé)!`;
+      } else {
+        msg = error.name === 'AbortError'
+          ? 'Thời gian chờ AI phản hồi quá lâu (>12s), vui lòng thử lại câu hỏi ngắn hơn nhé!'
+          : `Dạ anh Huy ơi! Google AI phản hồi lỗi: "<strong>${errDetail}</strong>".<br><br>Anh Huy vui lòng nhấn nút <strong>⚙️ API Key</strong> bên dưới để dán lại mã API Key chính xác từ Google AI Studio nhé!`;
+      }
       this.addMessage('bot', msg);
 
       if (this.chatHistory.length > 0 && this.chatHistory[this.chatHistory.length - 1].role === 'user') {

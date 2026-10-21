@@ -23,7 +23,7 @@ class ChillAIApp {
     };
 
     this.geminiApiKey = localStorage.getItem('chill_ai_gemini_key') || '';
-    let savedModel = localStorage.getItem('chill_ai_gemini_model') || 'gemini-3.5-flash';
+    let savedModel = localStorage.getItem('chill_ai_gemini_model') || 'gemma4:e4b';
     if (savedModel.includes('2.0') || savedModel.includes('1.5')) savedModel = 'gemini-3.5-flash';
     this.geminiModel = savedModel;
     this.dimensionMode = 'default'; // 'default' or 'custom'
@@ -251,31 +251,56 @@ class ChillAIApp {
     const btnClear = document.getElementById('btn-clear-gemini-key');
     const inputKey = document.getElementById('input-gemini-key');
     const inputModel = document.getElementById('input-gemini-model');
+    const selectEngine = document.getElementById('select-ai-engine');
     if (inputModel && this.geminiModel) inputModel.value = this.geminiModel;
+    if (selectEngine && this.geminiModel) selectEngine.value = this.geminiModel;
 
-        const updateBanner = () => {
+    if (selectEngine) {
+      selectEngine.addEventListener('change', () => {
+        this.geminiModel = selectEngine.value;
+        localStorage.setItem('chill_ai_gemini_model', this.geminiModel);
+        if (inputModel) inputModel.value = this.geminiModel;
+        updateBanner();
+        const modeLabel = this.geminiModel.includes('gemma4') ? 'Ollama Local (gemma4:e4b)' : this.geminiModel;
+        this.showMiniToast(`Đã chuyển động cơ AI: ${modeLabel}`, 'success', 2500);
+      });
+    }
+
+    const updateBanner = () => {
       const dot = document.getElementById('api-status-dot');
       const label = document.getElementById('api-status-label');
       const desc = document.getElementById('api-status-desc');
-      if (!dot || !label || !desc) return;
-      
-      const modelName = this.geminiModel === 'gemini-1.5-pro-latest' ? 'Gemma 4 Pro' : 'Gemma 4';
-
       const topBarStatus = document.getElementById('gemini-api-status');
+      const ollamaHint = document.getElementById('ollama-local-hint');
 
-      if (this.geminiApiKey) {
+      const isOllama = this.geminiModel.includes('gemma4') || this.geminiModel.startsWith('ollama');
+
+      if (ollamaHint) {
+        ollamaHint.style.display = isOllama ? 'block' : 'none';
+      }
+
+      if (!dot || !label || !desc) return;
+
+      if (isOllama) {
         dot.className = 'api-status-dot';
-        label.textContent = `Chế độ AI: ${modelName} Vision (Đã kết nối Key)`;
-        desc.textContent = `Mỗi khi kéo ảnh tải lên, hệ thống sẽ gọi trực tiếp mô hình ${modelName} để nhận diện thật!`;
+        label.textContent = 'Chế độ AI: Ollama Local (gemma4:e4b)';
+        desc.textContent = 'Mô hình Gemma 4 đang chạy trực tiếp trên GPU máy tính của anh Huy (100% Offline, Riêng tư, Miễn phí).';
         if (topBarStatus) {
-          topBarStatus.innerHTML = '<span class="api-dot" style="background:#10b981;"></span> Sẵn Sàng (AI Online)';
+          topBarStatus.innerHTML = '<span class="api-dot" style="background:#10b981;"></span> Sẵn Sàng (Ollama Local)';
+        }
+      } else if (this.geminiApiKey) {
+        dot.className = 'api-status-dot';
+        label.textContent = `Chế độ AI: ${this.geminiModel} (Google Cloud)`;
+        desc.textContent = `Hệ thống gọi trực tiếp Google Cloud API để nhận diện và tư vấn kỹ thuật!`;
+        if (topBarStatus) {
+          topBarStatus.innerHTML = '<span class="api-dot" style="background:#10b981;"></span> Sẵn Sàng (Gemini Cloud)';
         }
       } else {
         dot.className = 'api-status-dot no-key';
-        label.textContent = 'Chế độ AI: Bản dùng thử (Demo Mockup)';
-        desc.textContent = 'Chưa có API Key. Bấm "Cài đặt Key" để dán mã Google AI miễn phí và quét ảnh thật 100%.';
+        label.textContent = 'Chế độ AI: Chờ cấu hình';
+        desc.textContent = 'Chọn Ollama Local (gemma4:e4b) để chạy offline hoặc dán Google API Key để dùng Cloud.';
         if (topBarStatus) {
-          topBarStatus.innerHTML = '<span class="api-dot no-key"></span> Chờ API Key';
+          topBarStatus.innerHTML = '<span class="api-dot no-key"></span> Chờ Kết Nối AI';
         }
       }
     };
@@ -302,6 +327,8 @@ class ChillAIApp {
         if (inputModel) {
             this.geminiModel = inputModel.value;
             localStorage.setItem('chill_ai_gemini_model', this.geminiModel);
+            const selEng = document.getElementById('select-ai-engine');
+            if (selEng) selEng.value = this.geminiModel;
         }
         
         updateBanner();
@@ -539,7 +566,8 @@ class ChillAIApp {
 
   // --- GOOGLE GEMMA 4 / GEMINI VISION CLOUD AI CALL ---
   async getBestGeminiEndpoint() {
-    return `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel || 'gemini-3.5-flash'}:generateContent`;
+    const target = (this.geminiModel && !this.geminiModel.includes('gemma4')) ? this.geminiModel : 'gemini-3.5-flash';
+    return `https://generativelanguage.googleapis.com/v1beta/models/${target}:generateContent`;
   }
 
   // Thuật toán bóc tách đúng khối JSON đầu tiên, bỏ qua mọi ghi chú thừa và chống lỗi position

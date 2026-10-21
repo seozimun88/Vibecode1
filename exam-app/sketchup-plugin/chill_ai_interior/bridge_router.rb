@@ -225,6 +225,16 @@ module ChillAIInterior
       dialog.add_action_callback("activate_fitting_tool") do |_ctx, *args|
         FittingTool.activate_tool if defined?(FittingTool)
       end
+
+      # 16. Cầu nối Ollama Local LLM (gemma4:e4b) - Không bị chặn CORS trong CEF
+      dialog.add_action_callback("call_ollama") do |_ctx, *args|
+        payload = parse_json_arg(args.first)
+        handle_call_ollama(payload, dialog)
+      end
+
+      dialog.add_action_callback("check_ollama") do |_ctx, *args|
+        handle_check_ollama(dialog)
+      end
     end
 
     # ==========================================================================
@@ -266,6 +276,10 @@ module ChillAIInterior
         WindowManager.snap_to_viewport if defined?(WindowManager)
       when 'play_sound'
         AudioPlayer.play(data) if defined?(AudioPlayer)
+      when 'call_ollama'
+        handle_call_ollama(data, dialog)
+      when 'check_ollama'
+        handle_check_ollama(dialog)
       else
         puts "[Chill AI Router] Action không xác định: #{action}"
       end
@@ -463,6 +477,99 @@ module ChillAIInterior
       end
     rescue => e
       UI.messagebox("Lỗi tạo tủ chuẩn mộc: #{e.message}")
+    end
+
+    # ==========================================================================
+    # CẦU NỐI OLLAMA LOCAL LLM (gemma4:e4b) - THỰC THI LUỒNG NỀN KHÔNG BLOCK UI
+    # ==========================================================================
+    def self.handle_call_ollama(payload, dialog)
+      return unless dialog
+      Thread.new do
+        begin
+          require 'net/http'
+          require 'uri'
+
+          model_name = payload['model'] || 'gemma4:e4b'
+          messages = payload['messages'] || []
+          if messages.empty? && payload['prompt']
+            messages = [{ 'role' => 'user', 'content' => payload['prompt'].to_s }]
+          end
+          callback_id = payload['callback_id'] || 'default'
+
+          uri = URI.parse("http://127.0.0.1:11434/api/chat")
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.open_timeout = 5
+          http.read_timeout = 90 # Cho phép inference tới 90s trên GPU/CPU local
+
+          req = Net::HTTP::Post.new(uri.path, { 'Content-Type' => 'application/json; charset=utf-8' })
+          req.body = {
+            'model' => model_name,
+            'messages' => messages,
+            'stream' => false
+          }.to_json
+
+          res = http.request(req)
+          if res.is_a?(Net::HTTPSuccess)
+            raw_body = res.body
+            raw_body = raw_body.force_encoding('UTF-8') if raw_body.respond_to?(:force_encoding)
+            parsed = JSON.parse(raw_body)
+            reply_text = parsed.dig('message', 'content') || parsed['response'] || ''
+            js_payload = { 'success' => true, 'text' => reply_text, 'callback_id' => callback_id }.to_json
+            UI.start_timer(0.01, false) do
+              dialog.execute_script("if(window.onOllamaChatResponse) window.onOllamaChatResponse(#{js_payload});")
+            end
+          else
+            err_msg = "Ollama phản hồi mã lỗi HTTP #{res.code}: #{res.message}"
+            js_payload = { 'success' => false, 'error' => err_msg, 'callback_id' => callback_id }.to_json
+            UI.start_timer(0.01, false) do
+              dialog.execute_script("if(window.onOllamaChatResponse) window.onOllamaChatResponse(#{js_payload});")
+            end
+          end
+        rescue => e
+          err_msg = "Không thể kết nối Ollama local: #{e.message}. Anh Huy kiểm tra lệnh 'ollama serve' hoặc model 'gemma4:e4b' đã tải chưa nhé."
+          js_payload = { 'success' => false, 'error' => err_msg, 'callback_id' => callback_id }.to_json
+          UI.start_timer(0.01, false) do
+            dialog.execute_script("if(window.onOllamaChatResponse) window.onOllamaChatResponse(#{js_payload});")
+          end
+        end
+      end
+    end
+
+    def self.handle_check_ollama(dialog)
+      return unless dialog
+      Thread.new do
+        begin
+          require 'net/http'
+          require 'uri'
+          uri = URI.parse("http://127.0.0.1:11434/api/tags")
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.open_timeout = 3
+          http.read_timeout = 3
+          req = Net::HTTP::Get.new(uri.path)
+          res = http.request(req)
+          if res.is_a?(Net::HTTPSuccess)
+            raw_body = res.body
+            raw_body = raw_body.force_encoding('UTF-8') if raw_body.respond_to?(:force_encoding)
+            parsed = JSON.parse(raw_body)
+            models = (parsed['models'] || []).map { |m| m['name'] }
+            has_gemma = models.any? { |n| n.to_s.include?('gemma4') || n.to_s.include?('gemma') }
+            js_payload = { 'running' => true, 'models' => models, 'has_gemma' => has_gemma }.to_json
+            UI.start_timer(0.01, false) do
+              dialog.execute_script("if(window.onOllamaStatusChecked) window.onOllamaStatusChecked(#{js_payload});")
+            end
+          else
+            js_payload = { 'running' => false, 'error' => "HTTP #{res.code}" }.to_json
+            UI.start_timer(0.01, false) do
+              dialog.execute_script("if(window.onOllamaStatusChecked) window.onOllamaStatusChecked(#{js_payload});")
+            end
+          end
+        rescue => e
+          js_payload = { 'running' => false, 'error' => e.message }.to_json
+          UI.start_timer(0.01, false) do
+            dialog.execute_script("if(window.onOllamaStatusChecked) window.onOllamaStatusChecked(#{js_payload});")
+          end
+        end
+      end
     end
 
     def self.parse_json_arg(arg)

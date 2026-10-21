@@ -317,7 +317,57 @@ class TTSHandler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
+    def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == '/ollama_chat':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body_bytes = self.rfile.read(content_length)
+            try:
+                req = urllib.request.Request(
+                    'http://127.0.0.1:11434/api/chat',
+                    data=body_bytes,
+                    headers={'Content-Type': 'application/json; charset=utf-8'}
+                )
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    resp_data = resp.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(resp_data)
+                    return
+            except Exception as e:
+                err_resp = json.dumps({'error': str(e)}).encode('utf-8')
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(err_resp)
+                return
+        self.send_response(404)
+        self.end_headers()
+
     def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == '/ollama_status':
+            try:
+                req = urllib.request.Request('http://127.0.0.1:11434/api/tags')
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    resp_data = resp.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(resp_data)
+                    return
+            except Exception as e:
+                err_resp = json.dumps({'running': False, 'error': str(e)}).encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(err_resp)
+                return
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == '/stt_start':
             start_stt_recording()
