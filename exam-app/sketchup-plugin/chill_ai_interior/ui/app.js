@@ -196,6 +196,20 @@ class ChillAIApp {
         }
       });
     }
+    const btnOpenStudio = document.getElementById('dock-btn-open-fitting-studio');
+    if (btnOpenStudio) {
+      btnOpenStudio.addEventListener('click', () => {
+        if (this.isSketchUpAvailable && window.sketchup) {
+          if (window.sketchup.open_fitting_studio) {
+            window.sketchup.open_fitting_studio();
+          } else if (window.sketchup.dispatch) {
+            window.sketchup.dispatch({ action: 'open_fitting_studio', data: {} });
+          }
+        } else {
+          window.open('fitting_studio.html', '_blank', 'width=1020,height=720');
+        }
+      });
+    }
   }
 
   initStatusIndicator() {

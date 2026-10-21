@@ -1,0 +1,435 @@
+{
+  "version": "1.0.0",
+  "active_preset_id": "cam_dowel_single",
+  "presets": [
+    {
+      "id": "default_cam",
+      "name": "Mặc định - Ốc cam đơn",
+      "category": "Cam Chốt",
+      "price": 2500,
+      "L": 34.0,
+      "C": 34.0,
+      "D": [
+        { "id": "D1", "dia": 15.0, "depth": 13.5, "layer": "DRILL_CAM_15", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 8.0, "depth": 34.0, "layer": "DRILL_CAM_HOLE_8", "active": true },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_PIN_5", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "cam_dowel_single",
+      "name": "Bộ ốc cam + chốt gỗ d8 (đơn)",
+      "category": "Cam Chốt",
+      "price": 3500,
+      "L": 34.0,
+      "C": 34.0,
+      "D": [
+        { "id": "D1", "dia": 15.0, "depth": 13.5, "layer": "DRILL_CAM_15", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 8.0, "depth": 34.0, "layer": "DRILL_CAM_HOLE_8", "active": true },
+        { "id": "d2", "dia": 8.0, "depth": 25.0, "layer": "DRILL_DOWEL_8", "active": true },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_PIN_5", "active": true },
+        { "id": "Dside2", "dia": 8.0, "depth": 12.0, "layer": "DRILL_DOWEL_8", "active": true },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "cam_dowel_double",
+      "name": "Bộ ốc cam + chốt gỗ d8 (đôi)",
+      "category": "Cam Chốt",
+      "price": 7000,
+      "L": 34.0,
+      "C": 34.0,
+      "D": [
+        { "id": "D1", "dia": 15.0, "depth": 13.5, "layer": "DRILL_CAM_15", "active": true },
+        { "id": "D2", "dia": 15.0, "depth": 13.5, "layer": "DRILL_CAM_15", "active": true },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 8.0, "depth": 34.0, "layer": "DRILL_CAM_HOLE_8", "active": true },
+        { "id": "d2", "dia": 8.0, "depth": 25.0, "layer": "DRILL_DOWEL_8", "active": true },
+        { "id": "d3", "dia": 8.0, "depth": 25.0, "layer": "DRILL_DOWEL_8", "active": true },
+        { "id": "d4", "dia": 8.0, "depth": 34.0, "layer": "DRILL_CAM_HOLE_8", "active": true },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_PIN_5", "active": true },
+        { "id": "Dside2", "dia": 8.0, "depth": 12.0, "layer": "DRILL_DOWEL_8", "active": true },
+        { "id": "Dside3", "dia": 8.0, "depth": 12.0, "layer": "DRILL_DOWEL_8", "active": true },
+        { "id": "Dside4", "dia": 5.0, "depth": 12.0, "layer": "DRILL_PIN_5", "active": true },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "khoan_moi_d3",
+      "name": "Khoan Mồi d3",
+      "category": "Khoan Mồi",
+      "price": 500,
+      "L": 50.0,
+      "C": 50.0,
+      "D": [
+        { "id": "D1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 3.0, "depth": 35.0, "layer": "DRILL_PILOT_3", "active": true },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 64.0 },
+        { "id": "n2", "val": 64.0 },
+        { "id": "n3", "val": 64.0 },
+        { "id": "n4", "val": 64.0 },
+        { "id": "n5", "val": 64.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 3.0, "depth": 10.0, "layer": "DRILL_PILOT_3", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "chot_dot_d5",
+      "name": "Chốt đợt d5",
+      "category": "Chốt Kệ",
+      "price": 1000,
+      "L": 37.0,
+      "C": 37.0,
+      "D": [
+        { "id": "D1", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "chot_ke_dot_3",
+      "name": "Chốt Kệ/Chốt Đợt-3",
+      "category": "Chốt Kệ",
+      "price": 3000,
+      "L": 37.0,
+      "C": 37.0,
+      "D": [
+        { "id": "D1", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "D2", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "D3", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "Dside2", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "Dside3", "dia": 5.0, "depth": 10.0, "layer": "DRILL_SHELF_5", "active": true },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "chot_khoa_rafix",
+      "name": "Chốt khóa kệ Rafix",
+      "category": "Rafix",
+      "price": 4000,
+      "L": 32.0,
+      "C": 32.0,
+      "D": [
+        { "id": "D1", "dia": 20.0, "depth": 14.2, "layer": "DRILL_RAFIX_20", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 11.5, "layer": "DRILL_PIN_5", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "pat_v_4",
+      "name": "Pát V 4 lỗ",
+      "category": "Pát Sắt",
+      "price": 2000,
+      "L": 40.0,
+      "C": 40.0,
+      "D": [
+        { "id": "D1", "dia": 3.0, "depth": 10.0, "layer": "DRILL_PAT_V", "active": true },
+        { "id": "D2", "dia": 3.0, "depth": 10.0, "layer": "DRILL_PAT_V", "active": true },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 3.0, "depth": 10.0, "layer": "DRILL_PAT_V", "active": true },
+        { "id": "Dside2", "dia": 3.0, "depth": 10.0, "layer": "DRILL_PAT_V", "active": true },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "cabineo_8",
+      "name": "Cabineo 8",
+      "category": "Cabineo",
+      "price": 8500,
+      "L": 34.0,
+      "C": 34.0,
+      "D": [
+        { "id": "D1", "dia": 12.0, "depth": 8.0, "layer": "DRILL_CABINEO_12", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_CABINEO_PIN", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "cabineo_12",
+      "name": "Cabineo 12",
+      "category": "Cabineo",
+      "price": 9500,
+      "L": 34.0,
+      "C": 34.0,
+      "D": [
+        { "id": "D1", "dia": 12.0, "depth": 12.0, "layer": "DRILL_CABINEO_12", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 32.0 },
+        { "id": "n2", "val": 32.0 },
+        { "id": "n3", "val": 32.0 },
+        { "id": "n4", "val": 32.0 },
+        { "id": "n5", "val": 32.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_CABINEO_PIN", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    },
+    {
+      "id": "khoan_thung",
+      "name": "Khoan Thủng",
+      "category": "Khoan Thủng",
+      "price": 500,
+      "L": 50.0,
+      "C": 50.0,
+      "D": [
+        { "id": "D1", "dia": 5.0, "depth": 20.0, "layer": "DRILL_THROUGH_5", "active": true },
+        { "id": "D2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "D6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "d": [
+        { "id": "d1", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "d6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ],
+      "n": [
+        { "id": "n1", "val": 64.0 },
+        { "id": "n2", "val": 64.0 },
+        { "id": "n3", "val": 64.0 },
+        { "id": "n4", "val": 64.0 },
+        { "id": "n5", "val": 64.0 }
+      ],
+      "Dside": [
+        { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_PIN_5", "active": true },
+        { "id": "Dside2", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside3", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside4", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside5", "dia": 0.0, "depth": 0.0, "layer": "", "active": false },
+        { "id": "Dside6", "dia": 0.0, "depth": 0.0, "layer": "", "active": false }
+      ]
+    }
+  ]
+}

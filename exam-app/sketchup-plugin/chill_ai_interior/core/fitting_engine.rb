@@ -16,6 +16,40 @@ module ChillAIInterior
     LAYER_HINGE_35     = 'DRILL_HINGE_35'.freeze
     LAYER_HINGE_BASE_5 = 'DRILL_HINGE_BASE_5'.freeze
 
+    PRESETS_FILE = File.expand_path(File.join(File.dirname(__FILE__), '..', 'knowledge_base', 'fitting_presets.json')).freeze
+
+    # Đọc danh sách cấu hình Preset từ JSON
+    def self.load_presets
+      return {} unless File.exist?(PRESETS_FILE)
+      JSON.parse(File.read(PRESETS_FILE, encoding: 'UTF-8'))
+    rescue => e
+      puts "[Chill AI FittingEngine] Lỗi đọc presets: #{e.message}"
+      {}
+    end
+
+    # Lưu danh sách cấu hình Preset vào JSON
+    def self.save_presets(data)
+      File.open(PRESETS_FILE, 'w:UTF-8') do |f|
+        f.write(JSON.pretty_generate(data))
+      end
+      true
+    rescue => e
+      puts "[Chill AI FittingEngine] Lỗi lưu presets: #{e.message}"
+      false
+    end
+
+    # Lấy Preset đang hoạt động
+    def self.get_active_preset(params = nil)
+      if params.is_a?(Hash) && (params['D'] || params[:D] || params['holes_face'])
+        return params
+      end
+      data = load_presets
+      return {} unless data['presets']
+      active_id = (params && params['id']) || data['active_preset_id']
+      found = data['presets'].find { |p| p['id'] == active_id }
+      found || data['presets'].first || {}
+    end
+
     # 1. TỰ ĐỘNG TẠO / LẤY CÁC LAYER KHOAN LỖ CHO MÁY CNC / ASPIRE
     def self.ensure_layers(model)
       layers = {}
@@ -95,7 +129,7 @@ module ChillAIInterior
     end
 
     # ==========================================================================
-    # 🎯 3. THUẬT TOÁN ĐỤC LỖ CAM CHỐT MINIFIX (CHƯNG CẤT TỪ ABF)
+    # 🎯 3. THUẬT TOÁN ĐỤC LỖ LIÊN KẾT CAM CHỐT ĐỘNG THEO PRESET (ABF FITTING MATRIX)
     # ==========================================================================
     def self.apply_cam_locks(params = {}, dialog = nil)
       model = Sketchup.active_model
@@ -103,12 +137,23 @@ module ChillAIInterior
 
       selection = model.selection
       if selection.empty?
-        return { status: 'warning', message: 'Vui lòng chọn Tủ Áo hoặc các Tấm Ván trong SketchUp để khoan cam chốt!' }
+        return { status: 'warning', message: 'Vui lòng chọn Tủ Áo hoặc các Tấm Ván trong SketchUp để khoan liên kết!' }
       end
 
-      model.start_operation("Chill AI: Khoan Cam Chốt Tự Động", true)
+      # Nạp Preset cấu hình
+      preset = get_active_preset(params)
+      preset_name = preset['name'] || "Cam Chốt Tiêu Chuẩn"
 
-      layers = ensure_layers(model)
+      offset_L = (preset['L'] || 34.0).to_f.mm
+      offset_C = (preset['C'] || 34.0).to_f.mm
+
+      d_holes    = (preset['D'] || []).select { |h| h['active'] && h['dia'].to_f > 0 }
+      edge_holes = (preset['d'] || []).select { |h| h['active'] && h['dia'].to_f > 0 }
+      side_holes = (preset['Dside'] || []).select { |h| h['active'] && h['dia'].to_f > 0 }
+      n_dists    = (preset['n'] || []).map { |item| (item['val'] || 32.0).to_f.mm }
+
+      model.start_operation("Chill AI: Khoan Liên Kết #{preset_name}", true)
+
       panels_raw = collect_panels(selection)
 
       if panels_raw.empty?
@@ -116,7 +161,6 @@ module ChillAIInterior
         return { status: 'warning', message: 'Không tìm thấy chi tiết tấm ván phù hợp trong vùng chọn.' }
       end
 
-      # Phân tích thông số từng tấm
       analyzed = panels_raw.map do |p|
         info = analyze_panel_orientation(p)
         p.merge(info)
@@ -125,97 +169,118 @@ module ChillAIInterior
       verticals   = analyzed.select { |p| p[:type] == :vertical }
       horizontals = analyzed.select { |p| p[:type] == :horizontal }
 
-      total_cams = 0
-      total_dowels = 0
+      total_holes = 0
 
-      # Nhóm chứa toàn bộ các lỗ khoan để dễ quản lý & bật tắt
       fittings_group = model.active_entities.add_group
-      fittings_group.name = "Chill_AI_Fittings_CamLock_#{Time.now.strftime('%H%M%S')}"
+      fittings_group.name = "Chill_AI_Fittings_#{preset['id'] || 'Custom'}_#{Time.now.strftime('%H%M%S')}"
 
-      # Duyệt tìm các điểm giao nhau vuông góc giữa Tấm Ngang (Đáy/Đợt) và Tấm Đứng (Hồi)
       horizontals.each do |horiz|
         h_bb = horiz[:bounds_world]
         h_center_z = (h_bb.min.z + h_bb.max.z) / 2.0
-        h_depth_y  = (h_bb.max.y - h_bb.min.y)
 
         verticals.each do |vert|
           v_bb = vert[:bounds_world]
 
-          # Kiểm tra xem Tấm Ngang có chạm vào Tấm Đứng theo trục X không (khoảng cách < 2mm)
-          touch_left  = (h_bb.min.x - v_bb.max.x).abs < 0.1.m # Chạm hồi trái
-          touch_right = (h_bb.max.x - v_bb.min.x).abs < 0.1.m # Chạm hồi phải
+          touch_left  = (h_bb.min.x - v_bb.max.x).abs < 0.1.m
+          touch_right = (h_bb.max.x - v_bb.min.x).abs < 0.1.m
 
           if touch_left || touch_right
-            # Kiểm tra xem có giao nhau theo trục Y và Z không
             overlap_y = [h_bb.max.y, v_bb.max.y].min - [h_bb.min.y, v_bb.min.y].max
-            if overlap_y > 200.mm && h_center_z >= (v_bb.min.z - 10.mm) && h_center_z <= (v_bb.max.z + 10.mm)
-              # ĐÂY LÀ KHỚP NỐI VUÔNG GÓC! TÍNH TOÁN RẢI LỖ CAM
+            if overlap_y > 150.mm && h_center_z >= (v_bb.min.z - 10.mm) && h_center_z <= (v_bb.max.z + 10.mm)
               contact_y_min = [h_bb.min.y, v_bb.min.y].max
               contact_y_max = [h_bb.max.y, v_bb.max.y].min
               contact_len = contact_y_max - contact_y_min
 
-              # Tọa độ X liên kết:
               joint_x = touch_left ? h_bb.min.x : h_bb.max.x
-              cam_direction = touch_left ? 1 : -1 # Bầu cam nằm về phía trong tấm ngang
+              cam_direction = touch_left ? 1 : -1
 
-              # Tính danh sách tọa độ Y rải cam (Cách đầu/cuối 50mm, nếu dài rải thêm ở giữa)
-              y_positions = []
-              margin = 50.mm
-              if contact_len > 150.mm
-                y_positions << (contact_y_min + margin)
-                y_positions << (contact_y_max - margin)
-                # Nếu chiều sâu > 400mm, thêm 1 cam ở giữa
-                if contact_len > 400.mm
-                  y_positions << (contact_y_min + contact_len / 2.0)
-                end
+              anchor_y_list = []
+              anchor_y_list << (contact_y_min + offset_L)
+              anchor_y_list << (contact_y_max - offset_C)
+              if contact_len > 480.mm
+                anchor_y_list << (contact_y_min + contact_len / 2.0)
               end
 
-              # Sinh lỗ cam và chốt định vị
-              y_positions.each do |y_pos|
-                # 1. VỊ TRÍ TÂM BẦU CAM PHI 15MM (Cách mép 34mm chuẩn Hafele)
-                cam_center_x = joint_x + (cam_direction * 34.mm)
-                # Bầu cam khoét ở mặt dưới tấm ngang (h_bb.min.z)
-                cam_center = Geom::Point3d.new(cam_center_x, y_pos, h_bb.min.z)
+              anchor_y_list.each do |base_y|
+                # 1. RẢI CÁC LỖ D (MẶT VÁN)
+                d_holes.each do |dh|
+                  d_idx = dh['id'].to_s.sub('D', '').to_i - 1
+                  step_y = 0.mm
+                  (0...d_idx).each { |k| step_y += (n_dists[k] || 32.mm) }
+                  cur_y = (base_y + step_y <= contact_y_max - 10.mm) ? (base_y + step_y) : (base_y - step_y)
 
-                create_cylinder_hole(
-                  fittings_group.entities,
-                  cam_center,
-                  Geom::Vector3d.new(0, 0, 1),
-                  7.5.mm,    # Bán kính 7.5mm -> Phi 15mm
-                  13.5.mm,   # Độ sâu 13.5mm
-                  layers[LAYER_CAM_15],
-                  "Cam_15_Depth13.5"
-                )
-                total_cams += 1
+                  dia = dh['dia'].to_f.mm
+                  depth = dh['depth'].to_f.mm
+                  layer_name = (dh['layer'] && !dh['layer'].empty?) ? dh['layer'] : LAYER_CAM_15
+                  target_layer = model.layers[layer_name] || model.layers.add(layer_name)
 
-                # 2. VỊ TRÍ CHỐT GỖ PHI 8MM (Cách tâm cam 32mm theo chuẩn System 32)
-                dowel_y = (y_pos + 32.mm <= contact_y_max - 15.mm) ? (y_pos + 32.mm) : (y_pos - 32.mm)
-                dowel_center_x = joint_x + (cam_direction * 9.5.mm) # Nằm ở mép ván
-                dowel_center = Geom::Point3d.new(dowel_center_x, dowel_y, h_center_z)
+                  cam_cx = joint_x + (cam_direction * offset_L)
+                  cam_center = Geom::Point3d.new(cam_cx, cur_y, h_bb.min.z)
 
-                create_cylinder_hole(
-                  fittings_group.entities,
-                  dowel_center,
-                  Geom::Vector3d.new(cam_direction, 0, 0),
-                  4.0.mm,    # Bán kính 4mm -> Phi 8mm
-                  25.0.mm,   # Độ sâu chốt gỗ 25mm
-                  layers[LAYER_DOWEL_8],
-                  "Dowel_8_Depth25"
-                )
-                total_dowels += 1
+                  create_cylinder_hole(
+                    fittings_group.entities,
+                    cam_center,
+                    Geom::Vector3d.new(0, 0, 1),
+                    dia / 2.0,
+                    depth,
+                    target_layer,
+                    "#{layer_name}_Dia#{dh['dia']}_D#{depth.to_m*1000}"
+                  )
+                  total_holes += 1
+                end
 
-                # 3. VỊ TRÍ LỖ CẮM TY CAM PHI 5MM TRÊN VÁCH HỒI
-                pin_center_x = joint_x
-                pin_center = Geom::Point3d.new(pin_center_x, y_pos, h_center_z)
-                create_cylinder_hole(
-                  fittings_group.entities,
-                  pin_center,
-                  Geom::Vector3d.new(-cam_direction, 0, 0),
-                  2.5.mm,    # Bán kính 2.5mm -> Phi 5mm
-                  12.0.mm,   # Sâu 12mm
-                  layers[LAYER_PIN_5],
-                  "Pin_5_Depth12"
-                )
+                # 2. RẢI CÁC LỖ d (CẠNH ĐẦU VÁN)
+                edge_holes.each do |eh|
+                  d_idx = eh['id'].to_s.sub('d', '').to_i - 1
+                  step_y = 0.mm
+                  (0...d_idx).each { |k| step_y += (n_dists[k] || 32.mm) }
+                  cur_y = (base_y + step_y <= contact_y_max - 10.mm) ? (base_y + step_y) : (base_y - step_y)
+
+                  dia = eh['dia'].to_f.mm
+                  depth = eh['depth'].to_f.mm
+                  layer_name = (eh['layer'] && !eh['layer'].empty?) ? eh['layer'] : LAYER_DOWEL_8
+                  target_layer = model.layers[layer_name] || model.layers.add(layer_name)
+
+                  edge_cx = joint_x + (cam_direction * (dia / 2.0))
+                  edge_center = Geom::Point3d.new(edge_cx, cur_y, h_center_z)
+
+                  create_cylinder_hole(
+                    fittings_group.entities,
+                    edge_center,
+                    Geom::Vector3d.new(cam_direction, 0, 0),
+                    dia / 2.0,
+                    depth,
+                    target_layer,
+                    "#{layer_name}_Dia#{eh['dia']}_D#{depth.to_m*1000}"
+                  )
+                  total_holes += 1
+                end
+
+                # 3. RẢI CÁC LỖ Dside (MẶT VÁCH HỒI ĐỐI DIỆN)
+                side_holes.each do |sh|
+                  d_idx = sh['id'].to_s.sub('Dside', '').to_i - 1
+                  step_y = 0.mm
+                  (0...d_idx).each { |k| step_y += (n_dists[k] || 32.mm) }
+                  cur_y = (base_y + step_y <= contact_y_max - 10.mm) ? (base_y + step_y) : (base_y - step_y)
+
+                  dia = sh['dia'].to_f.mm
+                  depth = sh['depth'].to_f.mm
+                  layer_name = (sh['layer'] && !sh['layer'].empty?) ? sh['layer'] : LAYER_PIN_5
+                  target_layer = model.layers[layer_name] || model.layers.add(layer_name)
+
+                  side_center = Geom::Point3d.new(joint_x, cur_y, h_center_z)
+
+                  create_cylinder_hole(
+                    fittings_group.entities,
+                    side_center,
+                    Geom::Vector3d.new(-cam_direction, 0, 0),
+                    dia / 2.0,
+                    depth,
+                    target_layer,
+                    "#{layer_name}_Dia#{sh['dia']}_D#{depth.to_m*1000}"
+                  )
+                  total_holes += 1
+                end
               end
             end
           end
@@ -224,19 +289,18 @@ module ChillAIInterior
 
       model.commit_operation
 
-      msg = "Chill AI: Đã tự động tạo #{total_cams} cụm Cam Minifix 15mm và #{total_dowels} Chốt gỗ 8mm chuẩn System 32!"
+      msg = "Chill AI: Đã tự động tạo #{total_holes} lỗ liên kết [#{preset_name}] chuẩn xác và gán đúng các Layer CNC!"
       Sketchup.status_text = msg
       puts "[Chill AI FittingEngine] #{msg}"
 
-      # Phản hồi âm thanh & Toast về UI
       if dialog
-        dialog.execute_script("if(window.onFittingsApplied) window.onFittingsApplied(#{ { cams: total_cams, dowels: total_dowels, message: msg }.to_json });")
+        dialog.execute_script("if(window.onFittingsApplied) window.onFittingsApplied(#{ { total: total_holes, preset: preset_name, message: msg }.to_json });")
       end
 
-      { status: 'success', cams: total_cams, dowels: total_dowels, message: msg }
+      { status: 'success', total: total_holes, preset: preset_name, message: msg }
     rescue => e
       model.abort_operation rescue nil
-      err_msg = "Lỗi khi tạo lỗ cam chốt: #{e.message}"
+      err_msg = "Lỗi khi tạo lỗ liên kết: #{e.message}"
       puts "[Chill AI FittingEngine Error] #{err_msg}\n#{e.backtrace.first(3).join("\n")}"
       UI.messagebox(err_msg)
       { status: 'error', message: err_msg }

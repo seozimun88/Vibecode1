@@ -60,10 +60,20 @@ module ChillAIInterior
     cmd_export_dxf.small_icon = File.join(icon_dir, 'icon_dxf_16.png')
     cmd_export_dxf.large_icon = File.join(icon_dir, 'icon_dxf_24.png')
 
+    # Lệnh mở Fitting Studio
+    cmd_fitting_studio = UI::Command.new("⚙️ Bảng Cam Chốt (Fitting Studio)") do
+      WindowManager.show_fitting_studio if defined?(WindowManager)
+    end
+    cmd_fitting_studio.tooltip = "Mở Bảng Cấu Hình Cam Chốt & Liên Kết Ngang Đa Năng"
+    cmd_fitting_studio.status_bar_text = "Thiết lập thông số D, d, n, L, C và gán Layer CNC chuẩn System 32"
+    cmd_fitting_studio.small_icon = File.join(icon_dir, 'icon_16.png')
+    cmd_fitting_studio.large_icon = File.join(icon_dir, 'icon_24.png')
+
     # 1. Menu Plugins / Extensions
     menu = UI.menu("Plugins") || UI.menu("Extensions")
     submenu = menu.add_submenu("Chill AI Interior")
     submenu.add_item(cmd_open)
+    submenu.add_item(cmd_fitting_studio)
     submenu.add_item(cmd_export_dxf)
     submenu.add_separator
     submenu.add_item("🔄 Đặt Lại Vị Trí Cửa Sổ (Snap Viewport 3D)") do
@@ -81,6 +91,7 @@ module ChillAIInterior
     # 2. Toolbar
     toolbar = UI::Toolbar.new("Chill AI Interior")
     toolbar.add_item(cmd_open)
+    toolbar.add_item(cmd_fitting_studio)
     toolbar.add_item(cmd_export_dxf)
     toolbar.show
 

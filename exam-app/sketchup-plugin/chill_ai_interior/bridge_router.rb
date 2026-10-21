@@ -211,6 +211,15 @@ module ChillAIInterior
       dialog.add_action_callback("clear_fittings") do |_ctx, *args|
         handle_clear_fittings(dialog)
       end
+
+      # 14. Bảng Cấu Hình Cam Chốt (Fitting Studio)
+      dialog.add_action_callback("open_fitting_studio") do |_ctx, *args|
+        WindowManager.show_fitting_studio if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_fitting_studio") do |_ctx, *args|
+        WindowManager.close_fitting_studio if defined?(WindowManager)
+      end
     end
 
     # ==========================================================================
@@ -229,6 +238,16 @@ module ChillAIInterior
         handle_apply_hinges(data, dialog)
       when 'clear_fittings'
         handle_clear_fittings(dialog)
+      when 'open_fitting_studio'
+        WindowManager.show_fitting_studio if defined?(WindowManager)
+      when 'close_fitting_studio'
+        WindowManager.close_fitting_studio if defined?(WindowManager)
+      when 'get_fitting_presets'
+        handle_get_fitting_presets(dialog)
+      when 'save_fitting_presets'
+        handle_save_fitting_presets(data, dialog)
+      when 'apply_fitting_preset'
+        handle_apply_cam_locks(data, dialog)
       when 'export_gcode'
         handle_export_gcode(data, dialog)
       when 'export_dxf'
@@ -249,8 +268,59 @@ module ChillAIInterior
       if defined?(FittingEngine)
         res = FittingEngine.apply_cam_locks(params, dialog)
         if res && res[:status] == 'success' && defined?(AudioPlayer)
-          AudioPlayer.play({ 'text' => "Đã tạo thành công #{res[:cams]} cụm cam chốt Minifix rồi anh Huy nhé!" }) rescue nil
+          count = res[:total] || res[:cams] || 0
+          name = res[:preset] || "Cam chốt"
+          AudioPlayer.play({ 'text' => "Đã tạo thành công #{count} lỗ liên kết #{name} rồi anh Huy nhé!" }) rescue nil
         end
+      end
+    end
+
+    def self.handle_get_fitting_presets(dialog)
+      if defined?(FittingEngine)
+        data = FittingEngine.load_presets
+        dialog.execute_script("if(window.onPresetsLoaded) window.onPresetsLoaded(#{data.to_json});")
+      end
+    end
+
+    def self.handle_save_fitting_presets(data, dialog)
+      if defined?(FittingEngine)
+        success = FittingEngine.save_presets(data)
+        if success
+          dialog.execute_script("if(window.showToast) window.showToast('Đã lưu cấu hình Preset thành công!', 'success');")
+        else
+          dialog.execute_script("if(window.showToast) window.showToast('Lỗi khi lưu cấu hình Preset!', 'error');")
+        end
+      end
+    end
+
+    # Cài đặt toàn bộ Callback cho Cửa sổ Bảng Cam Chốt (Fitting Studio)
+    def self.register_fitting_studio_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("get_fitting_presets") do |_ctx, *args|
+        handle_get_fitting_presets(dialog)
+      end
+
+      dialog.add_action_callback("save_fitting_presets") do |_ctx, *args|
+        data = parse_json_arg(args.first)
+        handle_save_fitting_presets(data, dialog)
+      end
+
+      dialog.add_action_callback("apply_fitting_preset") do |_ctx, *args|
+        preset = parse_json_arg(args.first)
+        handle_apply_cam_locks(preset, dialog)
+      end
+
+      dialog.add_action_callback("close_fitting_studio") do |_ctx, *args|
+        WindowManager.close_fitting_studio if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("dispatch") do |_ctx, *args|
+        raw_payload = args.first
+        packet = raw_payload.is_a?(String) ? JSON.parse(raw_payload) : (raw_payload || {})
+        action = packet['action'].to_s
+        data = packet['data'] || {}
+        route_action(action, data, dialog)
       end
     end
 

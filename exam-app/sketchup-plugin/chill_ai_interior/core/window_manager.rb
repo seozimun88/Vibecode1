@@ -222,5 +222,43 @@ module ChillAIInterior
       @dialog.set_position(dock_left, dock_top)
       puts "[Chill AI WindowManager]: Snap dock #{dock_w}x#{dock_h} tại top=#{dock_top}"
     end
+
+    # HIỂN THỊ CỬA SỔ CẤU HÌNH CAM CHỐT (FITTING STUDIO)
+    def self.show_fitting_studio
+      if @fitting_dialog && @fitting_dialog.visible?
+        @fitting_dialog.bring_to_front
+        return @fitting_dialog
+      end
+
+      html_path = File.join(File.dirname(__FILE__), '..', 'ui', 'fitting_studio.html')
+      dialog = UI::HtmlDialog.new({
+        dialog_title: "Chill AI - Bảng Cấu Hình Cam Chốt & Liên Kết Ngang (Fitting Studio)",
+        preferences_key: "ChillAIInterior_FittingStudio_v2",
+        scrollable: true,
+        resizable: true,
+        width: 1020,
+        height: 720,
+        left: 150,
+        top: 80,
+        min_width: 860,
+        min_height: 580
+      })
+
+      BridgeRouter.register_fitting_studio_callbacks(dialog) if defined?(BridgeRouter)
+      dialog.set_file(html_path)
+      dialog.show
+      @fitting_dialog = dialog
+      @fitting_dialog
+    rescue => e
+      UI.messagebox("Lỗi khi mở Fitting Studio: #{e.message}")
+      nil
+    end
+
+    def self.close_fitting_studio
+      if @fitting_dialog
+        @fitting_dialog.close rescue nil
+        @fitting_dialog = nil
+      end
+    end
   end
 end

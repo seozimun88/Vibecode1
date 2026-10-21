@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chill AI Interior - Bảng Cấu Hình Cam Chốt & Liên Kết Ngang</title>
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --bg-card: #181b22;
+      --bg-card-hover: #212631;
+      --bg-input: #12141a;
+      --border-color: #2d3342;
+      --gold-primary: #f5a623;
+      --gold-hover: #ffb84d;
+      --cyan-accent: #00e5ff;
+      --orange-accent: #ff6b4a;
+      --purple-accent: #b388ff;
+      --text-main: #f0f3f8;
+      --text-muted: #8b949e;
+      --text-dim: #57606a;
+      --success: #2ea043;
+      --danger: #f85149;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* HEADER */
+    .studio-header {
+      background: linear-gradient(180deg, #1f242e 0%, #151820 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+    .header-branding {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #f5a623 0%, #d48806 100%);
+      color: #000;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--gold-primary);
+      margin-left: 6px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-gold {
+      background: linear-gradient(180deg, #f5a623 0%, #d48806 100%);
+      color: #000;
+      border-color: #ffd666;
+      box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+    }
+    .btn-gold:hover {
+      background: linear-gradient(180deg, #ffb84d 0%, #e5950a 100%);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: #252b38;
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: #313848;
+      border-color: #4b5568;
+    }
+    .btn-danger {
+      background: rgba(248, 81, 73, 0.15);
+      color: #ff7b72;
+      border-color: rgba(248, 81, 73, 0.4);
+    }
+    .btn-danger:hover {
+      background: rgba(248, 81, 73, 0.3);
+    }
+
+    /* MAIN CONTAINER */
+    .studio-body {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 53px);
+      overflow: hidden;
+    }
+
+    /* SIDEBAR (PRESETS) */
+    .sidebar {
+      width: 270px;
+      background: #14171f;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-search {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .search-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--gold-primary);
+    }
+
+    .preset-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+    }
+    .preset-item {
+      padding: 8px 10px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .preset-item:hover {
+      background: var(--bg-card-hover);
+    }
+    .preset-item.active {
+      background: rgba(245, 166, 35, 0.12);
+      border-color: var(--gold-primary);
+    }
+    .preset-item-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .preset-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .preset-item.active .preset-dot {
+      background: var(--gold-primary);
+      box-shadow: 0 0 6px var(--gold-primary);
+    }
+    .preset-name {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .preset-category-tag {
+      font-size: 10px;
+      background: #202634;
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .sidebar-footer {
+      padding: 8px 12px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 6px;
+      background: #111319;
+    }
+    .sidebar-footer .btn {
+      flex: 1;
+      justify-content: center;
+      font-size: 11px;
+      padding: 6px;
+    }
+
+    /* MAIN CONTENT / WORKSPACE */
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: var(--bg-dark);
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    /* PRESET METADATA BAR */
+    .meta-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .meta-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .meta-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .meta-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .meta-input:focus {
+      border-color: var(--gold-primary);
+    }
+    .meta-input.name-input {
+      width: 240px;
+      font-weight: 600;
+      color: var(--gold-primary);
+    }
+    .meta-input.num-input {
+      width: 75px;
+      text-align: center;
+    }
+
+    /* 3D DIAGRAM CONTAINER */
+    .diagram-panel {
+      background: linear-gradient(180deg, #161922 0%, #101218 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+    .diagram-header-note {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 11px;
+      color: #ffd666;
+      background: rgba(245, 166, 35, 0.12);
+      border: 1px solid rgba(245, 166, 35, 0.3);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .diagram-svg {
+      width: 100%;
+      max-width: 780px;
+      height: 220px;
+    }
+
+    /* PARAMETERS GRID MATRIX */
+    .matrix-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .matrix-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .matrix-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .badge-cyan { background: rgba(0, 229, 255, 0.15); color: var(--cyan-accent); }
+    .badge-orange { background: rgba(255, 107, 74, 0.15); color: var(--orange-accent); }
+    .badge-purple { background: rgba(179, 136, 255, 0.15); color: var(--purple-accent); }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 6px;
+    }
+    .matrix-table th {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: center;
+      padding: 4px;
+      background: #11141c;
+      border-radius: 4px;
+    }
+    .matrix-table td {
+      background: #13161f;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px;
+      vertical-align: top;
+      transition: all 0.2s;
+    }
+    .matrix-table td:hover {
+      border-color: #444d61;
+      background: #171c26;
+    }
+    .matrix-table td.active-cell {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 8px rgba(245, 166, 35, 0.2);
+    }
+    .cell-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .row-label {
+      width: 110px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 8px;
+      background: #1b202c;
+      border-radius: 4px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cell-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cell-input-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cell-input-row label {
+      font-size: 10px;
+      color: var(--text-muted);
+      width: 26px;
+      flex-shrink: 0;
+    }
+    .cell-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 3px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      text-align: center;
+      outline: none;
+    }
+    .cell-input:focus {
+      border-color: var(--gold-primary);
+    }
+    .cell-input.layer-input {
+      font-size: 10px;
+      text-align: left;
+      color: #58a6ff;
+      font-family: monospace;
+    }
+
+    .cell-toggle {
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    /* TOAST NOTIFICATION */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e2430;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 6px;
+      border-left: 4px solid var(--gold-primary);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      font-size: 12px;
+      font-weight: 500;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="studio-header">
+    <div class="header-branding">
+      <span class="brand-badge">CHILL AI</span>
+      <div>
+        <span class="brand-title">FITTING STUDIO</span>
+        <span class="brand-sub">Bảng Cấu Hình Cam Chốt & Liên Kết Ngang</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-gold" id="btn-apply-drill">
+        <span>🔩</span> Khoan Vào Bản Vẽ Đang Chọn
+      </button>
+      <button class="btn btn-secondary" id="btn-save-preset">
+        <span>💾</span> Lưu Cấu Hình
+      </button>
+      <button class="btn btn-secondary" id="btn-close-studio">
+        <span>✕</span> Đóng
+      </button>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="studio-body">
+
+    <!-- SIDEBAR: PRESET LIST -->
+    <aside class="sidebar">
+      <div class="sidebar-search">
+        <input type="text" id="preset-search" class="search-input" placeholder="🔍 Tìm loại phụ kiện..." autocomplete="off">
+      </div>
+      <div class="preset-list" id="preset-list-container">
+        <!-- Presets injected via JS -->
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary" id="btn-new-preset">
+          <span>+</span> Tạo mới
+        </button>
+        <button class="btn btn-danger" id="btn-delete-preset">
+          <span>🗑️</span> Xóa
+        </button>
+      </div>
+    </aside>
+
+    <!-- WORKSPACE -->
+    <main class="workspace">
+
+      <!-- METADATA BAR -->
+      <section class="meta-bar">
+        <div class="meta-group">
+          <label class="meta-label">Tên Mẫu:</label>
+          <input type="text" id="active-name" class="meta-input name-input">
+        </div>
+        <div class="meta-group">
+          <label class="meta-label">Nhóm:</label>
+          <input type="text" id="active-category" class="meta-input" style="width: 100px;">
+        </div>
+        <div class="meta-group">
+          <label class="meta-label">Mép Trước (L):</label>
+          <input type="number" id="active-param-L" class="meta-input num-input" step="1">
+          <span style="font-size: 11px; color: var(--text-dim);">mm</span>
+        </div>
+        <div class="meta-group">
+          <label class="meta-label">Mép Sau (C):</label>
+          <input type="number" id="active-param-C" class="meta-input num-input" step="1">
+          <span style="font-size: 11px; color: var(--text-dim);">mm</span>
+        </div>
+        <div class="meta-group">
+          <label class="meta-label">Đơn Giá:</label>
+          <input type="number" id="active-price" class="meta-input num-input" style="width: 85px;">
+          <span style="font-size: 11px; color: var(--gold-primary);">đ/bộ</span>
+        </div>
+      </section>
+
+      <!-- 3D ISOMETRIC VISUAL DIAGRAM -->
+      <section class="diagram-panel">
+        <div class="diagram-header-note">
+          📐 <b>n<sub>x</sub></b>: Nên là bội số của 32mm (System 32)
+        </div>
+        <svg class="diagram-svg" viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1f2533" />
+              <stop offset="100%" stop-color="#131720" />
+            </linearGradient>
+            <linearGradient id="sideBoardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#2a203a" />
+              <stop offset="100%" stop-color="#171224" />
+            </linearGradient>
+            <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <filter id="glowOrange" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- TẤM ĐỨNG (VÁCH HỒI BÊN CẠNH) -->
+          <polygon points="120,40 180,10 180,160 120,190" fill="url(#sideBoardGrad)" stroke="#684a9e" stroke-width="1.5" />
+          <polygon points="100,45 120,40 120,190 100,195" fill="#201730" stroke="#684a9e" stroke-width="1.5" />
+          <text x="110" y="25" fill="#b388ff" font-size="11" font-weight="700">Vách Hồi (Side)</text>
+
+          <!-- TẤM NGANG (MẶT VÁN KHOAN CAM) -->
+          <polygon points="180,30 520,30 640,110 300,110" fill="url(#boardGrad)" stroke="#3b82f6" stroke-width="1.5" />
+          <!-- CẠNH ĐẦU VÁN TIẾP XÚC -->
+          <polygon points="300,110 640,110 640,135 300,135" fill="#18202e" stroke="#2563eb" stroke-width="1.5" />
+          <polygon points="180,30 300,110 300,135 180,55" fill="#151b27" stroke="#2563eb" stroke-width="1.5" />
+
+          <!-- CÁC LỖ MẶT VÁN D1 -> D6 (CYAN) -->
+          <!-- D1 -->
+          <ellipse id="svg-D1" cx="330" cy="85" rx="14" ry="7" fill="#00e5ff" opacity="0.9" filter="url(#glowCyan)" />
+          <text x="325" y="70" fill="#00e5ff" font-size="11" font-weight="700">D₁</text>
+          <!-- D2 -->
+          <ellipse id="svg-D2" cx="380" cy="75" rx="12" ry="6" fill="#00e5ff" opacity="0.4" />
+          <text x="375" y="60" fill="#00e5ff" font-size="11" font-weight="700">D₂</text>
+          <!-- D3 -->
+          <ellipse id="svg-D3" cx="430" cy="65" rx="12" ry="6" fill="#00e5ff" opacity="0.4" />
+          <text x="425" y="50" fill="#00e5ff" font-size="11" font-weight="700">D₃</text>
+          <!-- D4 -->
+          <ellipse id="svg-D4" cx="480" cy="55" rx="12" ry="6" fill="#00e5ff" opacity="0.4" />
+          <text x="475" y="42" fill="#00e5ff" font-size="11" font-weight="700">D₄</text>
+          <!-- D5 -->
+          <ellipse id="svg-D5" cx="530" cy="47" rx="12" ry="6" fill="#00e5ff" opacity="0.4" />
+          <text x="525" y="35" fill="#00e5ff" font-size="11" font-weight="700">D₅</text>
+          <!-- D6 -->
+          <ellipse id="svg-D6" cx="580" cy="40" rx="12" ry="6" fill="#00e5ff" opacity="0.4" />
+          <text x="575" y="28" fill="#00e5ff" font-size="11" font-weight="700">D₆</text>
+
+          <!-- CÁC LỖ CẠNH ĐẦU VÁN d1 -> d6 (ORANGE) -->
+          <circle id="svg-d1" cx="340" cy="122" r="5" fill="#ff6b4a" filter="url(#glowOrange)" />
+          <text x="335" y="148" fill="#ff6b4a" font-size="10" font-weight="700">d₁</text>
+
+          <circle id="svg-d2" cx="395" cy="122" r="4.5" fill="#ff6b4a" opacity="0.5" />
+          <text x="390" y="148" fill="#ff6b4a" font-size="10" font-weight="700">d₂</text>
+
+          <circle id="svg-d3" cx="450" cy="122" r="4.5" fill="#ff6b4a" opacity="0.5" />
+          <text x="445" y="148" fill="#ff6b4a" font-size="10" font-weight="700">d₃</text>
+
+          <circle id="svg-d4" cx="505" cy="122" r="4.5" fill="#ff6b4a" opacity="0.5" />
+          <text x="500" y="148" fill="#ff6b4a" font-size="10" font-weight="700">d₄</text>
+
+          <circle id="svg-d5" cx="560" cy="122" r="4.5" fill="#ff6b4a" opacity="0.5" />
+          <text x="555" y="148" fill="#ff6b4a" font-size="10" font-weight="700">d₅</text>
+
+          <circle id="svg-d6" cx="615" cy="122" r="4.5" fill="#ff6b4a" opacity="0.5" />
+          <text x="610" y="148" fill="#ff6b4a" font-size="10" font-weight="700">d₆</text>
+
+          <!-- KÍCH THƯỚC L & C -->
+          <!-- L (Mép trước) -->
+          <line x1="300" y1="122" x2="335" y2="122" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,2" />
+          <text x="312" y="117" fill="#f5a623" font-size="10" font-weight="700">L</text>
+
+          <!-- C (Mép sau) -->
+          <line x1="615" y1="122" x2="640" y2="122" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,2" />
+          <text x="625" y="117" fill="#f5a623" font-size="10" font-weight="700">C</text>
+
+          <!-- KÍCH THƯỚC n1 -> n5 -->
+          <line x1="345" y1="130" x2="390" y2="130" stroke="#ffd666" stroke-width="1" />
+          <text x="363" y="128" fill="#ffd666" font-size="9">n₁</text>
+
+          <line x1="400" y1="130" x2="445" y2="130" stroke="#ffd666" stroke-width="1" />
+          <text x="418" y="128" fill="#ffd666" font-size="9">n₂</text>
+
+          <line x1="455" y1="130" x2="500" y2="130" stroke="#ffd666" stroke-width="1" />
+          <text x="473" y="128" fill="#ffd666" font-size="9">n₃</text>
+
+          <line x1="510" y1="130" x2="555" y2="130" stroke="#ffd666" stroke-width="1" />
+          <text x="528" y="128" fill="#ffd666" font-size="9">n₄</text>
+
+          <line x1="565" y1="130" x2="610" y2="130" stroke="#ffd666" stroke-width="1" />
+          <text x="583" y="128" fill="#ffd666" font-size="9">n₅</text>
+
+          <!-- LỖ TRÊN VÁCH HỒI Dside1 -> Dside6 (PURPLE) -->
+          <ellipse id="svg-Dside1" cx="150" cy="110" rx="4" ry="7" fill="#b388ff" opacity="0.9" />
+          <text x="125" y="114" fill="#b388ff" font-size="9" font-weight="700">Dside₁</text>
+
+          <ellipse id="svg-Dside2" cx="155" cy="95" rx="3.5" ry="6" fill="#b388ff" opacity="0.5" />
+          <text x="130" y="99" fill="#b388ff" font-size="9" font-weight="700">Dside₂</text>
+
+          <ellipse id="svg-Dside3" cx="160" cy="80" rx="3.5" ry="6" fill="#b388ff" opacity="0.5" />
+          <text x="135" y="84" fill="#b388ff" font-size="9" font-weight="700">Dside₃</text>
+        </svg>
+      </section>
+
+      <!-- PARAMETERS MATRIX -->
+      <section class="matrix-panel">
+        <div class="matrix-title">
+          <span>THIẾT LẬP THÔNG SỐ CHI TIẾT & GÁN LAYER CNC</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(Bật/tắt các lỗ D, d, Dside để cấu hình liên kết tùy ý)</span>
+        </div>
+
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th style="width: 120px;">VỊ TRÍ / LOẠI</th>
+              <th>Vị Trí 1</th>
+              <th>Vị Trí 2</th>
+              <th>Vị Trí 3</th>
+              <th>Vị Trí 4</th>
+              <th>Vị Trí 5</th>
+              <th>Vị Trí 6</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- HÀNG D (LỖ MẶT VÁN) -->
+            <tr>
+              <td class="row-label">
+                <span class="matrix-badge badge-cyan">D (Mặt)</span>
+                <span>Lỗ Mặt Ván</span>
+              </td>
+              <!-- D1 to D6 generated dynamically -->
+              <td id="cell-D1"></td>
+              <td id="cell-D2"></td>
+              <td id="cell-D3"></td>
+              <td id="cell-D4"></td>
+              <td id="cell-D5"></td>
+              <td id="cell-D6"></td>
+            </tr>
+
+            <!-- HÀNG d (LỖ CẠNH ĐẦU VÁN) -->
+            <tr>
+              <td class="row-label">
+                <span class="matrix-badge badge-orange">d (Cạnh)</span>
+                <span>Lỗ Cạnh Đầu</span>
+              </td>
+              <td id="cell-d1"></td>
+              <td id="cell-d2"></td>
+              <td id="cell-d3"></td>
+              <td id="cell-d4"></td>
+              <td id="cell-d5"></td>
+              <td id="cell-d6"></td>
+            </tr>
+
+            <!-- HÀNG n (KHOẢNG CÁCH) -->
+            <tr>
+              <td class="row-label">
+                <span class="matrix-badge" style="background: rgba(245, 166, 35, 0.15); color: #ffd666;">n (Cách)</span>
+                <span>Khoảng Cách</span>
+              </td>
+              <td id="cell-n1"></td>
+              <td id="cell-n2"></td>
+              <td id="cell-n3"></td>
+              <td id="cell-n4"></td>
+              <td id="cell-n5"></td>
+              <td style="background: #0f1117; text-align: center; color: var(--text-dim); font-size: 11px; vertical-align: middle;">
+                System 32
+              </td>
+            </tr>
+
+            <!-- HÀNG Dside (VÁCH HỒI ĐỐI DIỆN) -->
+            <tr>
+              <td class="row-label">
+                <span class="matrix-badge badge-purple">Dside</span>
+                <span>Vách Hồi</span>
+              </td>
+              <td id="cell-Dside1"></td>
+              <td id="cell-Dside2"></td>
+              <td id="cell-Dside3"></td>
+              <td id="cell-Dside4"></td>
+              <td id="cell-Dside5"></td>
+              <td id="cell-Dside6"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast">Thông báo</div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let appData = {
+      version: "1.0.0",
+      active_preset_id: "cam_dowel_single",
+      presets: []
+    };
+
+    let activePreset = null;
+
+    // DOM ELEMENTS
+    const presetListEl = document.getElementById('preset-list-container');
+    const searchInput = document.getElementById('preset-search');
+    const nameInput = document.getElementById('active-name');
+    const categoryInput = document.getElementById('active-category');
+    const paramLInput = document.getElementById('active-param-L');
+    const paramCInput = document.getElementById('active-param-C');
+    const priceInput = document.getElementById('active-price');
+    const toastEl = document.getElementById('toast');
+
+    function showToast(msg, type = 'success') {
+      toastEl.textContent = msg;
+      toastEl.className = `toast show ${type}`;
+      setTimeout(() => {
+        toastEl.className = 'toast';
+      }, 3500);
+    }
+
+    // DISPATCH TO SKETCHUP
+    function callRuby(action, data = {}) {
+      if (window.sketchup && window.sketchup[action]) {
+        window.sketchup[action](data);
+      } else if (window.sketchup && window.sketchup.dispatch) {
+        window.sketchup.dispatch({ action, data });
+      } else {
+        console.log(`[Mock Ruby] ${action}:`, data);
+        if (action === 'save_fitting_presets') {
+          showToast('Đã lưu cấu hình preset thành công!', 'success');
+        } else if (action === 'apply_fitting_preset') {
+          showToast('Đang đục lỗ liên kết theo mẫu ' + activePreset.name + '...', 'success');
+        }
+      }
+    }
+
+    // INITIAL LOAD
+    window.addEventListener('DOMContentLoaded', () => {
+      // Gọi Ruby lấy presets
+      if (window.sketchup) {
+        callRuby('get_fitting_presets');
+      } else {
+        // Fallback Mock Data để test trực tiếp trên trình duyệt
+        fetch('../knowledge_base/fitting_presets.json')
+          .then(res => res.json())
+          .then(data => initData(data))
+          .catch(() => {
+            console.log('Using embedded fallback presets');
+            initData(getEmbeddedFallback());
+          });
+      }
+
+      setupEvents();
+    });
+
+    // Callback từ Ruby khi load xong
+    window.onPresetsLoaded = function(data) {
+      if (typeof data === 'string') {
+        data = JSON.parse(data);
+      }
+      initData(data);
+    };
+
+    function initData(data) {
+      appData = data;
+      renderPresetList();
+      selectPreset(appData.active_preset_id || (appData.presets[0] && appData.presets[0].id));
+    }
+
+    function renderPresetList(filterText = '') {
+      presetListEl.innerHTML = '';
+      const text = filterText.toLowerCase().trim();
+
+      const filtered = appData.presets.filter(p => 
+        !text || p.name.toLowerCase().includes(text) || (p.category && p.category.toLowerCase().includes(text))
+      );
+
+      filtered.forEach(preset => {
+        const item = document.createElement('div');
+        item.className = `preset-item ${preset.id === appData.active_preset_id ? 'active' : ''}`;
+        item.onclick = () => selectPreset(preset.id);
+
+        item.innerHTML = `
+          <div class="preset-item-info">
+            <span class="preset-dot"></span>
+            <span class="preset-name" title="${preset.name}">${preset.name}</span>
+          </div>
+          <span class="preset-category-tag">${preset.category || 'Liên kết'}</span>
+        `;
+        presetListEl.appendChild(item);
+      });
+    }
+
+    function selectPreset(id) {
+      const found = appData.presets.find(p => p.id === id);
+      if (!found) return;
+
+      activePreset = found;
+      appData.active_preset_id = id;
+
+      // Update active in sidebar
+      document.querySelectorAll('.preset-item').forEach(el => el.classList.remove('active'));
+      const activeEl = [...document.querySelectorAll('.preset-item')].find(el => el.textContent.includes(found.name));
+      if (activeEl) activeEl.classList.add('active');
+
+      // Fill metadata
+      nameInput.value = found.name || '';
+      categoryInput.value = found.category || 'Cam Chốt';
+      paramLInput.value = found.L || 34;
+      paramCInput.value = found.C || 34;
+      priceInput.value = found.price || 0;
+
+      // Render Table Matrix
+      renderMatrix();
+      updateSvgVisual();
+    }
+
+    function renderMatrix() {
+      if (!activePreset) return;
+
+      // 1. RENDER D (MẶT)
+      for (let i = 1; i <= 6; i++) {
+        const cell = document.getElementById(`cell-D${i}`);
+        const hole = activePreset.D && activePreset.D[i-1] ? activePreset.D[i-1] : { id: `D${i}`, dia: 0, depth: 0, layer: '', active: false };
+        cell.className = hole.active ? 'active-cell' : '';
+
+        cell.innerHTML = `
+          <div class="cell-header">
+            <span style="color: var(--cyan-accent);">D${i}</span>
+            <input type="checkbox" class="cell-toggle" ${hole.active ? 'checked' : ''} onchange="toggleHole('D', ${i-1}, this.checked)">
+          </div>
+          <div class="cell-inputs">
+            <div class="cell-input-row">
+              <label>Ø:</label>
+              <input type="number" class="cell-input" value="${hole.dia || 0}" step="0.5" ${!hole.active ? 'disabled' : ''} onchange="updateHole('D', ${i-1}, 'dia', this.value)">
+            </div>
+            <div class="cell-input-row">
+              <label>Sâu:</label>
+              <input type="number" class="cell-input" value="${hole.depth || 0}" step="0.5" ${!hole.active ? 'disabled' : ''} onchange="updateHole('D', ${i-1}, 'depth', this.value)">
+            </div>
+            <div class="cell-input-row">
+              <label>Lyr:</label>
+              <input type="text" class="cell-input layer-input" value="${hole.layer || ''}" placeholder="Tên layer" ${!hole.active ? 'disabled' : ''} onchange="updateHole('D', ${i-1}, 'layer', this.value)">
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. RENDER d (CẠNH ĐẦU)
+      for (let i = 1; i <= 6; i++) {
+        const cell = document.getElementById(`cell-d${i}`);
+        const hole = activePreset.d && activePreset.d[i-1] ? activePreset.d[i-1] : { id: `d${i}`, dia: 0, depth: 0, layer: '', active: false };
+        cell.className = hole.active ? 'active-cell' : '';
+
+        cell.innerHTML = `
+          <div class="cell-header">
+            <span style="color: var(--orange-accent);">d${i}</span>
+            <input type="checkbox" class="cell-toggle" ${hole.active ? 'checked' : ''} onchange="toggleHole('d', ${i-1}, this.checked)">
+          </div>
+          <div class="cell-inputs">
+            <div class="cell-input-row">
+              <label>Ø:</label>
+              <input type="number" class="cell-input" value="${hole.dia || 0}" step="0.5" ${!hole.active ? 'disabled' : ''} onchange="updateHole('d', ${i-1}, 'dia', this.value)">
+            </div>
+            <div class="cell-input-row">
+              <label>Sâu:</label>
+              <input type="number" class="cell-input" value="${hole.depth || 0}" step="0.5" ${!hole.active ? 'disabled' : ''} onchange="updateHole('d', ${i-1}, 'depth', this.value)">
+            </div>
+            <div class="cell-input-row">
+              <label>Lyr:</label>
+              <input type="text" class="cell-input layer-input" value="${hole.layer || ''}" placeholder="Tên layer" ${!hole.active ? 'disabled' : ''} onchange="updateHole('d', ${i-1}, 'layer', this.value)">
+            </div>
+          </div>
+        `;
+      }
+
+      // 3. RENDER n (KHOẢNG CÁCH)
+      for (let i = 1; i <= 5; i++) {
+        const cell = document.getElementById(`cell-n${i}`);
+        const dist = activePreset.n && activePreset.n[i-1] ? activePreset.n[i-1] : { id: `n${i}`, val: 32 };
+
+        cell.innerHTML = `
+          <div class="cell-header">
+            <span style="color: #ffd666;">n${i}</span>
+            <span style="font-size: 10px; color: var(--text-dim);">mm</span>
+          </div>
+          <div class="cell-inputs">
+            <input type="number" class="cell-input" value="${dist.val || 32}" step="32" onchange="updateDist(${i-1}, this.value)">
+          </div>
+        `;
+      }
+
+      // 4. RENDER Dside (VÁCH HỒI)
+      for (let i = 1; i <= 6; i++) {
+        const cell = document.getElementById(`cell-Dside${i}`);
+        const hole = activePreset.Dside && activePreset.Dside[i-1] ? activePreset.Dside[i-1] : { id: `Dside${i}`, dia: 0, depth: 0, layer: '', active: false };
+        cell.className = hole.active ? 'active-cell' : '';
+
+        cell.innerHTML = `
+          <div class="cell-header">
+            <span style="color: var(--purple-accent);">Dside${i}</span>
+            <input type="checkbox" class="cell-toggle" ${hole.active ? 'checked' : ''} onchange="toggleHole('Dside', ${i-1}, this.checked)">
+          </div>
+          <div class="cell-inputs">
+            <div class="cell-input-row">
+              <label>Ø:</label>
+              <input type="number" class="cell-input" value="${hole.dia || 0}" step="0.5" ${!hole.active ? 'disabled' : ''} onchange="updateHole('Dside', ${i-1}, 'dia', this.value)">
+            </div>
+            <div class="cell-input-row">
+              <label>Sâu:</label>
+              <input type="number" class="cell-input" value="${hole.depth || 0}" step="0.5" ${!hole.active ? 'disabled' : ''} onchange="updateHole('Dside', ${i-1}, 'depth', this.value)">
+            </div>
+            <div class="cell-input-row">
+              <label>Lyr:</label>
+              <input type="text" class="cell-input layer-input" value="${hole.layer || ''}" placeholder="Tên layer" ${!hole.active ? 'disabled' : ''} onchange="updateHole('Dside', ${i-1}, 'layer', this.value)">
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function toggleHole(type, idx, active) {
+      if (!activePreset || !activePreset[type]) return;
+      activePreset[type][idx].active = active;
+      renderMatrix();
+      updateSvgVisual();
+    }
+
+    function updateHole(type, idx, field, val) {
+      if (!activePreset || !activePreset[type]) return;
+      if (field === 'dia' || field === 'depth') {
+        activePreset[type][idx][field] = parseFloat(val) || 0;
+      } else {
+        activePreset[type][idx][field] = val;
+      }
+      updateSvgVisual();
+    }
+
+    function updateDist(idx, val) {
+      if (!activePreset || !activePreset.n) return;
+      activePreset.n[idx].val = parseFloat(val) || 32;
+    }
+
+    function updateSvgVisual() {
+      if (!activePreset) return;
+
+      // Update D svg opacity & glow
+      for (let i = 1; i <= 6; i++) {
+        const el = document.getElementById(`svg-D${i}`);
+        const active = activePreset.D && activePreset.D[i-1] && activePreset.D[i-1].active;
+        if (el) {
+          el.setAttribute('opacity', active ? '0.95' : '0.15');
+          if (active) el.setAttribute('filter', 'url(#glowCyan)');
+          else el.removeAttribute('filter');
+        }
+      }
+
+      // Update d svg opacity
+      for (let i = 1; i <= 6; i++) {
+        const el = document.getElementById(`svg-d${i}`);
+        const active = activePreset.d && activePreset.d[i-1] && activePreset.d[i-1].active;
+        if (el) {
+          el.setAttribute('opacity', active ? '1.0' : '0.15');
+          if (active) el.setAttribute('filter', 'url(#glowOrange)');
+          else el.removeAttribute('filter');
+        }
+      }
+
+      // Update Dside svg opacity
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`svg-Dside${i}`);
+        const active = activePreset.Dside && activePreset.Dside[i-1] && activePreset.Dside[i-1].active;
+        if (el) {
+          el.setAttribute('opacity', active ? '0.95' : '0.15');
+        }
+      }
+    }
+
+    function setupEvents() {
+      // Search
+      searchInput.addEventListener('input', (e) => {
+        renderPresetList(e.target.value);
+      });
+
+      // Meta input bindings
+      nameInput.addEventListener('change', (e) => {
+        if (activePreset) {
+          activePreset.name = e.target.value;
+          renderPresetList(searchInput.value);
+        }
+      });
+      categoryInput.addEventListener('change', (e) => {
+        if (activePreset) {
+          activePreset.category = e.target.value;
+          renderPresetList(searchInput.value);
+        }
+      });
+      paramLInput.addEventListener('change', (e) => {
+        if (activePreset) activePreset.L = parseFloat(e.target.value) || 34;
+      });
+      paramCInput.addEventListener('change', (e) => {
+        if (activePreset) activePreset.C = parseFloat(e.target.value) || 34;
+      });
+      priceInput.addEventListener('change', (e) => {
+        if (activePreset) activePreset.price = parseFloat(e.target.value) || 0;
+      });
+
+      // Button: Khoan vào tủ
+      document.getElementById('btn-apply-drill').addEventListener('click', () => {
+        if (!activePreset) {
+          showToast('Vui lòng chọn 1 mẫu liên kết cam chốt!', 'error');
+          return;
+        }
+        callRuby('apply_fitting_preset', activePreset);
+      });
+
+      // Button: Lưu cấu hình
+      document.getElementById('btn-save-preset').addEventListener('click', () => {
+        callRuby('save_fitting_presets', appData);
+      });
+
+      // Button: Tạo mới
+      document.getElementById('btn-new-preset').addEventListener('click', () => {
+        const newId = 'preset_' + Date.now();
+        const clone = JSON.parse(JSON.stringify(activePreset || getEmbeddedFallback().presets[0]));
+        clone.id = newId;
+        clone.name = 'Mẫu mới ' + (appData.presets.length + 1);
+        appData.presets.push(clone);
+        renderPresetList(searchInput.value);
+        selectPreset(newId);
+        showToast('Đã tạo mẫu liên kết mới. Hãy đặt tên và cấu hình!', 'success');
+      });
+
+      // Button: Xóa
+      document.getElementById('btn-delete-preset').addEventListener('click', () => {
+        if (!activePreset) return;
+        if (appData.presets.length <= 1) {
+          showToast('Không thể xóa mẫu cuối cùng!', 'error');
+          return;
+        }
+        const idx = appData.presets.findIndex(p => p.id === activePreset.id);
+        if (idx !== -1) {
+          appData.presets.splice(idx, 1);
+          renderPresetList(searchInput.value);
+          selectPreset(appData.presets[0].id);
+          showToast('Đã xóa mẫu liên kết.', 'success');
+        }
+      });
+
+      // Button: Đóng
+      document.getElementById('btn-close-studio').addEventListener('click', () => {
+        callRuby('close_fitting_studio');
+      });
+    }
+
+    function getEmbeddedFallback() {
+      return {
+        "version": "1.0.0",
+        "active_preset_id": "cam_dowel_single",
+        "presets": [
+          {
+            "id": "cam_dowel_single",
+            "name": "Bộ ốc cam + chốt gỗ d8 (đơn)",
+            "category": "Cam Chốt",
+            "price": 3500,
+            "L": 34.0,
+            "C": 34.0,
+            "D": [
+              { "id": "D1", "dia": 15.0, "depth": 13.5, "layer": "DRILL_CAM_15", "active": true },
+              { "id": "D2", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "D3", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "D4", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "D5", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "D6", "dia": 0, "depth": 0, "layer": "", "active": false }
+            ],
+            "d": [
+              { "id": "d1", "dia": 8.0, "depth": 34.0, "layer": "DRILL_CAM_HOLE_8", "active": true },
+              { "id": "d2", "dia": 8.0, "depth": 25.0, "layer": "DRILL_DOWEL_8", "active": true },
+              { "id": "d3", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "d4", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "d5", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "d6", "dia": 0, "depth": 0, "layer": "", "active": false }
+            ],
+            "n": [{ "id": "n1", "val": 32.0 }, { "id": "n2", "val": 32.0 }, { "id": "n3", "val": 32.0 }, { "id": "n4", "val": 32.0 }, { "id": "n5", "val": 32.0 }],
+            "Dside": [
+              { "id": "Dside1", "dia": 5.0, "depth": 12.0, "layer": "DRILL_PIN_5", "active": true },
+              { "id": "Dside2", "dia": 8.0, "depth": 12.0, "layer": "DRILL_DOWEL_8", "active": true },
+              { "id": "Dside3", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "Dside4", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "Dside5", "dia": 0, "depth": 0, "layer": "", "active": false },
+              { "id": "Dside6", "dia": 0, "depth": 0, "layer": "", "active": false }
+            ]
+          }
+        ]
+      };
+    }
+  </script>
+</body>
+</html>
