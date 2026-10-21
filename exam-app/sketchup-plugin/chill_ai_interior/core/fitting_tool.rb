@@ -9,7 +9,7 @@ require 'sketchup.rb'
 
 module ChillAIInterior
   class FittingTool
-    attr_accessor :selected_preset_index, :active_preset
+    attr_accessor :selected_preset_index, :active_preset, :flip_face
 
     # Khởi động công cụ trên màn hình 3D SketchUp
     def self.activate_tool(preset = nil)
@@ -20,7 +20,8 @@ module ChillAIInterior
 
     def initialize(preset = nil)
       @active_preset = preset || FittingEngine.get_active_preset rescue {}
-      @selected_preset_index = 2 # Mặc định: CAM 2 LỖ
+      @selected_preset_index = 2 # Mặc định: CAM 2 LỖ (Chuẩn)
+      @flip_face = false # Mặc định bắt cam mặt dưới (ẩn cam)
       @hover_panel = nil
       @hover_joints = []
       @all_panels = []
@@ -53,8 +54,9 @@ module ChillAIInterior
     end
 
     def update_status_bar
-      current_name = @presets_quick[@selected_preset_index - 1][:name] rescue "CAM 2 LỖ"
-      msg = "Chill AI [Vị Trí Liên Kết Ngang: #{current_name}] 👉 Kích đúp chuột trái vào 1 tấm ván để kích hoạt liên kết | Phím 1-5 đổi mẫu | ESC để thoát"
+      current_name = @presets_quick[@selected_preset_index - 1][:name] rescue "CAM 2 LỖ (Chuẩn)"
+      face_name = @flip_face ? "MẶT TRÊN" : "MẶT DƯỚI"
+      msg = "Chill AI [Vị Trí Liên Kết Ngang: #{current_name} | Mặt Cam: #{face_name}] 👉 Kích đúp vào tấm ván để tạo liên kết dính trên mặt | Phím 1-5 đổi mẫu | Phím F lật mặt | ESC thoát"
       Sketchup.status_text = msg
     end
 
@@ -109,7 +111,6 @@ module ChillAIInterior
       if best
         found = @all_panels.find { |p| p[:entity] == best }
         return found if found
-        # Nếu trúng face hoặc edge con bên trong group
         @all_panels.find do |p|
           ent = p[:entity]
           if ent.is_a?(Sketchup::Group)
@@ -357,7 +358,7 @@ module ChillAIInterior
       end
     end
 
-    # KÍCH ĐÚP CHUỘT TRÁI (DOUBLE CLICK) -> KÍCH HOẠT LIÊN KẾT NGANG!
+    # KÍCH ĐÚP CHUỘT TRÁI (DOUBLE CLICK) -> KÍCH HOẠT LIÊN KẾT DÍNH TRỰC TIẾP TRÊN 2 TẤM VÁN!
     def onLButtonDoubleClick(_flags, x, y, view)
       panel = get_picked_panel(x, y, view)
 
@@ -376,7 +377,7 @@ module ChillAIInterior
       view.invalidate
     end
 
-    # ĐỔI PRESET NHANH QUA BÀN PHÍM (PHÍM 1, 2, 3, 4, 5)
+    # ĐỔI PRESET NHANH QUA BÀN PHÍM (PHÍM 1-5, PHÍM F LẬT MẶT)
     def onKeyDown(key, _repeat, _flags, view)
       case key
       when 49 # Phím '1'
@@ -399,120 +400,116 @@ module ChillAIInterior
         @selected_preset_index = 5
         update_status_bar
         view.invalidate
+      when 70, 102, 32 # Phím 'F', 'f' hoặc Phím Cách (Space) -> Lật mặt bầu cam (Trên / Dưới)
+        @flip_face = !@flip_face
+        update_status_bar
+        view.invalidate
       when 27 # Phím ESC -> Thoát chế độ tool
         Sketchup.send_action("selectSelectionTool:")
       end
     end
 
-    # THI CÔNG ĐỤC LỖ LIÊN KẾT VÀO SKETCHUP
+    # ==========================================================================
+    # THI CÔNG ĐỤC LỖ LIÊN KẾT DÍNH TRỰC TIẾP TRÊN BỀ MẶT 2 TẤM VÁN (CHUẨN ABF)
+    # ==========================================================================
     def apply_joints_to_panel(panel, joints)
       model = Sketchup.active_model
       preset_info = @presets_quick[@selected_preset_index - 1] || @presets_quick[1]
 
       model.start_operation("Chill AI: Kích Hoạt Liên Kết Ngang (#{preset_info[:name]})", true)
+      FittingEngine.ensure_layers(model)
 
-      layer_cam = model.layers[FittingEngine::LAYER_CAM_15] || model.layers.add(FittingEngine::LAYER_CAM_15)
-      layer_dowel = model.layers[FittingEngine::LAYER_DOWEL_8] || model.layers.add(FittingEngine::LAYER_DOWEL_8)
-      layer_pin = model.layers[FittingEngine::LAYER_PIN_5] || model.layers.add(FittingEngine::LAYER_PIN_5)
-
-      fittings_group = model.active_entities.add_group
-      fittings_group.name = "Chill_AI_Fittings_Interactive_#{Time.now.strftime('%H%M%S')}"
+      # Xây dựng cấu hình preset chi tiết tương ứng với lựa chọn
+      preset = case @selected_preset_index
+               when 1 # CAM 1 LỖ
+                 {
+                   'name' => 'CAM 1 LỖ',
+                   'L' => 34.0, 'C' => 34.0,
+                   'D' => [{ 'id' => 'D1', 'dia' => 15.0, 'depth' => 13.5, 'layer' => FittingEngine::LAYER_CAM_15, 'active' => true }],
+                   'd' => [{ 'id' => 'd1', 'dia' => 8.0, 'depth' => 34.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true }],
+                   'Dside' => [{ 'id' => 'Dside1', 'dia' => 5.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_PIN_5, 'active' => true }],
+                   'n' => [{ 'val' => 32.0 }]
+                 }
+               when 2 # CAM 2 LỖ (Chuẩn)
+                 {
+                   'name' => 'CAM 2 LỖ (Chuẩn)',
+                   'L' => 34.0, 'C' => 34.0,
+                   'D' => [{ 'id' => 'D1', 'dia' => 15.0, 'depth' => 13.5, 'layer' => FittingEngine::LAYER_CAM_15, 'active' => true }],
+                   'd' => [
+                     { 'id' => 'd1', 'dia' => 8.0, 'depth' => 34.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true },
+                     { 'id' => 'd2', 'dia' => 8.0, 'depth' => 25.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true }
+                   ],
+                   'Dside' => [
+                     { 'id' => 'Dside1', 'dia' => 5.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_PIN_5, 'active' => true },
+                     { 'id' => 'Dside2', 'dia' => 8.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true }
+                   ],
+                   'n' => [{ 'val' => 32.0 }]
+                 }
+               when 3 # CAM + CHỐT GỖ D8
+                 {
+                   'name' => 'CAM + CHỐT GỖ D8',
+                   'L' => 34.0, 'C' => 34.0,
+                   'D' => [{ 'id' => 'D1', 'dia' => 15.0, 'depth' => 13.5, 'layer' => FittingEngine::LAYER_CAM_15, 'active' => true }],
+                   'd' => [
+                     { 'id' => 'd1', 'dia' => 8.0, 'depth' => 34.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true },
+                     { 'id' => 'd2', 'dia' => 8.0, 'depth' => 25.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true }
+                   ],
+                   'Dside' => [
+                     { 'id' => 'Dside1', 'dia' => 5.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_PIN_5, 'active' => true },
+                     { 'id' => 'Dside2', 'dia' => 8.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true }
+                   ],
+                   'n' => [{ 'val' => 32.0 }]
+                 }
+               when 4 # CABINEO 8/12
+                 {
+                   'name' => 'CABINEO 8/12',
+                   'L' => 34.0, 'C' => 34.0,
+                   'D' => [
+                     { 'id' => 'D1', 'dia' => 12.0, 'depth' => 10.0, 'layer' => FittingEngine::LAYER_CAM_15, 'active' => true },
+                     { 'id' => 'D2', 'dia' => 12.0, 'depth' => 10.0, 'layer' => FittingEngine::LAYER_CAM_15, 'active' => true }
+                   ],
+                   'd' => [{ 'id' => 'd1', 'dia' => 8.0, 'depth' => 25.0, 'layer' => FittingEngine::LAYER_DOWEL_8, 'active' => true }],
+                   'Dside' => [{ 'id' => 'Dside1', 'dia' => 5.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_PIN_5, 'active' => true }],
+                   'n' => [{ 'val' => 32.0 }]
+                 }
+               when 5 # CHỐT ĐỢT D5
+                 {
+                   'name' => 'CHỐT ĐỢT D5',
+                   'L' => 34.0, 'C' => 34.0,
+                   'D' => [],
+                   'd' => [{ 'id' => 'd1', 'dia' => 5.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_PIN_5, 'active' => true }],
+                   'Dside' => [{ 'id' => 'Dside1', 'dia' => 5.0, 'depth' => 12.0, 'layer' => FittingEngine::LAYER_PIN_5, 'active' => true }],
+                   'n' => [{ 'val' => 32.0 }]
+                 }
+               else
+                 FittingEngine.get_active_preset
+               end
 
       total_fittings = 0
 
+      # Áp dụng đục lỗ dính trực tiếp trên bề mặt cả 2 tấm ván đối diện
       joints.each do |joint|
-        cam_direction = joint[:direction]
-
-        joint[:cam_points].each do |pt|
-          # 1. Bầu cam 15mm trên mặt tấm ngang
-          cam_center = nil
-          if joint[:axis] == :x
-            cam_cx = pt.x + (cam_direction * 34.mm)
-            cam_center = Geom::Point3d.new(cam_cx, pt.y, pt.z - 8.mm)
-          elsif joint[:axis] == :y
-            cam_cy = pt.y + (cam_direction * 34.mm)
-            cam_center = Geom::Point3d.new(pt.x, cam_cy, pt.z - 8.mm)
-          else
-            cam_cz = pt.z + (cam_direction * 34.mm)
-            cam_center = Geom::Point3d.new(pt.x, pt.y, cam_cz)
-          end
-
-          FittingEngine.create_cylinder_hole(
-            fittings_group.entities,
-            cam_center,
-            Geom::Vector3d.new(0, 0, 1),
-            7.5.mm,
-            13.5.mm,
-            layer_cam,
-            "Cam_15_Depth13.5"
-          )
-          total_fittings += 1
-
-          # 2. Chốt gỗ 8mm (nếu là preset 2 lỗ hoặc cam+chốt)
-          if preset_info[:d_count] >= 2
-            dowel_center = nil
-            if joint[:run_axis] == :y
-              dowel_y = pt.y + 32.mm
-              dowel_center = Geom::Point3d.new(pt.x + (cam_direction * 9.5.mm), dowel_y, pt.z)
-            elsif joint[:run_axis] == :x
-              dowel_x = pt.x + 32.mm
-              dowel_center = Geom::Point3d.new(dowel_x, pt.y + (cam_direction * 9.5.mm), pt.z)
-            else
-              dowel_z = pt.z + 32.mm
-              dowel_center = Geom::Point3d.new(pt.x, pt.y + (cam_direction * 9.5.mm), dowel_z)
-            end
-
-            edge_normal = nil
-            if joint[:axis] == :x
-              edge_normal = Geom::Vector3d.new(cam_direction, 0, 0)
-            elsif joint[:axis] == :y
-              edge_normal = Geom::Vector3d.new(0, cam_direction, 0)
-            else
-              edge_normal = Geom::Vector3d.new(0, 0, cam_direction)
-            end
-
-            FittingEngine.create_cylinder_hole(
-              fittings_group.entities,
-              dowel_center,
-              edge_normal,
-              4.0.mm,
-              25.0.mm,
-              layer_dowel,
-              "Dowel_8_Depth25"
-            )
-            total_fittings += 1
-          end
-
-          # 3. Ty cam 5mm trên vách hồi
-          pin_normal = nil
-          if joint[:axis] == :x
-            pin_normal = Geom::Vector3d.new(-cam_direction, 0, 0)
-          elsif joint[:axis] == :y
-            pin_normal = Geom::Vector3d.new(0, -cam_direction, 0)
-          else
-            pin_normal = Geom::Vector3d.new(0, 0, -cam_direction)
-          end
-
-          FittingEngine.create_cylinder_hole(
-            fittings_group.entities,
-            pt,
-            pin_normal,
-            2.5.mm,
-            12.0.mm,
-            layer_pin,
-            "Pin_5_Depth12"
-          )
-          total_fittings += 1
-        end
+        cnt = FittingEngine.apply_joint_pair(
+          joint[:panel_a],
+          joint[:panel_b],
+          joint[:axis],
+          joint[:run_axis],
+          joint[:joint_coord],
+          joint[:cam_points],
+          preset,
+          @flip_face
+        )
+        total_fittings += cnt
       end
 
       model.commit_operation
 
-      msg = "Chill AI: Đã kích hoạt thành công #{total_fittings} lỗ #{preset_info[:name]} cho tấm ván!"
+      face_text = @flip_face ? "Mặt trên" : "Mặt dưới"
+      msg = "Chill AI: Đã tạo thành công #{total_fittings} lỗ [#{preset_info[:name]} - #{face_text}] dính trực tiếp trên bề mặt cả 2 tấm ván theo chuẩn ABF!"
       Sketchup.status_text = msg
       puts "[Chill AI FittingTool] #{msg}"
 
-      AudioPlayer.play({ 'text' => "Đã kích hoạt liên kết #{preset_info[:name]} cho tấm ván rồi anh Huy nhé!" }) rescue nil if defined?(AudioPlayer)
+      AudioPlayer.play({ 'text' => "Đã kích hoạt liên kết #{preset_info[:name]} dính trên mặt ván cho anh Huy rồi nhé!" }) rescue nil if defined?(AudioPlayer)
 
       # Cập nhật lại danh sách joints sau khi đã đục
       @hover_joints = calculate_joints_for_panel(panel)
@@ -553,13 +550,13 @@ module ChillAIInterior
       y = 110
 
       # Tiêu đề
-      view.draw_text(Geom::Point3d.new(x, y, 0), "🔩 CHẾ ĐỘ: LIÊN KẾT NGANG", { color: Sketchup::Color.new(245, 166, 35), size: 14, bold: true })
+      view.draw_text(Geom::Point3d.new(x, y, 0), "🔩 CHẾ ĐỘ: LIÊN KẾT NGANG (CHUẨN ABF)", { color: Sketchup::Color.new(245, 166, 35), size: 14, bold: true })
       y += 24
-      view.draw_text(Geom::Point3d.new(x, y, 0), "👉 Kích đúp chuột trái vào tấm ván để tạo liên kết", { color: Sketchup::Color.new(255, 255, 255), size: 11 })
+      view.draw_text(Geom::Point3d.new(x, y, 0), "👉 Kích đúp chuột trái vào tấm ván để tạo liên kết dính mặt", { color: Sketchup::Color.new(255, 255, 255), size: 11 })
       y += 22
-      view.draw_text(Geom::Point3d.new(x, y, 0), "[ ] Đối xứng ↔ (giữ Shift)", { color: Sketchup::Color.new(180, 185, 195), size: 11 })
-      y += 18
-      view.draw_text(Geom::Point3d.new(x, y, 0), "[x] Đối xứng ↕ (giữ Ctrl)", { color: Sketchup::Color.new(52, 211, 153), size: 11 })
+      
+      flip_text = @flip_face ? "MẶT TRÊN" : "MẶT DƯỚI (Mặc định)"
+      view.draw_text(Geom::Point3d.new(x, y, 0), "🔄 Phím [F] hoặc [Space]: Lật mặt cam -> #{flip_text}", { color: Sketchup::Color.new(52, 211, 153), size: 11, bold: true })
       y += 24
 
       # Danh sách mẫu chọn nhanh 1-5
@@ -573,7 +570,7 @@ module ChillAIInterior
       end
 
       y += 10
-      view.draw_text(Geom::Point3d.new(x, y, 0), "(Bấm phím 1-5 để đổi mẫu | ESC để thoát)", { color: Sketchup::Color.new(120, 130, 145), size: 10 })
+      view.draw_text(Geom::Point3d.new(x, y, 0), "(Phím 1-5: Chọn mẫu | Phím F: Lật mặt | ESC: Thoát)", { color: Sketchup::Color.new(140, 150, 165), size: 10 })
     end
   end
 end
