@@ -196,6 +196,22 @@ class ChillAIApp {
         }
       });
     }
+        const btnActivateTool = document.getElementById('dock-btn-activate-fitting-tool');
+    if (btnActivateTool) {
+      btnActivateTool.addEventListener('click', () => {
+        if (this.isSketchUpAvailable && window.sketchup) {
+          if (window.sketchup.activate_fitting_tool) {
+            window.sketchup.activate_fitting_tool();
+          } else if (window.sketchup.dispatch) {
+            window.sketchup.dispatch({ action: 'activate_fitting_tool', data: {} });
+          }
+          this.showMiniToast("Đã bật chế độ Liên Kết Ngang! Hãy click đúp chuột trái vào 1 tấm ván trong bản vẽ.", "success");
+        } else {
+          this.showMiniToast("Tính năng tương tác 3D chỉ hoạt động bên trong SketchUp", "warning");
+        }
+      });
+    }
+
     const btnOpenStudio = document.getElementById('dock-btn-open-fitting-studio');
     if (btnOpenStudio) {
       btnOpenStudio.addEventListener('click', () => {

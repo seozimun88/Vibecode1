@@ -69,10 +69,20 @@ module ChillAIInterior
     cmd_fitting_studio.small_icon = File.join(icon_dir, 'icon_16.png')
     cmd_fitting_studio.large_icon = File.join(icon_dir, 'icon_24.png')
 
+    # Lệnh kích hoạt công cụ tương tác 3D: Vị Trí Liên Kết Ngang
+    cmd_fitting_tool = UI::Command.new("Vị Trí Liên Kết Ngang (Click 3D)") do
+      FittingTool.activate_tool if defined?(FittingTool)
+    end
+    cmd_fitting_tool.tooltip = "Vị Trí Liên Kết Ngang (Click đúp vào tấm ván để đục lỗ)"
+    cmd_fitting_tool.status_bar_text = "Kích hoạt chế độ liên kết ngang: Kích đúp chuột trái vào tấm ván để tạo liên kết"
+    cmd_fitting_tool.small_icon = File.join(icon_dir, 'icon_16.png')
+    cmd_fitting_tool.large_icon = File.join(icon_dir, 'icon_24.png')
+
     # 1. Menu Plugins / Extensions
     menu = UI.menu("Plugins") || UI.menu("Extensions")
     submenu = menu.add_submenu("Chill AI Interior")
     submenu.add_item(cmd_open)
+    submenu.add_item(cmd_fitting_tool)
     submenu.add_item(cmd_fitting_studio)
     submenu.add_item(cmd_export_dxf)
     submenu.add_separator
@@ -91,6 +101,7 @@ module ChillAIInterior
     # 2. Toolbar
     toolbar = UI::Toolbar.new("Chill AI Interior")
     toolbar.add_item(cmd_open)
+    toolbar.add_item(cmd_fitting_tool)
     toolbar.add_item(cmd_fitting_studio)
     toolbar.add_item(cmd_export_dxf)
     toolbar.show

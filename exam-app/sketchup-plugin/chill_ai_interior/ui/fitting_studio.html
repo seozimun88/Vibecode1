@@ -467,6 +467,9 @@
       </div>
     </div>
     <div class="header-actions">
+      <button class="btn btn-secondary" id="btn-activate-tool" style="border-color: #f59e0b; color: #fbbf24;">
+        <span>👆</span> Bật Chế Độ Click 3D
+      </button>
       <button class="btn btn-gold" id="btn-apply-drill">
         <span>🔩</span> Khoan Vào Bản Vẽ Đang Chọn
       </button>
@@ -1046,6 +1049,11 @@
       });
 
       // Button: Khoan vào tủ
+      document.getElementById('btn-activate-tool').addEventListener('click', () => {
+        callRuby('activate_fitting_tool', activePreset);
+        showToast('Đã kích hoạt chế độ liên kết ngang! Hãy click đúp chuột trái vào tấm ván trên màn hình 3D.', 'success');
+      });
+
       document.getElementById('btn-apply-drill').addEventListener('click', () => {
         if (!activePreset) {
           showToast('Vui lòng chọn 1 mẫu liên kết cam chốt!', 'error');

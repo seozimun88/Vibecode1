@@ -220,6 +220,11 @@ module ChillAIInterior
       dialog.add_action_callback("close_fitting_studio") do |_ctx, *args|
         WindowManager.close_fitting_studio if defined?(WindowManager)
       end
+
+      # 15. Kích hoạt công cụ 3D Liên Kết Ngang (Click đúp)
+      dialog.add_action_callback("activate_fitting_tool") do |_ctx, *args|
+        FittingTool.activate_tool if defined?(FittingTool)
+      end
     end
 
     # ==========================================================================
@@ -248,6 +253,8 @@ module ChillAIInterior
         handle_save_fitting_presets(data, dialog)
       when 'apply_fitting_preset'
         handle_apply_cam_locks(data, dialog)
+      when 'activate_fitting_tool'
+        FittingTool.activate_tool if defined?(FittingTool)
       when 'export_gcode'
         handle_export_gcode(data, dialog)
       when 'export_dxf'
@@ -309,6 +316,11 @@ module ChillAIInterior
       dialog.add_action_callback("apply_fitting_preset") do |_ctx, *args|
         preset = parse_json_arg(args.first)
         handle_apply_cam_locks(preset, dialog)
+      end
+
+      dialog.add_action_callback("activate_fitting_tool") do |_ctx, *args|
+        preset = parse_json_arg(args.first)
+        FittingTool.activate_tool(preset) if defined?(FittingTool)
       end
 
       dialog.add_action_callback("close_fitting_studio") do |_ctx, *args|
