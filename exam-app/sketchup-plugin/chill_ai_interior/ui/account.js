@@ -1,14 +1,16 @@
 /**
  * CHILL AI INTERIOR - ACCOUNT & LICENSING SYSTEM (HỆ THỐNG TÀI KHOẢN & BẢN QUYỀN)
+ * Tích hợp Google Authentication & Cloud Firestore (Google Firebase)
+ * Thiết kế cho: Tổng Công Trình Sư - Anh Huy (The Architect)
  * Chuẩn mô hình ABF / One Click Cabinet / Unitool
- * Thiết kế cho The Architect (Anh Huy) - Mặc định mở khóa 100% (ALL_FREE)
  */
 
 const ChillAuth = (function() {
   // Cấu hình kiểm soát bản quyền toàn hệ thống
   const CONFIG = {
-    ALL_FREE: true, // Giai đoạn thử nghiệm: Miễn phí 100% tất cả tính năng cho anh Huy và người dùng
-    APP_VERSION: 'v2.6.0 Pro',
+    ALL_FREE: true, // Miễn phí trải nghiệm toàn bộ tính năng cao cấp cho KTS & Xưởng
+    APP_VERSION: 'v2.6.2 Pro Cloud',
+    REQUIRE_GOOGLE_LOGIN: true, // Yêu cầu đăng nhập Google để kích hoạt plugin
     LICENSE_SERVER_STATUS: 'ONLINE',
   };
 
@@ -24,20 +26,23 @@ const ChillAuth = (function() {
   }
 
   // Tài khoản mẫu mặc định (Dành cho Anh Huy - Top 1 Lớp Vibe Code)
-  const DEFAULT_USER = {
+  const DEFAULT_HUY_USER = {
     isLoggedIn: true,
+    uid: 'architect_huy_master_uid',
     fullName: 'KTS. Nguyễn Văn Huy',
     phone: '0988.888.888',
     email: 'thearchitect.huy@gmail.com',
     role: 'Tổng Công Trình Sư',
     tier: 'VIP_PRO', // FREE, TRIAL, VIP_PRO
-    tierName: 'Gói Doanh Nhân (VIP PRO)',
+    tierName: 'Gói Doanh Nhân (VIP PRO Trọn Đời)',
     badgeText: 'VIP PRO',
     expireDate: 'Vĩnh viễn (Trọn đời)',
     credits: 999999,
     hardwareId: getOrCreateHardwareId(),
     createdAt: '2026-10-12',
-    avatarChar: '👑'
+    avatarChar: '👑',
+    photoURL: '',
+    loginProvider: 'google.com'
   };
 
   // Khởi tạo trạng thái phiên (Session)
@@ -49,32 +54,32 @@ const ChillAuth = (function() {
       try {
         currentUser = JSON.parse(saved);
       } catch (e) {
-        currentUser = { ...DEFAULT_USER };
+        currentUser = null;
       }
-    } else {
-      // Mặc định đăng nhập sẵn tài khoản VIP cho anh Huy trải nghiệm trơn tru
-      currentUser = { ...DEFAULT_USER };
-      saveSession();
     }
     return currentUser;
   }
 
   function saveSession() {
-    localStorage.setItem('chill_user_session', JSON.stringify(currentUser));
+    if (currentUser) {
+      localStorage.setItem('chill_user_session', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('chill_user_session');
+    }
     updateUI();
   }
 
   // Cổng kiểm soát tính năng (Feature Gate)
   function canAccessFeature(featureKey, featureName = 'Tính năng') {
-    if (CONFIG.ALL_FREE) {
-      // Hiện tại miễn phí 100%
+    if (CONFIG.ALL_FREE && currentUser && currentUser.isLoggedIn) {
       return { allowed: true, reason: 'Chế độ thử nghiệm miễn phí toàn phần' };
     }
 
     if (!currentUser || !currentUser.isLoggedIn) {
+      showGatekeeper();
       return { 
         allowed: false, 
-        reason: 'Vui lòng đăng nhập tài khoản để sử dụng tính năng này.' 
+        reason: 'Vui lòng đăng nhập tài khoản Google để sử dụng tính năng này.' 
       };
     }
 
@@ -93,6 +98,7 @@ const ChillAuth = (function() {
     const badgeEl = document.getElementById('account-tier-badge');
     const nameEl = document.getElementById('account-name-badge');
     const avatarEl = document.getElementById('account-avatar-mini');
+    const dockVipBtn = document.getElementById('dock-btn-open-account');
 
     if (!currentUser || !currentUser.isLoggedIn) {
       if (nameEl) nameEl.textContent = 'Chưa Đăng Nhập';
@@ -100,16 +106,40 @@ const ChillAuth = (function() {
         badgeEl.textContent = 'FREE';
         badgeEl.className = 'account-tier-badge tier-guest';
       }
-      if (avatarEl) avatarEl.textContent = '👤';
+      if (avatarEl) {
+        avatarEl.textContent = '👤';
+        avatarEl.style.backgroundImage = 'none';
+      }
+      if (dockVipBtn) {
+        dockVipBtn.innerHTML = '<span>🔒 Login</span>';
+        dockVipBtn.style.background = '#334155';
+      }
       return;
     }
 
     if (nameEl) nameEl.textContent = currentUser.fullName;
-    if (avatarEl) avatarEl.textContent = currentUser.avatarChar || '👤';
+    
+    // Xử lý ảnh đại diện Google hoặc emoji
+    if (avatarEl) {
+      if (currentUser.photoURL) {
+        avatarEl.textContent = '';
+        avatarEl.style.backgroundImage = `url("${currentUser.photoURL}")`;
+        avatarEl.style.backgroundSize = 'cover';
+        avatarEl.style.backgroundPosition = 'center';
+      } else {
+        avatarEl.style.backgroundImage = 'none';
+        avatarEl.textContent = currentUser.avatarChar || '👤';
+      }
+    }
 
     if (badgeEl) {
-      badgeEl.textContent = currentUser.badgeText || 'VIP';
-      badgeEl.className = `account-tier-badge tier-${currentUser.tier.toLowerCase()}`;
+      badgeEl.textContent = currentUser.badgeText || 'VIP PRO';
+      badgeEl.className = `account-tier-badge tier-${(currentUser.tier || 'vip_pro').toLowerCase()}`;
+    }
+
+    if (dockVipBtn) {
+      dockVipBtn.innerHTML = '<span>👑 VIP</span>';
+      dockVipBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
     }
 
     // Cập nhật thông tin trong Modal Tab Profile
@@ -121,6 +151,7 @@ const ChillAuth = (function() {
     const pTier = document.getElementById('prof-user-tier');
     const pExpire = document.getElementById('prof-user-expire');
     const pCredits = document.getElementById('prof-user-credits');
+    const pAvatar = document.getElementById('prof-user-avatar');
 
     if (pName) pName.textContent = currentUser.fullName;
     if (pRole) pRole.textContent = currentUser.role;
@@ -129,17 +160,186 @@ const ChillAuth = (function() {
     if (pHwid) pHwid.textContent = currentUser.hardwareId;
     if (pTier) pTier.textContent = currentUser.tierName;
     if (pExpire) pExpire.textContent = currentUser.expireDate;
-    if (pCredits) pCredits.textContent = currentUser.credits.toLocaleString() + ' Điểm';
+    if (pCredits) pCredits.textContent = (currentUser.credits || 0).toLocaleString() + ' Điểm';
+
+    if (pAvatar) {
+      if (currentUser.photoURL) {
+        pAvatar.textContent = '';
+        pAvatar.style.backgroundImage = `url("${currentUser.photoURL}")`;
+        pAvatar.style.backgroundSize = 'cover';
+      } else {
+        pAvatar.style.backgroundImage = 'none';
+        pAvatar.textContent = currentUser.avatarChar || '👑';
+      }
+    }
   }
 
-  // Đăng nhập
+  // ===========================================================================
+  // MÀN HÌNH KHÓA BẢO VỆ GATEKEEPER (LOCK SCREEN / LOGIN GATEWAY)
+  // ===========================================================================
+  function showGatekeeper() {
+    const gateEl = document.getElementById('gatekeeper-auth-overlay');
+    if (gateEl) {
+      gateEl.style.display = 'flex';
+      gateEl.style.opacity = '1';
+    }
+  }
+
+  function hideGatekeeper() {
+    const gateEl = document.getElementById('gatekeeper-auth-overlay');
+    if (gateEl) {
+      gateEl.style.opacity = '0';
+      setTimeout(() => {
+        gateEl.style.display = 'none';
+      }, 300);
+    }
+  }
+
+  // ===========================================================================
+  // ĐĂNG NHẬP GOOGLE & ĐỒNG BỘ CLOUD FIREBASE
+  // ===========================================================================
+  async function loginWithGoogle() {
+    setLoadingState(true, 'Đang kết nối cổng xác thực Google...');
+
+    if (window.ChillFirebase && typeof window.ChillFirebase.signInWithGoogle === 'function') {
+      const res = await window.ChillFirebase.signInWithGoogle();
+      setLoadingState(false);
+
+      if (res.success && res.user) {
+        const u = res.user;
+        currentUser = {
+          isLoggedIn: true,
+          uid: u.uid,
+          fullName: u.displayName || 'Kiến Trúc Sư Google',
+          email: u.email || '',
+          phone: u.phoneNumber || 'Tài khoản Google',
+          photoURL: u.photoURL || '',
+          role: 'Kiến Trúc Sư / Xưởng Nội Thất',
+          tier: 'VIP_PRO',
+          tierName: 'Gói Doanh Nhân Cloud (VIP PRO)',
+          badgeText: 'GOOGLE VIP',
+          expireDate: 'Vĩnh viễn (Trọn đời)',
+          credits: 999999,
+          hardwareId: getOrCreateHardwareId(),
+          createdAt: new Date().toISOString().split('T')[0],
+          avatarChar: u.displayName ? u.displayName.charAt(0).toUpperCase() : 'G',
+          loginProvider: 'google.com'
+        };
+
+        saveSession();
+        hideGatekeeper();
+        closeModal();
+
+        // Tự động tải cài đặt từ Firestore
+        await loadRemoteSettings(u.uid);
+
+        if (window.chillApp && window.chillApp.showMiniToast) {
+          window.chillApp.showMiniToast(`🎉 Xin chào ${currentUser.fullName}! Đã đồng bộ Google Firebase.`, 'success', 4000);
+        }
+        return { success: true, user: currentUser };
+      } else {
+        // Thông báo lỗi
+        showAuthMessage(res.message || 'Đăng nhập Google không thành công.', 'error');
+        return { success: false, message: res.message };
+      }
+    } else {
+      setLoadingState(false);
+      showAuthMessage('Module Google Firebase chưa được khởi động!', 'error');
+      return { success: false, message: 'Firebase service not ready' };
+    }
+  }
+
+  // Tải cài đặt người dùng từ Cloud Firestore
+  async function loadRemoteSettings(uid) {
+    if (!window.ChillFirebase || !window.ChillFirebase.getUserSettings) return;
+    try {
+      const remoteConfig = await window.ChillFirebase.getUserSettings('user_config');
+      if (remoteConfig) {
+        console.log('[ChillAuth] Đã nạp thành công cấu hình từ Cloud Firestore:', remoteConfig);
+      }
+    } catch (e) {
+      console.warn('[ChillAuth] Lỗi nạp cài đặt từ Cloud:', e);
+    }
+  }
+
+  // Trạng thái đang tải (Loading spinner)
+  function setLoadingState(isLoading, text = 'Đang xử lý...') {
+    const spinner = document.getElementById('gatekeeper-loading-spinner');
+    const statusText = document.getElementById('gatekeeper-status-text');
+    const googleBtn = document.getElementById('btn-gatekeeper-google-login');
+
+    if (spinner) spinner.style.display = isLoading ? 'inline-block' : 'none';
+    if (statusText) {
+      statusText.textContent = isLoading ? text : '';
+      statusText.style.display = isLoading ? 'block' : 'none';
+    }
+    if (googleBtn) {
+      googleBtn.disabled = isLoading;
+      googleBtn.style.opacity = isLoading ? '0.7' : '1';
+    }
+  }
+
+  function showAuthMessage(msg, type = 'error') {
+    const msgBox = document.getElementById('gatekeeper-msg-box') || document.getElementById('login-msg-box');
+    if (msgBox) {
+      msgBox.style.display = 'block';
+      msgBox.style.color = type === 'success' ? '#34d399' : '#f87171';
+      msgBox.textContent = msg;
+    }
+  }
+
+  // Đăng xuất tài khoản
+  async function logout() {
+    if (window.ChillFirebase && typeof window.ChillFirebase.signOut === 'function') {
+      await window.ChillFirebase.signOut();
+    }
+
+    currentUser = {
+      isLoggedIn: false,
+      fullName: 'Khách Vãng Lai',
+      role: 'Khách',
+      tier: 'FREE',
+      tierName: 'Chưa Đăng Nhập',
+      badgeText: 'GUEST',
+      expireDate: 'Hết hạn',
+      credits: 0,
+      hardwareId: getOrCreateHardwareId(),
+      avatarChar: '👤',
+      photoURL: ''
+    };
+
+    saveSession();
+    updateUI();
+    closeModal();
+    showGatekeeper(); // Khóa plugin lại
+  }
+
+  // Khôi phục tài khoản Admin của Anh Huy (Dành cho Anh Huy vào việc ngay)
+  function switchHuyProfile() {
+    currentUser = { ...DEFAULT_HUY_USER };
+    saveSession();
+    hideGatekeeper();
+    updateUI();
+
+    // Đồng bộ lên Firebase Firestore nếu có mạng
+    if (window.ChillFirebase && window.ChillFirebase.syncUserToFirestore) {
+      window.ChillFirebase.syncUserToFirestore(currentUser).catch(() => {});
+    }
+
+    if (window.chillApp && window.chillApp.showMiniToast) {
+      window.chillApp.showMiniToast('👑 Đã kích hoạt hồ sơ VIP PRO trọn đời cho KTS. Nguyễn Văn Huy!', 'success', 3500);
+    }
+    return { success: true, message: 'Đã kích hoạt hồ sơ Tổng Công Trình Sư Huy!' };
+  }
+
+  // Đăng nhập thường qua SĐT / Mật khẩu
   function login(username, password) {
     if (!username || !password) {
       return { success: false, message: 'Vui lòng nhập đầy đủ Số điện thoại / Email và Mật khẩu!' };
     }
-    // Giả lập xác thực (hoặc kết nối Supabase sau này)
     currentUser = {
       isLoggedIn: true,
+      uid: 'local_' + Math.random().toString(36).substring(2, 9),
       fullName: username.includes('@') ? username.split('@')[0] : `Thành viên (${username})`,
       phone: username.includes('@') ? '0912.345.678' : username,
       email: username.includes('@') ? username : `${username}@chilldecor.vn`,
@@ -151,34 +351,12 @@ const ChillAuth = (function() {
       credits: 99999,
       hardwareId: getOrCreateHardwareId(),
       createdAt: new Date().toISOString().split('T')[0],
-      avatarChar: '👤'
+      avatarChar: '👤',
+      loginProvider: 'password'
     };
     saveSession();
+    hideGatekeeper();
     return { success: true, message: `Chào mừng ${currentUser.fullName} đăng nhập thành công!` };
-  }
-
-  // Đăng ký
-  function register(data) {
-    if (!data.fullName || !data.phone || !data.password) {
-      return { success: false, message: 'Vui lòng điền đủ Họ tên, Số điện thoại và Mật khẩu!' };
-    }
-    currentUser = {
-      isLoggedIn: true,
-      fullName: data.fullName,
-      phone: data.phone,
-      email: data.email || `${data.phone}@user.chillai`,
-      role: data.role || 'Kiến Trúc Sư',
-      tier: 'VIP_PRO', // Tặng ngay VIP PRO giai đoạn này
-      tierName: 'Gói Tân Thủ VIP (Được tặng 100%)',
-      badgeText: 'VIP PRO',
-      expireDate: 'Vĩnh viễn (Beta Miễn Phí)',
-      credits: 50000,
-      hardwareId: getOrCreateHardwareId(),
-      createdAt: new Date().toISOString().split('T')[0],
-      avatarChar: '🌟'
-    };
-    saveSession();
-    return { success: true, message: 'Tạo tài khoản thành công! Bạn đã được kích hoạt VIP PRO miễn phí.' };
   }
 
   // Kích hoạt License Key (như ABF)
@@ -186,67 +364,54 @@ const ChillAuth = (function() {
     if (!code || code.trim().length < 4) {
       return { success: false, message: 'Mã kích hoạt không hợp lệ! Vui lòng kiểm tra lại.' };
     }
+    if (!currentUser) currentUser = { ...DEFAULT_HUY_USER };
     currentUser.tier = 'VIP_PRO';
     currentUser.tierName = 'Gói Doanh Nhân Bản Quyền Vĩnh Viễn';
     currentUser.badgeText = 'VIP PRO';
     currentUser.expireDate = 'Trọn đời (Không thời hạn)';
     currentUser.credits = 999999;
     saveSession();
+
+    // Lưu vào Firebase Firestore
+    if (window.ChillFirebase && window.ChillFirebase.saveUserSettings) {
+      window.ChillFirebase.saveUserSettings('license_status', { key: code, activatedAt: new Date().toISOString() });
+    }
+
     return { success: true, message: `Kích hoạt thành công mã "${code.toUpperCase()}"! Tất cả tính năng cao cấp đã mở khóa trọn đời.` };
-  }
-
-  // Đăng xuất
-  function logout() {
-    currentUser = {
-      isLoggedIn: false,
-      fullName: 'Khách Vãng Lai',
-      role: 'Khách',
-      tier: 'FREE',
-      tierName: 'Chưa Đăng Nhập',
-      badgeText: 'GUEST',
-      expireDate: 'Hết hạn',
-      credits: 0,
-      hardwareId: getOrCreateHardwareId(),
-      avatarChar: '👤'
-    };
-    saveSession();
-  }
-
-  // Khôi phục tài khoản Admin của Anh Huy
-  function switchHuyProfile() {
-    currentUser = { ...DEFAULT_USER };
-    saveSession();
-    return { success: true, message: 'Đã chuyển về hồ sơ Tổng Công Trình Sư Huy (Full Quyền VIP)!' };
   }
 
   // Gắn sự kiện giao diện (DOM Event Listeners)
   function bindEvents() {
     const modalEl = document.getElementById('modal-account');
     const openBtn = document.getElementById('btn-open-account-modal');
+    const dockOpenBtn = document.getElementById('dock-btn-open-account');
     const closeBtn = document.getElementById('btn-close-account-modal');
 
-    // Mở / Đóng modal
-    if (openBtn && modalEl) {
-      openBtn.addEventListener('click', () => {
+    // Mở Modal Account
+    const handleOpenModal = () => {
+      if (modalEl) {
         modalEl.style.display = 'flex';
         updateUI();
-      });
-    }
+      }
+    };
 
+    if (openBtn) openBtn.addEventListener('click', handleOpenModal);
+    if (dockOpenBtn) dockOpenBtn.addEventListener('click', handleOpenModal);
+
+    // Đóng Modal
     if (closeBtn && modalEl) {
       closeBtn.addEventListener('click', () => {
         modalEl.style.display = 'none';
       });
     }
 
-    // Đóng khi click ngoài vùng modal
     if (modalEl) {
       modalEl.addEventListener('click', (e) => {
         if (e.target === modalEl) modalEl.style.display = 'none';
       });
     }
 
-    // Chuyển Tab
+    // Chuyển Tab trong Modal Account
     const tabBtns = document.querySelectorAll('.account-tab-btn');
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -262,7 +427,49 @@ const ChillAuth = (function() {
       });
     });
 
-    // Xử lý Đăng Nhập
+    // 1. Nút Đăng nhập Google trên MÀN HÌNH KHÓA GATEKEEPER
+    const gateGoogleBtn = document.getElementById('btn-gatekeeper-google-login');
+    if (gateGoogleBtn) {
+      gateGoogleBtn.addEventListener('click', () => {
+        loginWithGoogle();
+      });
+    }
+
+    // 2. Nút Đăng nhập Google trong MODAL ACCOUNT (Tab Đăng Nhập)
+    const modalGoogleBtn = document.getElementById('btn-modal-google-login');
+    if (modalGoogleBtn) {
+      modalGoogleBtn.addEventListener('click', () => {
+        loginWithGoogle();
+      });
+    }
+
+    // 3. Nút Đăng nhập nhanh KTS Huy trên Gatekeeper
+    const gateQuickHuyBtn = document.getElementById('btn-gatekeeper-quick-huy');
+    if (gateQuickHuyBtn) {
+      gateQuickHuyBtn.addEventListener('click', () => {
+        switchHuyProfile();
+      });
+    }
+
+    // 4. Nút Đăng nhập 1-chạm KTS Huy trong Modal
+    const quickHuyBtn = document.getElementById('btn-quick-login-huy');
+    if (quickHuyBtn) {
+      quickHuyBtn.addEventListener('click', () => {
+        switchHuyProfile();
+        switchTab('tab-acc-profile');
+      });
+    }
+
+    // 5. Nút chuyển nick Anh Huy ở Tab Gói cước
+    const switchHuyAdmin = document.getElementById('btn-switch-huy-admin');
+    if (switchHuyAdmin) {
+      switchHuyAdmin.addEventListener('click', () => {
+        switchHuyProfile();
+        switchTab('tab-acc-profile');
+      });
+    }
+
+    // 6. Xử lý Đăng Nhập Form thường
     const loginBtn = document.getElementById('btn-do-login');
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
@@ -285,53 +492,7 @@ const ChillAuth = (function() {
       });
     }
 
-    // Đăng nhập nhanh 1-chạm vào nick Anh Huy
-    const quickHuyBtn = document.getElementById('btn-quick-login-huy');
-    if (quickHuyBtn) {
-      quickHuyBtn.addEventListener('click', () => {
-        switchHuyProfile();
-        switchTab('tab-acc-profile');
-      });
-    }
-
-    // Nút chuyển nick Anh Huy ở Tab Gói cước
-    const switchHuyAdmin = document.getElementById('btn-switch-huy-admin');
-    if (switchHuyAdmin) {
-      switchHuyAdmin.addEventListener('click', () => {
-        switchHuyProfile();
-        if (window.chillApp && window.chillApp.showMiniToast) {
-          window.chillApp.showMiniToast('Đã kích hoạt hồ sơ VIP PRO trọn đời cho KTS. Nguyễn Văn Huy!', 'success', 3500);
-        }
-        switchTab('tab-acc-profile');
-      });
-    }
-
-    // Xử lý Đăng Ký
-    const regBtn = document.getElementById('btn-do-register');
-    if (regBtn) {
-      regBtn.addEventListener('click', () => {
-        const name = document.getElementById('reg-fullname').value.trim();
-        const phone = document.getElementById('reg-phone').value.trim();
-        const role = document.getElementById('reg-role').value;
-        const pass = document.getElementById('reg-password').value.trim();
-        const msgBox = document.getElementById('reg-msg-box');
-
-        const res = register({ fullName: name, phone, role, password: pass });
-        if (msgBox) {
-          msgBox.style.display = 'block';
-          msgBox.style.color = res.success ? '#34d399' : '#f87171';
-          msgBox.textContent = res.message;
-        }
-
-        if (res.success) {
-          setTimeout(() => {
-            switchTab('tab-acc-profile');
-          }, 1000);
-        }
-      });
-    }
-
-    // Xử lý Nạp License Key
+    // 7. Xử lý Nạp License Key
     const actBtn = document.getElementById('btn-activate-license');
     if (actBtn) {
       actBtn.addEventListener('click', () => {
@@ -350,12 +511,11 @@ const ChillAuth = (function() {
       });
     }
 
-    // Xử lý Đăng Xuất
+    // 8. Xử lý Đăng Xuất
     const logoutBtn = document.getElementById('btn-acc-logout');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         logout();
-        switchTab('tab-acc-login');
       });
     }
   }
@@ -390,7 +550,55 @@ const ChillAuth = (function() {
   return {
     CONFIG,
     init: function() {
+      // 1. Tải phiên lưu sẵn từ localStorage
       loadSession();
+
+      // 2. Khởi tạo Google Firebase
+      if (window.ChillFirebase && typeof window.ChillFirebase.init === 'function') {
+        window.ChillFirebase.init();
+
+        // Lắng nghe trạng thái đăng nhập Google Auth từ Firebase
+        window.ChillFirebase.onAuthStateChanged((fbUser) => {
+          if (fbUser) {
+            currentUser = {
+              isLoggedIn: true,
+              uid: fbUser.uid,
+              fullName: fbUser.displayName || 'Kiến Trúc Sư Google',
+              email: fbUser.email || '',
+              phone: fbUser.phoneNumber || 'Tài khoản Google',
+              photoURL: fbUser.photoURL || '',
+              role: 'Kiến Trúc Sư / Xưởng Nội Thất',
+              tier: 'VIP_PRO',
+              tierName: 'Gói Doanh Nhân Cloud (VIP PRO)',
+              badgeText: 'GOOGLE VIP',
+              expireDate: 'Vĩnh viễn (Trọn đời)',
+              credits: 999999,
+              hardwareId: getOrCreateHardwareId(),
+              createdAt: new Date().toISOString().split('T')[0],
+              avatarChar: fbUser.displayName ? fbUser.displayName.charAt(0).toUpperCase() : 'G',
+              loginProvider: 'google.com'
+            };
+            saveSession();
+            hideGatekeeper(); // Tự động mở khóa plugin
+          } else {
+            // Nếu chưa có user Google và chưa có session hợp lệ -> Bật Gatekeeper khóa plugin
+            if (!currentUser || !currentUser.isLoggedIn) {
+              showGatekeeper();
+            } else {
+              hideGatekeeper();
+            }
+          }
+          updateUI();
+        });
+      } else {
+        // Fallback: nếu không có Firebase SDK
+        if (!currentUser || !currentUser.isLoggedIn) {
+          showGatekeeper();
+        } else {
+          hideGatekeeper();
+        }
+      }
+
       updateUI();
       bindEvents();
     },
@@ -399,15 +607,17 @@ const ChillAuth = (function() {
     openModal,
     closeModal,
     login,
-    register,
+    loginWithGoogle,
     activateLicenseKey,
     logout,
     switchHuyProfile,
+    showGatekeeper,
+    hideGatekeeper,
     getHwid: getOrCreateHardwareId
   };
 })();
 
-// Gán toàn cục window.ChillAuth để Co-Pilot và các module khác dễ dàng kích hoạt
+// Gán toàn cục window.ChillAuth
 window.ChillAuth = ChillAuth;
 
 // Khởi chạy khi tài liệu nạp xong

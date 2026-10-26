@@ -1849,6 +1849,19 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
   recalculateCAM() {
     const camRequest = this.getCamRequest();
+
+    // Tự động lưu lịch sử phiên Nesting & CAM lên Google Firebase Firestore
+    if (window.ChillFirebase && window.ChillFirebase.saveProjectHistory) {
+      window.ChillFirebase.saveProjectHistory({
+        action: 'nesting_cam_calculation',
+        title: 'Tính toán Nesting & G-Code',
+        sheetWidth: camRequest.sheetWidth,
+        sheetHeight: camRequest.sheetHeight,
+        toolDiameter: camRequest.toolDiameter,
+        partCount: (camRequest.parts || []).length
+      });
+    }
+
     // If SketchUp extension is connected, request Ruby CAM
     if (this.isSketchUpAvailable && window.sketchup.export_gcode) {
       window.sketchup.export_gcode(JSON.stringify(camRequest));
@@ -2445,6 +2458,14 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       }));
     } else {
       this.showMiniToast('Đã lưu cấu hình mẫu tiết diện thành công!', 'success');
+    }
+
+    // Tự động đồng bộ lên Google Firebase Cloud Firestore
+    if (window.ChillFirebase && window.ChillFirebase.saveUserSettings) {
+      window.ChillFirebase.saveUserSettings('intersect_presets', {
+        presets: this.intersectPresets,
+        active_id: this.activeIntersectPresetId
+      });
     }
   }
 

@@ -5795,3 +5795,152 @@ body.dock-mode .modal-cnc-box {
   padding: 12px 10px !important;
   margin: 0 auto !important;
 }
+
+/* ==============================================================
+   GATEKEEPER AUTH OVERLAY (GOOGLE FIREBASE AUTH & SECURITY)
+   ============================================================== */
+.gatekeeper-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999999;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.99));
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  transition: opacity 0.3s ease;
+}
+
+.gatekeeper-card {
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(145deg, #0f172a, #1e293b);
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-radius: 14px;
+  padding: 28px 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.gatekeeper-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.gatekeeper-logo {
+  font-size: 46px;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.6));
+  animation: gatekeeperPulse 3s infinite ease-in-out;
+}
+
+@keyframes gatekeeperPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.6)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.9)); }
+}
+
+.gatekeeper-title {
+  font-family: var(--title-font, 'Cinzel', serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 6px 0;
+  letter-spacing: 1px;
+}
+
+.gatekeeper-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+/* NÚT GOOGLE SIGN-IN CHUẨN THƯƠNG HIỆU GOOGLE */
+.btn-google-signin {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #ffffff;
+  color: #1f2937;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btn-google-signin:hover {
+  background: #f8fafc;
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-google-signin:active {
+  transform: translateY(1px);
+}
+
+.google-icon-svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* NÚT ĐĂNG NHẬP NHANH KTS HUY */
+.btn-gatekeeper-quick {
+  width: 100%;
+  margin-top: 10px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-gatekeeper-quick:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+}
+
+.gatekeeper-cloud-note {
+  margin-top: 14px;
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+

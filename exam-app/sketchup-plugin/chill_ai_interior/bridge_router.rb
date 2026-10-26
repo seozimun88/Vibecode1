@@ -36,6 +36,12 @@ module ChillAIInterior
       # Giữ nguyên 100% các callback cũ để app.js không bao giờ bị đứt gãy
       # ========================================================================
 
+      # Mở URL ngoài trình duyệt hệ thống (Google Auth / Portal)
+      dialog.add_action_callback("open_external_url") do |_ctx, *args|
+        url = args.first.to_s
+        UI.openURL(url) if url.start_with?('http://', 'https://')
+      end
+
       # 1. Dựng hình 3D
       dialog.add_action_callback("create_3d_model") do |_ctx, *args|
         params = parse_json_arg(args.first)
@@ -397,6 +403,9 @@ module ChillAIInterior
 
     def self.route_action(action, data, dialog)
       case action
+      when 'open_external_url'
+        url = data['url'].to_s
+        UI.openURL(url) if url.start_with?('http://', 'https://')
       when 'create_3d_model'
         handle_create_3d_model(data, dialog)
       when 'build_wardrobe'
