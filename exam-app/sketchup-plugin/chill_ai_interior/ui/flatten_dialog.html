@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chill AI - Bảng Điều Chỉnh Thông Số Trải Phẳng Ván Uốn Cong</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 11px;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HEADER */
+    .app-header {
+      height: 38px;
+      background: #090d16;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+    }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .brand-icon {
+      font-size: 15px;
+    }
+
+    /* TOP TOGGLES (CHỌN FACE, POCKET, ZIGZAG, LINE) */
+    .top-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: #111827;
+      border-bottom: 1px solid #1e293b;
+    }
+    .toggle-group {
+      display: flex;
+      gap: 4px;
+      background: #1e293b;
+      padding: 2px;
+      border-radius: 6px;
+    }
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .toggle-btn.active {
+      background: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .side-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      color: #cbd5e1;
+    }
+    .side-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .side-btn.active {
+      background: #06b6d4;
+      border-color: #22d3ee;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    /* DIAGRAM AREA (SVG SƠ ĐỒ CHUẨN ẢNH 2) */
+    .diagram-container {
+      padding: 10px 14px;
+      background: #1e293b;
+      margin: 10px 14px 4px 14px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    svg {
+      width: 100%;
+      max-height: 140px;
+    }
+
+    /* FORM GRID (9 THÔNG SỐ CHUẨN ẢNH 2) */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 8px 14px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .field-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field-card label {
+      font-size: 9.5px;
+      color: #94a3b8;
+      font-weight: 600;
+      white-space: nowrap;
+      display: flex;
+      justify-content: space-between;
+    }
+    .field-card label span.tag {
+      color: #38bdf8;
+      font-weight: bold;
+    }
+    .field-card input {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 4px 6px;
+      border-radius: 4px;
+      outline: none;
+      width: 100%;
+    }
+    .field-card input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+    }
+
+    /* FOOTER BUTTONS */
+    .footer-bar {
+      padding: 10px 14px;
+      background: #090d16;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      gap: 8px;
+    }
+    .btn-main-ok {
+      flex: 1;
+      background: #000000;
+      border: 1.5px solid #38bdf8;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-main-ok:hover {
+      background: #0284c7;
+      border-color: #38bdf8;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-secondary:hover {
+      background: #334155;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="brand-title">
+      <span class="brand-icon">🌀</span>
+      <span>Chill AI - Bảng Điều Chỉnh Ván Uốn Cong (Chuẩn UniTool)</span>
+    </div>
+    <div style="font-size: 9.5px; color: #64748b;">The Architect & AI Lan</div>
+  </div>
+
+  <!-- TOP CONTROLS: CHỌN MẶT & CHẾ ĐỘ PHAY -->
+  <div class="top-controls-bar">
+    <div class="side-selector">
+      <span>Mặt Uốn:</span>
+      <button type="button" class="side-btn active" id="btn-side-inside" title="Xẻ rãnh mặt trong để giấu rãnh vào lòng tủ">Mặt Trong (Lõm)</button>
+      <button type="button" class="side-btn" id="btn-side-outside" title="Xẻ rãnh mặt ngoài để làm nan sóng trang trí">Mặt Ngoài (Lồi)</button>
+    </div>
+
+    <div class="toggle-group">
+      <button type="button" class="toggle-btn" data-mode="Pocket">Pocket</button>
+      <button type="button" class="toggle-btn" data-mode="Zig Zag">Zig Zag</button>
+      <button type="button" class="toggle-btn active" data-mode="Line">Line</button>
+    </div>
+  </div>
+
+  <!-- DIAGRAM AREA: SƠ ĐỒ VECTOR CHUẨN ẢNH 2 -->
+  <div class="diagram-container">
+    <svg viewBox="0 0 460 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Khung tấm ván phẳng (màu xanh cyan) -->
+      <rect x="70" y="25" width="310" height="90" rx="4" stroke="#06b6d4" stroke-width="2.5" fill="#0f172a" fill-opacity="0.8"/>
+      
+      <!-- Các rãnh xẻ uốn cong (màu đỏ) -->
+      <line x1="160" y1="15" x2="160" y2="125" stroke="#ef4444" stroke-width="2.5"/>
+      <line x1="190" y1="15" x2="190" y2="125" stroke="#ef4444" stroke-width="2.5"/>
+      <line x1="220" y1="15" x2="220" y2="125" stroke="#ef4444" stroke-width="2.5"/>
+      <line x1="250" y1="15" x2="250" y2="125" stroke="#ef4444" stroke-width="2.5"/>
+      <line x1="280" y1="15" x2="280" y2="125" stroke="#ef4444" stroke-width="2.5"/>
+
+      <!-- Offset rãnh bảo vệ L (đường ngang viền) -->
+      <line x1="140" y1="20" x2="300" y2="20" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <line x1="140" y1="120" x2="300" y2="120" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <!-- Ký hiệu [P] (Bề Dày Phôi) -->
+      <circle cx="45" cy="20" r="11" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="45" y="24" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">P</text>
+      <path d="M56 20 C100 20, 110 25, 140 25" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="2 2"/>
+
+      <!-- Ký hiệu [D] (Đường Kính Dao) -->
+      <circle cx="45" cy="115" r="11" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="45" y="119" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="middle">D</text>
+      <path d="M56 115 C110 115, 140 70, 160 70" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="2 2"/>
+      <circle cx="160" cy="70" r="4" fill="#0284c7"/>
+
+      <!-- Ký hiệu [L] (Offset Bảo Vệ) -->
+      <circle cx="410" cy="25" r="11" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="410" y="29" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">L</text>
+      <path d="M399 25 C350 25, 320 20, 300 20" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="2 2"/>
+
+      <!-- Ký hiệu [S] (Kéo Giãn Rãnh) -->
+      <circle cx="410" cy="115" r="11" fill="#1e293b" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="410" y="119" fill="#ef4444" font-size="10" font-weight="bold" text-anchor="middle">S</text>
+      <path d="M399 115 C350 115, 300 110, 280 110" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="2 2"/>
+
+      <!-- Mũi tên kéo giãn 2 chiều -->
+      <path d="M90 70 L115 70 M95 65 L90 70 L95 75" stroke="#f43f5e" stroke-width="2"/>
+      <path d="M340 70 L365 70 M360 65 L365 70 L360 75" stroke="#f43f5e" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <!-- INPUT FIELDS GRID (9 THÔNG SỐ CHUẨN ẢNH 2) -->
+  <div class="form-grid">
+    <!-- Hàng 1 -->
+    <div class="field-card">
+      <label>Đường Kính Dao <span class="tag">[D]</span></label>
+      <input type="number" id="inp-tool-dia" value="3" step="0.5" min="1">
+    </div>
+    <div class="field-card">
+      <label>Offset Rãnh Bảo Vệ <span class="tag">[L]</span></label>
+      <input type="number" id="inp-protect-offset" value="0" step="1" min="0">
+    </div>
+    <div class="field-card">
+      <label>Bề Dày Phôi <span class="tag">[P]</span></label>
+      <input type="number" id="inp-rem-thickness" value="3" step="0.5" min="1">
+    </div>
+
+    <!-- Hàng 2 -->
+    <div class="field-card">
+      <label>Kéo Giãn Rãnh <span class="tag">[S]</span></label>
+      <input type="number" id="inp-groove-pitch" value="15" step="1" min="3">
+    </div>
+    <div class="field-card">
+      <label>Bề Rộng Dưỡng (mm)</label>
+      <input type="number" id="inp-jig-width" value="50" step="5" min="20">
+    </div>
+    <div class="field-card">
+      <label>Độ Dày Dưỡng (mm)</label>
+      <input type="number" id="inp-jig-thick" value="17.5" step="0.5" min="5">
+    </div>
+
+    <!-- Hàng 3 -->
+    <div class="field-card">
+      <label>Layer Sẻ Rãnh</label>
+      <input type="text" id="inp-layer-saw" value="ABF_SE_RANH">
+    </div>
+    <div class="field-card">
+      <label>Layer Phay Rãnh</label>
+      <input type="text" id="inp-layer-groove" value="UNI_PHAY_RANH">
+    </div>
+    <div class="field-card">
+      <label>Layer Bảo Vệ Rãnh</label>
+      <input type="text" id="inp-layer-protect" value="ABF_BAO_VE_RANH">
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <button type="button" class="btn-secondary" id="btn-reset-default">Mặc Định</button>
+    <button type="button" class="btn-main-ok" id="btn-ok">
+      <span>Ok</span>
+      <span style="font-size:11px; font-weight:normal; opacity:0.85;">(Lưu & Kích Hoạt Tool 3D)</span>
+    </button>
+  </div>
+
+  <script>
+    let currentMode = 'Line';
+    let currentSide = 'inside';
+
+    // Toggle Modes (Pocket, Zig Zag, Line)
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.getAttribute('data-mode');
+      });
+    });
+
+    // Toggle Side (Mặt Trong / Mặt Ngoài)
+    const btnSideInside = document.getElementById('btn-side-inside');
+    const btnSideOutside = document.getElementById('btn-side-outside');
+
+    btnSideInside.addEventListener('click', () => {
+      btnSideInside.classList.add('active');
+      btnSideOutside.classList.remove('active');
+      currentSide = 'inside';
+    });
+    btnSideOutside.addEventListener('click', () => {
+      btnSideOutside.classList.add('active');
+      btnSideInside.classList.remove('active');
+      currentSide = 'outside';
+    });
+
+    function collectFormConfig() {
+      return {
+        tool_dia: parseFloat(document.getElementById('inp-tool-dia').value) || 3.0,
+        protect_offset: parseFloat(document.getElementById('inp-protect-offset').value) || 0.0,
+        rem_thickness: parseFloat(document.getElementById('inp-rem-thickness').value) || 3.0,
+        groove_pitch: parseFloat(document.getElementById('inp-groove-pitch').value) || 15.0,
+        jig_width: parseFloat(document.getElementById('inp-jig-width').value) || 50.0,
+        jig_thick: parseFloat(document.getElementById('inp-jig-thick').value) || 17.5,
+        layer_saw: document.getElementById('inp-layer-saw').value.trim() || 'ABF_SE_RANH',
+        layer_groove: document.getElementById('inp-layer-groove').value.trim() || 'UNI_PHAY_RANH',
+        layer_protect: document.getElementById('inp-layer-protect').value.trim() || 'ABF_BAO_VE_RANH',
+        cut_mode: currentMode,
+        bend_side: currentSide
+      };
+    }
+
+    function applyConfigToUI(cfg) {
+      if (!cfg) return;
+      if (cfg.tool_dia !== undefined) document.getElementById('inp-tool-dia').value = cfg.tool_dia;
+      if (cfg.protect_offset !== undefined) document.getElementById('inp-protect-offset').value = cfg.protect_offset;
+      if (cfg.rem_thickness !== undefined) document.getElementById('inp-rem-thickness').value = cfg.rem_thickness;
+      if (cfg.groove_pitch !== undefined) document.getElementById('inp-groove-pitch').value = cfg.groove_pitch;
+      if (cfg.jig_width !== undefined) document.getElementById('inp-jig-width').value = cfg.jig_width;
+      if (cfg.jig_thick !== undefined) document.getElementById('inp-jig-thick').value = cfg.jig_thick;
+      if (cfg.layer_saw) document.getElementById('inp-layer-saw').value = cfg.layer_saw;
+      if (cfg.layer_groove) document.getElementById('inp-layer-groove').value = cfg.layer_groove;
+      if (cfg.layer_protect) document.getElementById('inp-layer-protect').value = cfg.layer_protect;
+
+      if (cfg.cut_mode) {
+        currentMode = cfg.cut_mode;
+        document.querySelectorAll('.toggle-btn').forEach(b => {
+          if (b.getAttribute('data-mode') === currentMode) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+      }
+
+      if (cfg.bend_side) {
+        currentSide = cfg.bend_side;
+        if (currentSide === 'inside') {
+          btnSideInside.classList.add('active');
+          btnSideOutside.classList.remove('active');
+        } else {
+          btnSideOutside.classList.add('active');
+          btnSideInside.classList.remove('active');
+        }
+      }
+    }
+
+    // Nút Ok: Lưu cấu hình và kích hoạt Tool 3D
+    document.getElementById('btn-ok').addEventListener('click', () => {
+      const cfg = collectFormConfig();
+      if (window.sketchup) {
+        window.sketchup.save_flatten_config(JSON.stringify(cfg));
+        window.sketchup.activate_flatten_tool(JSON.stringify(cfg));
+        window.sketchup.close_flatten_dialog();
+      }
+    });
+
+    // Mặc định
+    document.getElementById('btn-reset-default').addEventListener('click', () => {
+      applyConfigToUI({
+        tool_dia: 3.0,
+        protect_offset: 0.0,
+        rem_thickness: 3.0,
+        groove_pitch: 15.0,
+        jig_width: 50.0,
+        jig_thick: 17.5,
+        layer_saw: 'ABF_SE_RANH',
+        layer_groove: 'UNI_PHAY_RANH',
+        layer_protect: 'ABF_BAO_VE_RANH',
+        cut_mode: 'Line',
+        bend_side: 'inside'
+      });
+    });
+
+    // Giao tiếp với SketchUp Ruby khi nạp trang
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.sketchup && window.sketchup.get_flatten_config) {
+        window.sketchup.get_flatten_config();
+      }
+    });
+
+    window.receiveFlattenConfig = function(cfgJson) {
+      try {
+        const cfg = (typeof cfgJson === 'string') ? JSON.parse(cfgJson) : cfgJson;
+        applyConfigToUI(cfg);
+      } catch(e) {
+        console.error("Lỗi parse config:", e);
+      }
+    };
+  </script>
+</body>
+</html>

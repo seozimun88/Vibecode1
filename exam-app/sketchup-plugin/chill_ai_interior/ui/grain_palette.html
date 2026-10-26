@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Góc Xoay Vân</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 11px;
+      padding: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      border: 1px solid #334155;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .header-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      letter-spacing: 0.3px;
+    }
+    .angle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .btn-angle {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #e2e8f0;
+      border-radius: 4px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+    .btn-angle:hover {
+      background: #334155;
+      border-color: #fbbf24;
+      color: #fef08a;
+      transform: translateY(-1px);
+    }
+    .btn-angle:active, .btn-angle.active {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      border-color: #fde68a;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    }
+    .btn-angle.primary {
+      border-color: #38bdf8;
+      color: #7dd3fc;
+      background: #0b253a;
+    }
+    .btn-angle.primary:hover {
+      background: #0284c7;
+      color: #fff;
+    }
+    .btn-angle.accent {
+      border-color: #fbbf24;
+      color: #fde68a;
+      background: #2b1f06;
+    }
+    .btn-angle.accent:hover {
+      background: #d97706;
+      color: #fff;
+    }
+    .stepper-row {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .btn-step {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid #64748b;
+      color: #94a3b8;
+      border-radius: 4px;
+      padding: 4px 2px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s ease;
+    }
+    .btn-step:hover {
+      background: #334155;
+      color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    .custom-row {
+      display: flex;
+      gap: 3px;
+      margin-top: 5px;
+      align-items: center;
+    }
+    .custom-input {
+      width: 44px;
+      background: #020617;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      font-size: 10.5px;
+      padding: 3px 4px;
+      border-radius: 3px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .custom-input:focus {
+      outline: none;
+      border-color: #fbbf24;
+    }
+    .btn-apply {
+      flex: 1;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border: 1px solid #38bdf8;
+      color: #ffffff;
+      border-radius: 3px;
+      padding: 4px 2px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-apply:hover {
+      background: #0ea5e9;
+    }
+    .status-badge {
+      margin-top: 5px;
+      font-size: 9px;
+      text-align: center;
+      color: #94a3b8;
+      background: rgba(0,0,0,0.4);
+      padding: 3px 2px;
+      border-radius: 3px;
+      border: 1px dashed #334155;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .status-badge.highlight {
+      color: #34d399;
+      border-color: #10b981;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-title">
+      <span>🪵</span> GÓC VÂN
+    </div>
+    <span style="font-size:9px; color:#64748b; font-weight:bold;">ABF</span>
+  </div>
+
+  <div class="angle-list">
+    <!-- Nút góc chuẩn ABF (theo ảnh anh Huy gửi) -->
+    <button class="btn-angle" data-angle="45">45°</button>
+    <button class="btn-angle" data-angle="-45">-45°</button>
+    <button class="btn-angle" data-angle="30">30°</button>
+    <button class="btn-angle" data-angle="-30">-30°</button>
+    <button class="btn-angle" data-angle="60">60°</button>
+    <button class="btn-angle" data-angle="-60">-60°</button>
+    <button class="btn-angle accent" data-angle="90" title="Vân ngang theo chiều rộng">↔ 90° Ngang</button>
+    <button class="btn-angle primary" data-angle="0" title="Vân dọc theo chiều dài (Mặc định)">↕ 0° Dọc</button>
+  </div>
+
+  <!-- Nút tăng giảm từng bước 15 độ -->
+  <div class="stepper-row">
+    <button class="btn-step" id="btn-step-minus" title="Xoay lùi -15°">-15°</button>
+    <button class="btn-step" id="btn-step-plus" title="Xoay tới +15°">+15°</button>
+  </div>
+
+  <!-- Nhập góc tùy biến -->
+  <div class="custom-row">
+    <input type="number" id="inp-custom-angle" class="custom-input" placeholder="°" value="45">
+    <button class="btn-apply" id="btn-custom-apply" title="Áp dụng góc nhập tay">Áp Dụng</button>
+  </div>
+
+  <div class="status-badge" id="grain-status-text">
+    Chọn tấm ván & bấm
+  </div>
+
+  <script>
+    let currentAngle = 0;
+
+    function callSketchUp(action, data) {
+      const jsonStr = JSON.stringify(data || {});
+      if (window.sketchup && typeof window.sketchup[action] === 'function') {
+        window.sketchup[action](jsonStr);
+      } else if (typeof sketchup !== 'undefined' && typeof sketchup[action] === 'function') {
+        sketchup[action](jsonStr);
+      }
+    }
+
+    function applyAngle(angle) {
+      currentAngle = parseFloat(angle);
+      
+      // Highlight nút tương ứng
+      document.querySelectorAll('.btn-angle').forEach(btn => {
+        const a = parseFloat(btn.getAttribute('data-angle'));
+        if (Math.abs(a - currentAngle) < 0.1) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      const statusEl = document.getElementById('grain-status-text');
+      if (statusEl) {
+        statusEl.textContent = `✓ Đã xoay ${currentAngle}°`;
+        statusEl.classList.add('highlight');
+      }
+
+      // Gọi lệnh Ruby qua BridgeRouter
+      callSketchUp('set_grain_angle', { angle: currentAngle, selection_only: true });
+    }
+
+    function applyStep(step) {
+      const stepVal = parseFloat(step);
+      currentAngle = (currentAngle + stepVal) % 360;
+      
+      const statusEl = document.getElementById('grain-status-text');
+      if (statusEl) {
+        statusEl.textContent = `✓ Xoay ${stepVal > 0 ? '+' : ''}${stepVal}°`;
+        statusEl.classList.add('highlight');
+      }
+
+      callSketchUp('rotate_grain_step', { step: stepVal, selection_only: true });
+    }
+
+    // Lắng nghe sự kiện click nút góc
+    document.querySelectorAll('.btn-angle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const angle = btn.getAttribute('data-angle');
+        applyAngle(angle);
+      });
+    });
+
+    // Stepper
+    document.getElementById('btn-step-plus')?.addEventListener('click', () => applyStep(15));
+    document.getElementById('btn-step-minus')?.addEventListener('click', () => applyStep(-15));
+
+    // Custom angle input
+    document.getElementById('btn-custom-apply')?.addEventListener('click', () => {
+      const val = document.getElementById('inp-custom-angle')?.value;
+      if (val !== undefined && val !== '') {
+        applyAngle(val);
+      }
+    });
+
+    document.getElementById('inp-custom-angle')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const val = e.target.value;
+        if (val !== undefined && val !== '') applyAngle(val);
+      }
+    });
+
+    // Callback từ Ruby khi áp dụng thành công
+    window.onAngleApplied = function(angle, result) {
+      const statusEl = document.getElementById('grain-status-text');
+      if (statusEl && result) {
+        if (result.status === 'warning') {
+          statusEl.textContent = '⚠️ Chọn ván trước!';
+          statusEl.classList.remove('highlight');
+        } else if (result.status === 'success') {
+          statusEl.textContent = `✓ ${result.count} ván (${angle}°)`;
+          statusEl.classList.add('highlight');
+        }
+      }
+    };
+
+    window.onStepApplied = function(step, result) {
+      const statusEl = document.getElementById('grain-status-text');
+      if (statusEl && result) {
+        if (result.status === 'warning') {
+          statusEl.textContent = '⚠️ Chọn ván trước!';
+          statusEl.classList.remove('highlight');
+        } else if (result.status === 'success') {
+          statusEl.textContent = `✓ ${result.count} ván`;
+          statusEl.classList.add('highlight');
+        }
+      }
+    };
+  </script>
+</body>
+</html>

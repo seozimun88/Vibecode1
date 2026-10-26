@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thống kê</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      font-size: 11.5px;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* BỐ CỤC CHÍNH 2 CỘT (GIỐNG ABF 100%) */
+    .container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* CỘT TRÁI: TABS VÀ NÚT XUẤT EXCEL */
+    .sidebar {
+      width: 125px;
+      min-width: 125px;
+      background: #ffffff;
+      border-right: 1px solid #cbd5e1;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .tab-btn {
+      width: 100%;
+      padding: 10px 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: #334155;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .tab-btn.active {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+      color: #0f172a;
+      font-weight: 700;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .btn-excel {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #15803d;
+      background: #ffffff;
+      border: 1.5px solid #16a34a;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-excel:hover {
+      background: #f0fdf4;
+      border-color: #15803d;
+      box-shadow: 0 2px 5px rgba(22, 163, 74, 0.2);
+    }
+    .btn-excel:active {
+      background: #dcfce7;
+    }
+
+    .btn-refresh {
+      margin-top: auto;
+      width: 100%;
+      padding: 6px 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #0369a1;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .btn-refresh:hover {
+      background: #e0f2fe;
+    }
+
+    /* CỘT PHẢI: NỘI DUNG BẢNG THỐNG KÊ */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    /* THANH CÔNG CỤ ĐỈNH TAB CẤU KIỆN */
+    .table-toolbar {
+      padding: 6px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #475569;
+    }
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .toolbar-right {
+      font-weight: 600;
+      color: #0284c7;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    /* BẢNG DỮ LIỆU CHUẨN ABF */
+    .table-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    table.abf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    table.abf-table th, table.abf-table td {
+      border: 1px solid #cbd5e1;
+      padding: 4.5px 6px;
+    }
+
+    /* TIÊU ĐỀ CỘT */
+    table.abf-table th {
+      background: #e2e8f0;
+      color: #1e293b;
+      font-weight: 600;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+    }
+
+    /* DÒNG TIÊU ĐỀ NHÓM (CATEGORY HEADER) */
+    tr.cat-header {
+      background: #cbd5e1;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    tr.cat-header td {
+      border-top: 1.5px solid #94a3b8;
+      border-bottom: 1.5px solid #94a3b8;
+    }
+
+    /* DÒNG DỮ LIỆU THƯỜNG */
+    tr.data-row:nth-child(even) {
+      background: #f8fafc;
+    }
+    tr.data-row:hover {
+      background: #f1f5f9;
+    }
+
+    /* DÒNG TỔNG CHI PHÍ CUỐI CÙNG */
+    tr.total-row {
+      background: #e2e8f0;
+      font-weight: 700;
+      font-size: 11.5px;
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+    }
+    tr.total-row td {
+      border-top: 2px solid #64748b;
+      padding: 6px 8px;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .font-bold { font-weight: 700; }
+
+    /* Ô NHẬP TRỰC TIẾP TRÊN BẢNG (INLINE INPUT) */
+    .inline-input {
+      width: 100%;
+      padding: 2px 4px;
+      font-size: 11px;
+      text-align: right;
+      border: 1px solid transparent;
+      background: transparent;
+      outline: none;
+      font-family: inherit;
+    }
+    .inline-input:focus {
+      border-color: #0284c7;
+      background: #ffffff;
+      border-radius: 2px;
+    }
+
+    /* NÚT THÊM DÒNG (+) */
+    .btn-add-row {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      line-height: 18px;
+      text-align: center;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #334155;
+      cursor: pointer;
+      margin: 4px;
+    }
+    .btn-add-row:hover {
+      background: #cbd5e1;
+      color: #0f172a;
+    }
+
+    /* BADGE VẬT LIỆU */
+    .badge-chip {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .badge-blue { background: #e0f2fe; color: #0369a1; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-emerald { background: #dcfce7; color: #166534; }
+
+    /* TOAST / STATUS */
+    #status-toast {
+      position: fixed;
+      bottom: 15px;
+      right: 20px;
+      padding: 6px 14px;
+      border-radius: 4px;
+      background: #1e293b;
+      color: #ffffff;
+      font-size: 11px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- CỘT TRÁI: SIDEBAR -->
+    <div class="sidebar">
+      <button type="button" class="tab-btn active" id="tab-btn-accessories" onclick="switchTab('accessories')">Phụ kiện</button>
+      <button type="button" class="tab-btn" id="tab-btn-components" onclick="switchTab('components')">Cấu kiện</button>
+      
+      <button type="button" class="btn-excel" id="btn-export-excel" onclick="exportExcel()">
+        <span>📊</span> Xuất ra Excel
+      </button>
+
+      <button type="button" class="btn-refresh" id="btn-refresh-data" onclick="loadDataFromSketchUp()">
+        🔄 Đồng bộ SU
+      </button>
+    </div>
+
+    <!-- CỘT PHẢI: NỘI DUNG -->
+    <div class="content-area">
+      <!-- THANH CÔNG CỤ CHO TAB CẤU KIỆN -->
+      <div class="table-toolbar" id="components-toolbar" style="display: none;">
+        <div class="toolbar-left">
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-group-identical" onchange="renderComponentsTable()">
+            <span>Gom chi tiết trùng nhau (Gộp theo tên & kích thước)</span>
+          </label>
+        </div>
+        <div class="toolbar-right" id="components-summary">
+          Tổng: 0 tấm | 0.00 m²
+        </div>
+      </div>
+
+      <!-- VÙNG BẢNG DỮ LIỆU -->
+      <div class="table-container">
+        <!-- 1. BẢNG TAB PHỤ KIỆN -->
+        <table class="abf-table" id="table-accessories">
+          <thead>
+            <tr>
+              <th style="width: 38px;">STT</th>
+              <th style="width: 110px;">Loại</th>
+              <th style="width: 260px;">Mô tả chi tiết</th>
+              <th style="width: 65px;">Số lượng</th>
+              <th style="width: 55px;">Đơn vị</th>
+              <th style="width: 85px;">Đơn giá</th>
+              <th style="width: 50px;">Hệ số</th>
+              <th style="width: 95px;">Thành tiền</th>
+              <th style="width: 95px;">Tổng</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-accessories">
+            <!-- Render động bằng JavaScript -->
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="8" class="text-left font-bold" style="padding-left:14px;">TỔNG CHI PHÍ</td>
+              <td class="text-right font-bold" id="grand-total-amount">0</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- 2. BẢNG TAB CẤU KIỆN -->
+        <table class="abf-table" id="table-components" style="display: none;">
+          <thead>
+            <tr>
+              <th style="width: 38px;">STT</th>
+              <th style="width: 60px;">Mã</th>
+              <th style="width: 220px;">Tên tấm ván</th>
+              <th style="width: 70px;">Dài (mm)</th>
+              <th style="width: 70px;">Rộng (mm)</th>
+              <th style="width: 60px;">Dày (mm)</th>
+              <th style="width: 45px;">SL</th>
+              <th style="width: 95px;">Chiều vân</th>
+              <th style="width: 120px;">Dán cạnh</th>
+              <th style="width: 90px;">Mặt gia công</th>
+              <th style="width: 80px;">Diện tích (m²)</th>
+              <th style="width: 140px;">Vật liệu</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-components">
+            <!-- Render động bằng JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-toast"></div>
+
+  <script>
+    let currentData = {
+      accessories: [],
+      components: [],
+      cost_presets: {}
+    };
+
+    let activeTab = 'accessories';
+
+    // Gọi hàm Ruby từ SketchUp HtmlDialog
+    function callRuby(callbackName, data) {
+      const jsonStr = JSON.stringify(data || {});
+      if (window.sketchup && typeof window.sketchup[callbackName] === 'function') {
+        window.sketchup[callbackName](jsonStr);
+      } else if (typeof sketchup !== 'undefined' && typeof sketchup[callbackName] === 'function') {
+        sketchup[callbackName](jsonStr);
+      }
+    }
+
+    // Chuyển đổi Tab
+    function switchTab(tabKey) {
+      activeTab = tabKey;
+      document.getElementById('tab-btn-accessories').className = tabKey === 'accessories' ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('tab-btn-components').className = tabKey === 'components' ? 'tab-btn active' : 'tab-btn';
+
+      if (tabKey === 'accessories') {
+        document.getElementById('table-accessories').style.display = '';
+        document.getElementById('table-components').style.display = 'none';
+        document.getElementById('components-toolbar').style.display = 'none';
+      } else {
+        document.getElementById('table-accessories').style.display = 'none';
+        document.getElementById('table-components').style.display = '';
+        document.getElementById('components-toolbar').style.display = 'flex';
+        renderComponentsTable();
+      }
+    }
+
+    // Render Bảng Phụ Kiện (Tab 1)
+    function renderAccessoriesTable() {
+      const tbody = document.getElementById('tbody-accessories');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let grandTotal = 0;
+      let currentHeaderTr = null;
+      let currentHeaderTotTd = null;
+      let currentGroupSum = 0;
+
+      const rows = currentData.accessories || [];
+
+      rows.forEach((row, idx) => {
+        if (row.is_header) {
+          if (currentHeaderTotTd) {
+            currentHeaderTotTd.textContent = formatCurrency(currentGroupSum);
+          }
+          currentGroupSum = 0;
+
+          const tr = document.createElement('tr');
+          tr.className = 'cat-header';
+
+          const tdCat = document.createElement('td');
+          tdCat.colSpan = 8;
+          tdCat.style.paddingLeft = '10px';
+          tdCat.textContent = row.category;
+          tr.appendChild(tdCat);
+
+          currentHeaderTotTd = document.createElement('td');
+          currentHeaderTotTd.className = 'text-right font-bold';
+          currentHeaderTotTd.textContent = '0';
+          tr.appendChild(currentHeaderTotTd);
+
+          tbody.appendChild(tr);
+          currentHeaderTr = tr;
+        } else {
+          const qty = parseFloat(row.qty) || 0;
+          const price = parseFloat(row.price) || 0;
+          const factor = parseFloat(row.factor) || 1.0;
+          const amount = Math.round(qty * price * factor);
+          row.amount = amount;
+
+          currentGroupSum += amount;
+          grandTotal += amount;
+
+          const tr = document.createElement('tr');
+          tr.className = 'data-row';
+
+          // STT
+          const tdStt = document.createElement('td');
+          tdStt.className = 'text-center';
+          tdStt.textContent = row.stt;
+          tr.appendChild(tdStt);
+
+          // Loại
+          const tdType = document.createElement('td');
+          tdType.textContent = row.type || '';
+          tr.appendChild(tdType);
+
+          // Mô tả chi tiết
+          const tdName = document.createElement('td');
+          tdName.textContent = row.name || '';
+          tr.appendChild(tdName);
+
+          // Số lượng
+          const tdQty = document.createElement('td');
+          tdQty.className = 'text-center';
+          tdQty.textContent = row.qty;
+          tr.appendChild(tdQty);
+
+          // Đơn vị
+          const tdUnit = document.createElement('td');
+          tdUnit.className = 'text-center';
+          tdUnit.textContent = row.unit || '';
+          tr.appendChild(tdUnit);
+
+          // Đơn giá (Cho phép sửa trực tiếp)
+          const tdPrice = document.createElement('td');
+          tdPrice.className = 'text-right';
+          const inpPrice = document.createElement('input');
+          inpPrice.type = 'number';
+          inpPrice.className = 'inline-input';
+          inpPrice.value = price;
+          inpPrice.title = 'Click để sửa đơn giá';
+          inpPrice.addEventListener('change', (e) => {
+            row.price = parseFloat(e.target.value) || 0;
+            renderAccessoriesTable();
+          });
+          tdPrice.appendChild(inpPrice);
+          tr.appendChild(tdPrice);
+
+          // Hệ số
+          const tdFactor = document.createElement('td');
+          tdFactor.className = 'text-center';
+          const inpFactor = document.createElement('input');
+          inpFactor.type = 'number';
+          inpFactor.step = '0.1';
+          inpFactor.className = 'inline-input text-center';
+          inpFactor.value = factor;
+          inpFactor.title = 'Hệ số nhân';
+          inpFactor.addEventListener('change', (e) => {
+            row.factor = parseFloat(e.target.value) || 1.0;
+            renderAccessoriesTable();
+          });
+          tdFactor.appendChild(inpFactor);
+          tr.appendChild(tdFactor);
+
+          // Thành tiền
+          const tdAmount = document.createElement('td');
+          tdAmount.className = 'text-right font-bold';
+          tdAmount.textContent = formatCurrency(amount);
+          tr.appendChild(tdAmount);
+
+          // Cột Tổng (để trống cho hàng con)
+          const tdTot = document.createElement('td');
+          tr.appendChild(tdTot);
+
+          tbody.appendChild(tr);
+        }
+      });
+
+      if (currentHeaderTotTd) {
+        currentHeaderTotTd.textContent = formatCurrency(currentGroupSum);
+      }
+
+      // Nút (+) Thêm dòng chi phí khác
+      const trAdd = document.createElement('tr');
+      const tdAdd = document.createElement('td');
+      tdAdd.colSpan = 9;
+      tdAdd.style.background = '#ffffff';
+      tdAdd.style.padding = '2px 4px';
+      
+      const btnPlus = document.createElement('button');
+      btnPlus.type = 'button';
+      btnPlus.className = 'btn-add-row';
+      btnPlus.textContent = '+';
+      btnPlus.title = 'Thêm dòng chi phí khác';
+      btnPlus.addEventListener('click', addCustomCostRow);
+      tdAdd.appendChild(btnPlus);
+      
+      trAdd.appendChild(tdAdd);
+      tbody.appendChild(trAdd);
+
+      // Cập nhật tổng chi phí ở đáy bảng
+      const grandEl = document.getElementById('grand-total-amount');
+      if (grandEl) grandEl.textContent = formatCurrency(grandTotal);
+    }
+
+    // Thêm dòng chi phí tùy chỉnh
+    function addCustomCostRow() {
+      const name = prompt('Nhập tên vật tư phụ hoặc chi phí khác:', 'Vật tư phụ phát sinh');
+      if (!name) return;
+      const price = parseFloat(prompt('Nhập đơn giá (VNĐ):', '50000')) || 0;
+
+      const newRow = {
+        stt: (currentData.accessories.length + 1),
+        type: 'Chi phí khác',
+        name: name,
+        qty: 1,
+        unit: 'gói',
+        price: price,
+        factor: 1.0,
+        amount: price,
+        key: 'custom_' + Date.now()
+      };
+
+      currentData.accessories.push(newRow);
+      renderAccessoriesTable();
+      showToast('Đã thêm dòng chi phí mới!');
+    }
+
+    // Render Bảng Cấu Kiện (Tab 2)
+    function renderComponentsTable() {
+      const tbody = document.getElementById('tbody-components');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let list = currentData.components || [];
+      const groupIdentical = document.getElementById('chk-group-identical')?.checked;
+
+      if (groupIdentical) {
+        // Gom các tấm có cùng Tên, Dài, Rộng, Dày
+        const grouped = {};
+        list.forEach(item => {
+          const key = `${item.name}_${item.l}_${item.w}_${item.t}_${item.grain}`;
+          if (!grouped[key]) {
+            grouped[key] = { ...item, qty: 0, area: 0 };
+          }
+          grouped[key].qty += (item.qty || 1);
+          grouped[key].area = Math.round((grouped[key].qty * (item.l * item.w) / 1000000) * 1000) / 1000;
+        });
+        list = Object.values(grouped);
+      }
+
+      let totalPcs = 0;
+      let totalArea = 0;
+
+      list.forEach((c, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'data-row';
+
+        totalPcs += (c.qty || 1);
+        totalArea += (c.area || 0);
+
+        tr.innerHTML = `
+          <td class="text-center">${index + 1}</td>
+          <td class="text-center font-bold" style="color:#0284c7;">${c.id || ''}</td>
+          <td class="font-bold">${c.name || ''}</td>
+          <td class="text-right">${c.l}</td>
+          <td class="text-right">${c.w}</td>
+          <td class="text-center font-bold">${c.t}</td>
+          <td class="text-center font-bold" style="color:#b45309;">${c.qty || 1}</td>
+          <td class="text-center">${c.grain || 'Vân Dọc ⬍'}</td>
+          <td class="text-center">${c.edge_band || '4 cạnh'}</td>
+          <td class="text-center">${c.face || 'Mặt Trên ⤴'}</td>
+          <td class="text-right font-bold">${c.area}</td>
+          <td><span class="badge-chip badge-blue">${c.material || 'MDF Lõi Xanh'}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const summaryEl = document.getElementById('components-summary');
+      if (summaryEl) {
+        summaryEl.textContent = `Tổng: ${totalPcs} tấm chi tiết | ${totalArea.toFixed(2)} m² diện tích phôi`;
+      }
+    }
+
+    // Xuất ra file Excel
+    function exportExcel() {
+      callRuby('export_statistics_excel', currentData);
+    }
+
+    // Yêu cầu nạp dữ liệu từ SketchUp
+    function loadDataFromSketchUp() {
+      showToast('Đang quét mô hình SketchUp...');
+      callRuby('get_statistics_data', { selection_only: false });
+    }
+
+    // Định dạng tiền tệ VNĐ (ví dụ 1,250,000)
+    function formatCurrency(val) {
+      const num = parseInt(val, 10) || 0;
+      return num.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('status-toast');
+      if (toast) {
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+      }
+    }
+
+    // Callback từ Ruby khi load xong số liệu
+    window.onStatisticsLoaded = function(data) {
+      if (data && data.status === 'success') {
+        currentData = data;
+        renderAccessoriesTable();
+        renderComponentsTable();
+        showToast('✓ Đã cập nhật số liệu từ mô hình thành công!');
+      } else if (data && data.status === 'warning') {
+        showToast('⚠️ ' + data.message);
+      } else if (data && data.status === 'error') {
+        showToast('❌ ' + data.message);
+      }
+    };
+
+    window.onExcelExported = function(result) {
+      if (result && result.status === 'success') {
+        showToast('✓ Đã xuất file Excel thành công!');
+      }
+    };
+
+    // Khởi tạo ban đầu khi mở dialog
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDataFromSketchUp();
+    });
+  </script>
+</body>
+</html>

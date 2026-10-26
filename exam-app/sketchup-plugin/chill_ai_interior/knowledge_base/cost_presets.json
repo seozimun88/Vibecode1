@@ -1,0 +1,35 @@
+{
+  "currency": "VNĐ",
+  "vat_rate": 0.0,
+  "hardware_costs": {
+    "cam_minifix": { "name": "Cam liên kết (Ốc cam + chốt)", "unit": "bộ", "price": 2500, "factor": 1.0 },
+    "wooden_dowel": { "name": "Chốt gỗ (Dowel 8x30mm)", "unit": "cái", "price": 500, "factor": 1.0 },
+    "hinge_soft_close": { "name": "Bản lề giảm chấn chén 35mm", "unit": "cái", "price": 25000, "factor": 1.0 },
+    "screw_4x50": { "name": "Vít liên kết 4x50mm", "unit": "cái", "price": 300, "factor": 1.0 },
+    "drawer_slide": { "name": "Ray trượt bi 3 tầng giảm chấn", "unit": "bộ", "price": 85000, "factor": 1.0 },
+    "leveler_foot": { "name": "Chân tăng chỉnh nhựa chống ẩm", "unit": "cái", "price": 6000, "factor": 1.0 },
+    "handle_profile": { "name": "Tay nắm nhôm âm tủ", "unit": "cái", "price": 35000, "factor": 1.0 }
+  },
+  "intersect_costs": {
+    "groove_joint": { "name": "Rãnh ngàm âm dương (Overcut 3.5mm)", "unit": "m", "price": 15000, "factor": 1.0 },
+    "groove_back": { "name": "Rãnh soi hậu ván 9mm/6mm", "unit": "m", "price": 10000, "factor": 1.0 },
+    "groove_led": { "name": "Rãnh phay nhôm LED định hình", "unit": "m", "price": 20000, "factor": 1.0 }
+  },
+  "edge_band_costs": {
+    "edge_1mm": { "name": "Chỉ dán cạnh dày (Nẹp PVC 1.0mm)", "unit": "m", "price": 6000, "factor": 1.0 },
+    "edge_045mm": { "name": "Chỉ dán cạnh mỏng (Nẹp PVC 0.45mm)", "unit": "m", "price": 3500, "factor": 1.0 },
+    "edge_labor": { "name": "Công dán nẹp tự động & phay bo góc", "unit": "m", "price": 5000, "factor": 1.0 }
+  },
+  "sheet_costs": {
+    "mdf_17": { "name": "Ván MDF Lõi Xanh Chống Ẩm Melamine 17mm", "unit": "tấm", "price": 450000, "factor": 1.0 },
+    "mdf_9": { "name": "Ván Hậu MDF Chống Ẩm Melamine 9mm", "unit": "tấm", "price": 280000, "factor": 1.0 },
+    "mdf_6": { "name": "Ván Hậu MDF Chống Ẩm Melamine 6mm", "unit": "tấm", "price": 210000, "factor": 1.0 },
+    "mdf_25": { "name": "Ván Mặt Bàn MDF Chống Ẩm 25mm", "unit": "tấm", "price": 650000, "factor": 1.0 }
+  },
+  "other_costs": [
+    { "name": "Công cắt phay Nesting CNC Router", "unit": "tấm phôi", "qty": 1, "price": 120000, "factor": 1.0 },
+    { "name": "Đóng gói màng PE & bọc xốp góc", "unit": "gói", "qty": 1, "price": 150000, "factor": 1.0 },
+    { "name": "Vận chuyển & Bốc dỡ công trình", "unit": "chuyến", "qty": 1, "price": 350000, "factor": 1.0 },
+    { "name": "Nhân công lắp đặt hoàn thiện", "unit": "công", "qty": 1, "price": 400000, "factor": 1.0 }
+  ]
+}

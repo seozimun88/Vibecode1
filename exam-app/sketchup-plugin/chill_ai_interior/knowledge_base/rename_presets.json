@@ -1,0 +1,30 @@
+{
+  "Huy": {
+    "modules": [
+      "_Giường_", "_Tủ Áo_", "_Bếp_",
+      "_Tủ Giày_", "_Kệ TV_", "_Tủ Cầu Thang_",
+      "_Tủ Lavabo_", "_Bàn Học_", "_Kệ Sách_",
+      "_Tủ Trang Trí_", "_Ốp Tường_", "_Bàn Trang Điểm_"
+    ],
+    "parts": [
+      "_H1_", "_H4_", "_Đáy_", "_Sấn Giữa_", "_Len Chân_", "_Hậu_", "1", "4", "7", "10",
+      "_Cánh Mở_", "_NK_", "Phải", "_Đáy NK_", "_Thanh Gia Giảm_", "Xà Sau_", "Thùng Ngăn Kéo_",
+      "_H2_", "_H5_", "_Hông Trái_", "_Đáy_", "_Len Chân Giữa_", "_Hậu Trước_", "2", "5", "8",
+      "_Xương Cong_", "_Cánh Lùa_", "_Thành_", "Trước", "_Chỉ Nóc_", "_Thanh Chặn_", "Xà Trước_",
+      "_H3_", "_Nóc_", "_Hông Phải_", "_Đợt_", "_Len Chân Sau_", "_Nóc_", "3", "6", "9",
+      "_Cánh NK_", "Cánh Chết", "Trái", "Sau", "Chỉ Hông_", "_Trang Trí Ông Táo_", "Thanh Gắn Lề_"
+    ]
+  },
+  "Chill AI Decor": {
+    "modules": [
+      "_Tủ Bếp Trên_", "_Tủ Bếp Dưới_", "_Tủ Đứng_",
+      "_Tủ Quần Áo_", "_Kệ Tivi_", "_Bàn Làm Việc_",
+      "_Giường Ngủ_", "_Tủ Giày_", "_Vách Trang Trí_"
+    ],
+    "parts": [
+      "Hồi Trái", "Hồi Phải", "Hồi Giữa", "Đáy", "Nóc", "Đợt Di Động", "Đợt Cố Định",
+      "Hậu 6mm", "Hậu 9mm", "Hậu 17mm", "Len Chân", "Chỉ Nóc", "Xà Ngang",
+      "Cánh Tủ", "Cánh Kính", "Mặt Ngăn Kéo", "Thành Ngăn Kéo", "Đáy Ngăn Kéo", "Hậu Ngăn Kéo"
+    ]
+  }
+}

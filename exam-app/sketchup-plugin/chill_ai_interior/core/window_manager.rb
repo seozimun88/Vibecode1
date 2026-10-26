@@ -91,20 +91,17 @@ module ChillAIInterior
     # ĐẶT LẠI VỊ TRÍ CỬA SỔ & SNAP VỪA KHÍT KHÔNG GIAN 3D
     def self.reset_dialog_position
       begin
-        if @dialog
-          begin
-            @dialog.close rescue nil
-          rescue => _e
-          end
-          @dialog = nil
-        end
-        UI.start_timer(0.12, false) do
+        if @dialog && @dialog.visible?
           dock_w, dock_h, dock_left, dock_top = calculate_dock_geometry
+          @dialog.set_size(dock_w, dock_h)
+          @dialog.set_position(dock_left, dock_top)
+          @dialog.bring_to_front
+          puts "[Chill AI WindowManager] Snap lại vị trí cửa sổ hiện có: #{dock_w}x#{dock_h} tại top=#{dock_top}"
+        else
           show_dialog(force_default_pos: true)
-          puts "[Chill AI WindowManager] Đã snap vừa khít vùng 3D: #{dock_w}x#{dock_h} tại top=#{dock_top}"
         end
       rescue => err
-        UI.messagebox("Lỗi khi đặt lại vị trí cửa sổ: #{err.message}")
+        puts "[Chill AI WindowManager Error] #{err.message}"
       end
     end
 
@@ -200,15 +197,15 @@ module ChillAIInterior
     # CHUYỂN ĐỔI CHẾ ĐỘ GIAO DIỆN: KHAY ĐỨNG (320px) VS TOÀN CẢNH STUDIO (1180x750)
     def self.set_layout_mode(mode)
       return unless @dialog && @dialog.visible?
-      if mode.to_s == 'dock_tray'
-        dock_w, dock_h, dock_left, dock_top = calculate_dock_geometry
-        @dialog.set_size(dock_w, dock_h)
-        @dialog.set_position(dock_left, dock_top)
-        puts "[Chill AI WindowManager]: Snap Khay Đứng (#{dock_w}x#{dock_h} tại top=#{dock_top})"
-      else
+      dock_w, dock_h, dock_left, dock_top = calculate_dock_geometry
+      if mode.to_s == 'studio'
         @dialog.set_size(1180, 750)
         @dialog.set_position(80, 50)
         puts "[Chill AI WindowManager]: Chuyển sang Studio Mode (1180x750)"
+      else
+        @dialog.set_size(320, dock_h)
+        @dialog.set_position(dock_left, dock_top)
+        puts "[Chill AI WindowManager]: Snap Khay Đứng (320x#{dock_h} tại top=#{dock_top})"
       end
     rescue => e
       puts "[Chill AI Resize Error]: #{e.message}"
@@ -218,9 +215,9 @@ module ChillAIInterior
     def self.snap_to_viewport
       return unless @dialog && @dialog.visible?
       dock_w, dock_h, dock_left, dock_top = calculate_dock_geometry
-      @dialog.set_size(dock_w, dock_h)
+      @dialog.set_size(320, dock_h)
       @dialog.set_position(dock_left, dock_top)
-      puts "[Chill AI WindowManager]: Snap dock #{dock_w}x#{dock_h} tại top=#{dock_top}"
+      puts "[Chill AI WindowManager]: Snap dock 320x#{dock_h} tại top=#{dock_top}"
     end
 
     # HIỂN THỊ CỬA SỔ CẤU HÌNH CAM CHỐT (FITTING STUDIO)
@@ -260,5 +257,441 @@ module ChillAIInterior
         @fitting_dialog = nil
       end
     end
-  end
+
+    # HIỂN THỊ BẢNG CHỌN GÓC XOAY VÂN NỔI (CHUẨN ABF GRAIN PALETTE)
+    def self.show_grain_palette
+      if @grain_dialog && @grain_dialog.visible?
+        @grain_dialog.bring_to_front
+        return @grain_dialog
+      end
+
+      root = ModuleLoader.plugin_root
+      html_path = File.join(root, 'ui', 'grain_palette.html')
+      unless File.exist?(html_path)
+        UI.messagebox("Không tìm thấy tệp giao diện Grain Palette tại:\n#{html_path}")
+        return nil
+      end
+
+      # Kích thước & toạ độ góc trên bên trái SketchUp (khớp 100% vị trí ABF theo ảnh của anh Huy)
+      dialog_options = {
+        dialog_title: "Góc Xoay Vân",
+        preferences_key: "ChillAI_Grain_Palette_Pos_v1",
+        scrollable: false,
+        resizable: true,
+        width: 108,
+        height: 420,
+        min_width: 95,
+        min_height: 340,
+        left: 25,
+        top: 130,
+        style: UI::HtmlDialog::STYLE_UTILITY
+      }
+
+      @grain_dialog = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_grain_palette_callbacks(@grain_dialog) if defined?(BridgeRouter)
+
+      @grain_dialog.set_on_closed do
+        @grain_dialog = nil
+      end
+
+      @grain_dialog.set_file(html_path)
+      @grain_dialog.show
+      @grain_dialog.bring_to_front
+      @grain_dialog
+    rescue => err
+      puts "[Chill AI Grain Palette Error]: #{err.message}"
+      UI.messagebox("Lỗi khi mở Bảng Góc Xoay Vân: #{err.message}")
+      nil
+    end
+
+    def self.close_grain_palette
+      if @grain_dialog
+        @grain_dialog.close rescue nil
+        @grain_dialog = nil
+      end
+    end
+
+    # HIỂN THỊ CỬA SỔ ĐỔI TÊN CHUẨN ABF (RENAME DIALOG)
+    def self.show_rename_dialog
+      if @rename_dialog && @rename_dialog.visible?
+        @rename_dialog.bring_to_front
+        return @rename_dialog
+      end
+
+      root = ModuleLoader.plugin_root
+      html_path = File.join(root, 'ui', 'rename_dialog.html')
+      unless File.exist?(html_path)
+        UI.messagebox("Không tìm thấy tệp giao diện Rename Dialog tại:
+#{html_path}")
+        return nil
+      end
+
+      dialog_options = {
+        dialog_title: "Đổi tên",
+        preferences_key: "ChillAI_Rename_Dialog_v1",
+        scrollable: true,
+        resizable: true,
+        width: 820,
+        height: 640,
+        min_width: 720,
+        min_height: 520,
+        left: 200,
+        top: 100
+      }
+
+      @rename_dialog = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_rename_dialog_callbacks(@rename_dialog) if defined?(BridgeRouter)
+
+      @rename_dialog.set_on_closed do
+        @rename_dialog = nil
+      end
+
+      @rename_dialog.set_file(html_path)
+      @rename_dialog.show
+      @rename_dialog.bring_to_front
+      @rename_dialog
+    rescue => err
+      puts "[Chill AI Rename Dialog Error]: #{err.message}"
+      UI.messagebox("Lỗi khi mở Cửa Sổ Đổi Tên: #{err.message}")
+      nil
+    end
+
+    def self.close_rename_dialog
+      if @rename_dialog
+        @rename_dialog.close rescue nil
+        @rename_dialog = nil
+      end
+    end
+  
+    # HIỂN THỊ CỬA SỔ THỐNG KÊ & DỰ TOÁN CHI PHÍ (CHUẨN ABF)
+    def self.show_report_dialog
+      if @report_dialog && @report_dialog.visible?
+        @report_dialog.bring_to_front
+        return @report_dialog
+      end
+
+      root = ModuleLoader.plugin_root
+      html_path = File.join(root, 'ui', 'report_dialog.html')
+      unless File.exist?(html_path)
+        UI.messagebox("Không tìm thấy tệp giao diện Report Dialog tại:\n#{html_path}")
+        return nil
+      end
+
+      dialog_options = {
+        dialog_title: "Thống kê",
+        preferences_key: "ChillAI_Report_Dialog_v1",
+        scrollable: true,
+        resizable: true,
+        width: 960,
+        height: 640,
+        min_width: 820,
+        min_height: 520,
+        left: 180,
+        top: 80
+      }
+
+      @report_dialog = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_report_dialog_callbacks(@report_dialog) if defined?(BridgeRouter)
+
+      @report_dialog.set_on_closed do
+        @report_dialog = nil
+      end
+
+      @report_dialog.set_file(html_path)
+      @report_dialog.show
+      @report_dialog.bring_to_front
+      @report_dialog
+    rescue => err
+      puts "[Chill AI Report Dialog Error]: #{err.message}"
+      UI.messagebox("Lỗi khi mở Bảng Thống Kê: #{err.message}")
+      nil
+    end
+
+    def self.close_report_dialog
+      if @report_dialog
+        @report_dialog.close rescue nil
+        @report_dialog = nil
+      end
+    end
+
+    # ==========================================================================
+    # CỬA SỔ FLOATING PALETTE: CHỌN NHANH LOẠI CHỈ DÁN CẠNH (CHUẨN ẢNH 2)
+    # ==========================================================================
+    def self.show_edge_banding_palette
+      if @eb_palette && @eb_palette.visible?
+        @eb_palette.bring_to_front
+        return @eb_palette
+      end
+
+      html_path = File.join(plugin_root, 'ui', 'edge_banding_palette.html')
+      unless File.exist?(html_path)
+        puts "[Chill AI] Không tìm thấy file: #{html_path}"
+        return nil
+      end
+
+      dialog_options = {
+        dialog_title: "Chỉ Dán Cạnh (Chuẩn ABF)",
+        preferences_key: "ChillAI_EdgeBandingPalette",
+        scrollable: false,
+        resizable: true,
+        width: 250,
+        height: 480,
+        min_width: 210,
+        min_height: 350,
+        left: 20,
+        top: 80
+      }
+
+      @eb_palette = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_edge_banding_callbacks(@eb_palette) if defined?(BridgeRouter)
+
+      @eb_palette.set_on_closed do
+        @eb_palette = nil
+      end
+
+      @eb_palette.set_file(html_path)
+      @eb_palette.show
+      @eb_palette.bring_to_front
+      @eb_palette
+    rescue => err
+      puts "[Chill AI EdgeBanding Palette Error]: #{err.message}"
+      nil
+    end
+
+    def self.close_edge_banding_palette
+      if @eb_palette
+        @eb_palette.close rescue nil
+        @eb_palette = nil
+      end
+    end
+
+    # ==========================================================================
+    # CỬA SỔ BẢNG ĐIỀU CHỈNH THÔNG SỐ CHỈ DÁN CẠNH ĐẦY ĐỦ (CHUẨN ẢNH 1)
+    # ==========================================================================
+    def self.show_edge_banding_dialog
+      if @eb_dialog && @eb_dialog.visible?
+        @eb_dialog.bring_to_front
+        return @eb_dialog
+      end
+
+      html_path = File.join(plugin_root, 'ui', 'edge_banding_dialog.html')
+      unless File.exist?(html_path)
+        puts "[Chill AI] Không tìm thấy file: #{html_path}"
+        return nil
+      end
+
+      dialog_options = {
+        dialog_title: "Bảng Điều Chỉnh Thông Số Dán Chỉ Cạnh (Chuẩn ABF)",
+        preferences_key: "ChillAI_EdgeBandingDialog",
+        scrollable: false,
+        resizable: true,
+        width: 780,
+        height: 520,
+        min_width: 650,
+        min_height: 420,
+        left: 180,
+        top: 80
+      }
+
+      @eb_dialog = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_edge_banding_callbacks(@eb_dialog) if defined?(BridgeRouter)
+
+      @eb_dialog.set_on_closed do
+        @eb_dialog = nil
+      end
+
+      @eb_dialog.set_file(html_path)
+      @eb_dialog.show
+      @eb_dialog.bring_to_front
+      @eb_dialog
+    rescue => err
+      puts "[Chill AI EdgeBanding Dialog Error]: #{err.message}"
+      nil
+    end
+
+    def self.close_edge_banding_dialog
+      if @eb_dialog
+        @eb_dialog.close rescue nil
+        @eb_dialog = nil
+      end
+    end
+
+    # ==========================================================================
+    # CỬA SỔ IN TEM NHÃN CHUẨN ABF (KẾT NỐI MÁY IN TEM XPRINTER / GPRINTER & PDF)
+    # ==========================================================================
+    @print_labels_dialog = nil
+
+    def self.print_labels_dialog
+      @print_labels_dialog
+    end
+
+    def self.show_print_labels_dialog
+      if @print_labels_dialog && @print_labels_dialog.visible?
+        @print_labels_dialog.bring_to_front
+        return @print_labels_dialog
+      end
+
+      root = ModuleLoader.plugin_root
+      html_path = File.join(root, 'ui', 'print_labels.html')
+      unless File.exist?(html_path)
+        UI.messagebox("Không tìm thấy tệp giao diện In Tem Nhãn tại:\n#{html_path}")
+        return nil
+      end
+
+      dialog_options = {
+        dialog_title: "In Tem Nhãn - Chill AI Interior",
+        preferences_key: "ChillAI_PrintLabelsDialog_v1",
+        scrollable: false,
+        resizable: true,
+        width: 980,
+        height: 680,
+        min_width: 820,
+        min_height: 550,
+        left: 140,
+        top: 60
+      }
+
+      @print_labels_dialog = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_print_label_callbacks(@print_labels_dialog) if defined?(BridgeRouter)
+
+      @print_labels_dialog.set_on_closed do
+        @print_labels_dialog = nil
+      end
+
+      @print_labels_dialog.set_file(html_path)
+      @print_labels_dialog.show
+      @print_labels_dialog.bring_to_front
+      @print_labels_dialog
+    rescue => err
+      puts "[Chill AI Print Labels Dialog Error]: #{err.message}"
+      UI.messagebox("Lỗi khi mở Cửa SỔ In Tem Nhãn: #{err.message}")
+      nil
+    end
+
+    def self.close_print_labels_dialog
+      if @print_labels_dialog
+        @print_labels_dialog.close rescue nil
+        @print_labels_dialog = nil
+      end
+    end
+
+    # ==========================================================================
+    # CỬA SỔ BUNG NỔ MÔ HÌNH / SƠ ĐỒ LẮP RÁP 3D (EXPLODED VIEW CHUẨN ABF)
+    # ==========================================================================
+    @exploded_hud = nil
+
+    def self.exploded_hud
+      @exploded_hud
+    end
+
+    def self.show_exploded_hud
+      if @exploded_hud && @exploded_hud.visible?
+        @exploded_hud.bring_to_front
+        return @exploded_hud
+      end
+
+      root = ModuleLoader.plugin_root
+      html_path = File.join(root, 'ui', 'exploded_view_hud.html')
+      unless File.exist?(html_path)
+        UI.messagebox("Không tìm thấy giao diện Exploded View tại:\n#{html_path}")
+        return nil
+      end
+
+      work_r = @screen_avail_width || 1366
+      work_b = @screen_avail_height || 768
+      hud_w = 260
+      hud_h = 245
+      hud_left = [work_r - hud_w - 30, 200].max
+      hud_top  = [work_b - hud_h - 60, 100].max
+
+      dialog_options = {
+        dialog_title: "Exploded View - Chill AI",
+        preferences_key: "ChillAI_ExplodedHUD_v1",
+        scrollable: false,
+        resizable: true,
+        width: hud_w,
+        height: hud_h,
+        min_width: 220,
+        min_height: 220,
+        left: hud_left,
+        top: hud_top
+      }
+
+      @exploded_hud = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_exploded_hud_callbacks(@exploded_hud) if defined?(BridgeRouter)
+
+      @exploded_hud.set_on_closed do
+        ExplodedViewEngine.cleanup_texts rescue nil if defined?(ExplodedViewEngine)
+        @exploded_hud = nil
+      end
+
+      @exploded_hud.set_file(html_path)
+      @exploded_hud.show
+      @exploded_hud.bring_to_front
+      @exploded_hud
+    rescue => err
+      puts "[Chill AI Exploded HUD Error]: #{err.message}"
+      UI.messagebox("Lỗi khi mở Exploded View: #{err.message}")
+      nil
+    end
+
+    def self.close_exploded_hud
+      if @exploded_hud
+        @exploded_hud.close rescue nil
+        @exploded_hud = nil
+      end
+    end
+
+    # ==========================================================================
+    # CỬA SỔ BẢNG ĐIỀU CHỈNH TRẢI PHẲNG VÁN UỐN CONG (CHUẨN UNITOOL & ABF - ẢNH 2)
+    # ==========================================================================
+    def self.show_flatten_dialog
+      if @flatten_dialog && @flatten_dialog.visible?
+        @flatten_dialog.bring_to_front
+        return @flatten_dialog
+      end
+
+      html_path = File.join(plugin_root, 'ui', 'flatten_dialog.html')
+      unless File.exist?(html_path)
+        puts "[Chill AI] Không tìm thấy file: #{html_path}"
+        return nil
+      end
+
+      dialog_options = {
+        dialog_title: "Chill AI - Bảng Điều Chỉnh Ván Uốn Cong (Chuẩn UniTool)",
+        preferences_key: "ChillAI_FlattenDialog_v1",
+        scrollable: false,
+        resizable: true,
+        width: 540,
+        height: 530,
+        min_width: 480,
+        min_height: 460,
+        left: 220,
+        top: 100
+      }
+
+      @flatten_dialog = UI::HtmlDialog.new(dialog_options)
+      BridgeRouter.register_flatten_dialog_callbacks(@flatten_dialog) if defined?(BridgeRouter)
+
+      @flatten_dialog.set_on_closed do
+        @flatten_dialog = nil
+      end
+
+      @flatten_dialog.set_file(html_path)
+      @flatten_dialog.show
+      @flatten_dialog.bring_to_front
+      @flatten_dialog
+    rescue => err
+      puts "[Chill AI Flatten Dialog Error]: #{err.message}"
+      nil
+    end
+
+    def self.close_flatten_dialog
+      if @flatten_dialog
+        @flatten_dialog.close rescue nil
+        @flatten_dialog = nil
+      end
+    end
+
+end
 end

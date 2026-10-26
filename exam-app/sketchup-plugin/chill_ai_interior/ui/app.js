@@ -53,6 +53,8 @@ class ChillAIApp {
     this.init3DViewer();
     this.initAvatar();
     this.initCAMNesting();
+    this.initLabelStudio();
+    this.initIntersectStudio();
     this.initChatEvents();
     this.initMarketplace();
     this.initProjects();
@@ -70,6 +72,7 @@ class ChillAIApp {
     try { this.initAccordionTray(); } catch (e) { console.error("[Chill AI] Error in initAccordionTray:", e); }
     try { this.initShopeeMarketplace(); } catch (e) { console.error("[Chill AI] Error in initShopeeMarketplace:", e); }
     try { this.initFittingControls(); } catch (e) { console.error("[Chill AI] Error in initFittingControls:", e); }
+    try { this.initFlattenFaceControls(); } catch (e) { console.error("[Chill AI] Error in initFlattenFaceControls:", e); }
 
     // Báo cho SketchUp Ruby biết JS đã sẵn sàng kết nối 2 chiều và đồng bộ kích thước chuẩn
     setTimeout(() => {
@@ -180,9 +183,15 @@ class ChillAIApp {
 
     if (btnHinges) {
       btnHinges.addEventListener('click', () => {
-        if (this.isSketchUpAvailable && window.sketchup && window.sketchup.apply_hinges) {
-          this.showMiniToast("Đang khoan lỗ chén bản lề 35mm cho cánh tủ...", "info");
-          window.sketchup.apply_hinges(JSON.stringify({}));
+        if (this.isSketchUpAvailable && window.sketchup) {
+          if (window.sketchup.activate_hinge_tool) {
+            window.sketchup.activate_hinge_tool();
+          } else if (window.sketchup.dispatch) {
+            window.sketchup.dispatch({ action: 'activate_hinge_tool', data: {} });
+          } else if (window.sketchup.apply_hinges) {
+            window.sketchup.apply_hinges(JSON.stringify({}));
+          }
+          this.showMiniToast("Đã bật chế độ Khoan Bản Lề ABF! Hãy kích chọn Tấm Cửa -> sau đó kích chọn Tấm Hông Tủ.", "success");
         } else {
           this.showMiniToast("Tính năng chỉ hoạt động bên trong SketchUp", "warning");
         }
@@ -206,6 +215,22 @@ class ChillAIApp {
             window.sketchup.dispatch({ action: 'activate_fitting_tool', data: {} });
           }
           this.showMiniToast("Đã bật chế độ Liên Kết Ngang! Hãy click đúp chuột trái vào 1 tấm ván trong bản vẽ.", "success");
+        } else {
+          this.showMiniToast("Tính năng tương tác 3D chỉ hoạt động bên trong SketchUp", "warning");
+        }
+      });
+    }
+
+    const btnActivateHingeTool = document.getElementById('dock-btn-activate-hinge-tool');
+    if (btnActivateHingeTool) {
+      btnActivateHingeTool.addEventListener('click', () => {
+        if (this.isSketchUpAvailable && window.sketchup) {
+          if (window.sketchup.activate_hinge_tool) {
+            window.sketchup.activate_hinge_tool();
+          } else if (window.sketchup.dispatch) {
+            window.sketchup.dispatch({ action: 'activate_hinge_tool', data: {} });
+          }
+          this.showMiniToast("Đã bật chế độ Khoan Bản Lề ABF! Hãy kích chọn Tấm Cửa -> sau đó kích chọn Tấm Hông Tủ.", "success");
         } else {
           this.showMiniToast("Tính năng tương tác 3D chỉ hoạt động bên trong SketchUp", "warning");
         }
@@ -1669,6 +1694,119 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       this.recalculateCAM();
     });
 
+    // 3b. Cụm 4 bước quy trình ABF chuẩn mộc: Gắn nhãn, Đổi mặt, Chiều vân, Nesting
+    document.getElementById('dock-btn-cnc-label')?.addEventListener('click', () => {
+      this.triggerCncAutoLabel();
+    });
+    document.getElementById('dock-btn-cnc-flip-face')?.addEventListener('click', () => {
+      this.triggerCncFlipFace();
+    });
+    document.getElementById('dock-btn-cnc-grain')?.addEventListener('click', () => {
+      this.triggerCncToggleGrain();
+    });
+    document.getElementById('dock-btn-cnc-nest-step')?.addEventListener('click', () => {
+      this.nestToSketchUpDirectly();
+    });
+
+    // Mở Bảng Cấu Hình Nhãn & Chiều Vân Chuẩn ABF
+    document.getElementById('dock-btn-open-label-studio')?.addEventListener('click', () => {
+      this.openLabelStudioModal();
+    });
+
+    // Mở Cửa Sổ Đổi Tên Chuẩn ABF (Rename Dialog)
+    document.getElementById('dock-btn-open-rename-dialog')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.open_rename_dialog) {
+        window.sketchup.open_rename_dialog();
+      }
+    });
+
+    // Mở Cửa Sổ In Tem Nhãn Chuẩn ABF (Hỗ Trợ Cả Gọi Trực Tiếp & Dispatch)
+    const openPrintLabelsSafe = () => {
+      if (this.isSketchUpAvailable && window.sketchup) {
+        if (window.sketchup.open_print_labels_dialog) {
+          window.sketchup.open_print_labels_dialog();
+        } else if (window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({ action: 'open_print_labels_dialog', data: {} }));
+        }
+      } else {
+        window.open('print_labels.html', '_blank', 'width=980,height=680');
+      }
+    };
+    document.getElementById('dock-btn-cnc-print-labels')?.addEventListener('click', openPrintLabelsSafe);
+    document.getElementById('dock-btn-open-print-labels-mini')?.addEventListener('click', openPrintLabelsSafe);
+    document.getElementById('dock-btn-print-labels')?.addEventListener('click', openPrintLabelsSafe);
+
+    // Mở Cửa Sổ Bung Nổ Mô Hình / Sơ Đồ Lắp Ráp (Exploded View Chuẩn ABF)
+    const openExplodedViewSafe = () => {
+      if (this.isSketchUpAvailable && window.sketchup) {
+        if (window.sketchup.open_exploded_view) {
+          window.sketchup.open_exploded_view();
+        } else if (window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({ action: 'open_exploded_view', data: {} }));
+        }
+      } else {
+        window.open('exploded_view_hud.html', '_blank', 'width=260,height=250');
+      }
+    };
+    document.getElementById('dock-btn-exploded-view')?.addEventListener('click', openExplodedViewSafe);
+
+            // Kích hoạt công cụ Chỉ Dán Cạnh (Chuẩn ABF)
+    document.getElementById('dock-btn-activate-edge-band-tool')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.activate_edge_banding_tool) {
+        window.sketchup.activate_edge_banding_tool();
+      } else if (this.isSketchUpAvailable && window.sketchup && window.sketchup.dispatch) {
+        window.sketchup.dispatch(JSON.stringify({ action: 'activate_edge_banding_tool', data: {} }));
+      }
+      const st = document.getElementById('dock-cnc-abf-status');
+      if (st) st.innerText = '🎨 Đã bật Chỉ dán cạnh: Kích chọn tấm ván viền xanh, chọn cạnh dán chỉ.';
+    });
+
+    // Mở Bảng Cài Đặt Dán Chỉ Cạnh (Chuẩn ABF)
+    document.getElementById('dock-btn-open-edge-band-dialog')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.open_edge_banding_dialog) {
+        window.sketchup.open_edge_banding_dialog();
+      } else if (this.isSketchUpAvailable && window.sketchup && window.sketchup.dispatch) {
+        window.sketchup.dispatch(JSON.stringify({ action: 'open_edge_banding_dialog', data: {} }));
+      }
+    });
+
+    // Kích hoạt công cụ Di Chuyển Chùm Điểm (Chuẩn ABF)
+    document.getElementById('dock-btn-activate-stretch-tool')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.activate_stretch_tool) {
+        window.sketchup.activate_stretch_tool();
+      } else if (this.isSketchUpAvailable && window.sketchup && window.sketchup.dispatch) {
+        window.sketchup.dispatch(JSON.stringify({ action: 'activate_stretch_tool', data: {} }));
+      }
+      const st = document.getElementById('dock-cnc-abf-status');
+      if (st) st.innerText = '🎯 Đã bật Di chuyển chùm điểm: Kéo chuột quét đỉnh trên màn hình SU.';
+    });
+
+    // Mở Bảng Thống Kê & Dự Toán Chuẩn ABF (Report Dialog)
+    document.getElementById('dock-btn-open-report-dialog')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.open_report_dialog) {
+        window.sketchup.open_report_dialog();
+      }
+    });
+
+    // Chọn nhanh góc xoay vân chuẩn ABF trên Dock Tray
+    document.querySelectorAll('.btn-dock-grain-quick').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const angle = parseFloat(btn.getAttribute('data-angle') || '0');
+        this.setGrainAngle(angle);
+        if (this.isSketchUpAvailable && window.sketchup && window.sketchup.set_grain_angle) {
+          window.sketchup.set_grain_angle(JSON.stringify({ angle: angle, selection_only: true }));
+        }
+      });
+    });
+
+    const openGrainPaletteFn = () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.open_grain_palette) {
+        window.sketchup.open_grain_palette();
+      }
+    };
+    document.getElementById('btn-dock-open-grain-palette')?.addEventListener('click', openGrainPaletteFn);
+    document.getElementById('btn-modal-open-grain-palette')?.addEventListener('click', openGrainPaletteFn);
+
     // 4. LỰA CHỌN B: TRẢI PHẲNG TRỰC TIẾP TRÊN SU (ONE CLICK CABINET STYLE)
     document.getElementById('dock-btn-nest-to-su')?.addEventListener('click', () => {
       this.nestToSketchUpDirectly();
@@ -2031,10 +2169,502 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
   }
 
   // --- LỰA CHỌN B: TRẢI PHẲNG VÁN TRỰC TIẾP TRÊN SKETCHUP (ONE CLICK STYLE) ---
+  triggerCncAutoLabel() {
+    const statusEl = document.getElementById('dock-cnc-abf-status');
+    if (statusEl) statusEl.textContent = '⏳ Đang quét mô hình và gắn nhãn P01, P02...';
+    this.showMiniToast('Đang quét và gắn nhãn chi tiết tấm ván...', 'info');
+
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.cnc_auto_label) {
+      window.sketchup.cnc_auto_label(JSON.stringify({ selection_only: false }));
+    } else {
+      setTimeout(() => {
+        if (statusEl) statusEl.textContent = '✅ Đã gắn nhãn P01, P02... (Trình duyệt)';
+        this.showMiniToast('Đã gắn nhãn thành công cho các tấm ván!', 'success');
+        if (this.avatar) {
+          this.avatar.setEmotion('happy');
+          this.avatar.addMessage('bot', 'Anh Huy ơi! Em đã gắn nhãn mã số P01, P02... kèm kích thước chuẩn mộc cho các tấm ván rồi nhé! 🏷️');
+        }
+      }, 500);
+    }
+  }
+
+  triggerCncFlipFace() {
+    const statusEl = document.getElementById('dock-cnc-abf-status');
+    if (statusEl) statusEl.textContent = '⏳ Đang đổi mặt gia công...';
+
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.cnc_flip_face) {
+      window.sketchup.cnc_flip_face(JSON.stringify({}));
+    } else {
+      setTimeout(() => {
+        if (statusEl) statusEl.textContent = '🔄 Đã đổi mặt gia công (Mặt trên ⤴)';
+        this.showMiniToast('Đã đổi mặt gia công CNC thành công!', 'success');
+        if (this.avatar) {
+          this.avatar.addMessage('bot', 'Em đã lật mặt gia công (khoan cam / phay rãnh) ngửa lên trên cho máy CNC Router rồi anh Huy nhé! 🔄');
+        }
+      }, 400);
+    }
+  }
+
+  triggerCncToggleGrain() {
+    const statusEl = document.getElementById('dock-cnc-abf-status');
+    if (statusEl) statusEl.textContent = '⏳ Đang chuyển chiều vân gỗ...';
+
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.cnc_toggle_grain) {
+      window.sketchup.cnc_toggle_grain(JSON.stringify({}));
+    } else {
+      setTimeout(() => {
+        if (statusEl) statusEl.textContent = '🪵 Chiều vân: ↕ Vân Dọc (Theo chiều dài)';
+        this.showMiniToast('Đã chuyển chiều vân gỗ!', 'success');
+        if (this.avatar) {
+          this.avatar.addMessage('bot', 'Đã chuyển chiều vân gỗ sang Vân Dọc (khóa xoay khi Nesting) rồi anh Huy nhé! 🪵');
+        }
+      }, 400);
+    }
+  }
+
+
+  // ===========================================================================
+  // BẢNG THÔNG SỐ TIẾT DIỆN GIAO NHAU (CHUẨN ABF CNC)
+  // ===========================================================================
+  initIntersectStudio() {
+    this.intersectPresets = [];
+    this.activeIntersectPresetId = 'ngam_mong_x3';
+
+    // 1. Mở & Đóng Modal
+    document.getElementById('dock-btn-open-intersect-modal')?.addEventListener('click', () => {
+      this.openIntersectStudioModal();
+    });
+
+    document.getElementById('btn-close-intersect-modal')?.addEventListener('click', () => {
+      this.closeIntersectStudioModal();
+    });
+
+    const modalEl = document.getElementById('modal-intersect-settings');
+    modalEl?.addEventListener('click', (e) => {
+      if (e.target === modalEl) this.closeIntersectStudioModal();
+    });
+
+    // 2. Tạo rãnh tiết diện ngàm cho tấm đang chọn (1-Click như nút [+] ABF)
+    document.getElementById('dock-btn-apply-intersect-sel')?.addEventListener('click', () => {
+      this.executeApplyIntersection();
+    });
+
+    document.getElementById('btn-modal-apply-intersect')?.addEventListener('click', () => {
+      this.executeApplyIntersection();
+    });
+
+    // 3. Kích hoạt công cụ tương tác click 3D
+    document.getElementById('dock-btn-activate-intersect-tool')?.addEventListener('click', () => {
+      this.executeActivateIntersectTool();
+    });
+
+    document.getElementById('btn-modal-activate-tool')?.addEventListener('click', () => {
+      this.executeActivateIntersectTool();
+    });
+
+    // 4. Xóa rãnh tiết diện
+    document.getElementById('dock-btn-clear-intersections')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.clear_intersections) {
+        window.sketchup.clear_intersections();
+      } else {
+        this.showMiniToast('Đã xóa tất cả rãnh tiết diện giao nhau trên mô hình!', 'info');
+      }
+    });
+
+    // 5. Lưu mẫu đang chọn
+    document.getElementById('btn-modal-save-preset')?.addEventListener('click', () => {
+      this.saveCurrentIntersectPreset();
+    });
+
+    // 6. Tạo mới mẫu
+    document.getElementById('btn-new-intersect-preset')?.addEventListener('click', () => {
+      this.createNewIntersectPreset();
+    });
+
+    // 7. Xóa mẫu
+    document.getElementById('btn-del-intersect-preset')?.addEventListener('click', () => {
+      this.deleteCurrentIntersectPreset();
+    });
+
+    // Nạp sẵn preset khi khởi chạy
+    setTimeout(() => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.get_intersect_presets) {
+        window.sketchup.get_intersect_presets();
+      }
+    }, 1500);
+  }
+
+  openIntersectStudioModal() {
+    const modal = document.getElementById('modal-intersect-settings');
+    if (modal) modal.style.display = 'flex';
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.get_intersect_presets) {
+      window.sketchup.get_intersect_presets();
+    }
+  }
+
+  closeIntersectStudioModal() {
+    const modal = document.getElementById('modal-intersect-settings');
+    if (modal) modal.style.display = 'none';
+  }
+
+  populateIntersectPresets(data) {
+    if (!data) return;
+    this.intersectPresets = data.presets || [];
+    const active = data.active || (this.intersectPresets[0] || {});
+    this.activeIntersectPresetId = active.id || 'ngam_mong_x3';
+
+    // Cập nhật Badge trên dock
+    const badgeEl = document.getElementById('dock-intersect-active-badge');
+    if (badgeEl && active.name) {
+      badgeEl.textContent = active.name;
+    }
+
+    // Render danh sách presets cột trái
+    const listContainer = document.getElementById('intersect-preset-list');
+    if (listContainer) {
+      listContainer.innerHTML = '';
+      this.intersectPresets.forEach((p) => {
+        const isSelected = p.id === this.activeIntersectPresetId;
+        const item = document.createElement('div');
+        item.style.padding = '5px 8px';
+        item.style.fontSize = '10.5px';
+        item.style.borderRadius = '4px';
+        item.style.cursor = 'pointer';
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '6px';
+        item.style.background = isSelected ? '#0284c7' : '#1e293b';
+        item.style.color = isSelected ? '#fff' : '#cbd5e1';
+        item.style.fontWeight = isSelected ? 'bold' : 'normal';
+        item.style.border = isSelected ? '1px solid #38bdf8' : '1px solid #334155';
+
+        const dot = document.createElement('span');
+        dot.textContent = isSelected ? '✔' : '•';
+        dot.style.color = isSelected ? '#fde68a' : '#94a3b8';
+        dot.style.fontSize = '11px';
+
+        const title = document.createElement('span');
+        title.textContent = p.name;
+        title.style.flex = '1';
+        title.style.overflow = 'hidden';
+        title.style.textOverflow = 'ellipsis';
+        title.style.whiteSpace = 'nowrap';
+
+        item.appendChild(dot);
+        item.appendChild(title);
+
+        item.addEventListener('click', () => {
+          this.selectIntersectPreset(p.id);
+        });
+
+        listContainer.appendChild(item);
+      });
+    }
+
+    // Điền form bên phải
+    this.fillIntersectForm(active);
+  }
+
+  selectIntersectPreset(presetId) {
+    this.activeIntersectPresetId = presetId;
+    const found = this.intersectPresets.find((p) => p.id === presetId);
+    if (found) {
+      this.populateIntersectPresets({ presets: this.intersectPresets, active: found });
+    }
+  }
+
+  fillIntersectForm(preset) {
+    if (!preset) return;
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+    const setCheck = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = !!val;
+    };
+
+    setVal('cfg-intersect-layer', preset.layer || 'QH_NGAM_MONG_X3');
+    setCheck('cfg-intersect-is-default', preset.is_default);
+    setCheck('cfg-intersect-create-line', preset.create_line);
+    setCheck('cfg-intersect-use-extend', (preset.extend_x ?? 3.5) > 0);
+    setVal('cfg-intersect-extend-x', preset.extend_x ?? 3.5);
+    setVal('cfg-intersect-offset', preset.offset ?? 0.3);
+    setVal('cfg-intersect-depth', preset.depth ?? 8.0);
+    setVal('cfg-intersect-tbone-len', preset.t_bone_len ?? 0.0);
+    setVal('cfg-intersect-tbone-w', preset.t_bone_w ?? 0.0);
+    setVal('cfg-intersect-dogbone', preset.dog_bone ?? 0.0);
+  }
+
+  collectCurrentIntersectConfig() {
+    const useExtend = document.getElementById('cfg-intersect-use-extend')?.checked ?? true;
+    const extendVal = useExtend ? parseFloat(document.getElementById('cfg-intersect-extend-x')?.value || '3.5') : 0.0;
+    return {
+      layer: document.getElementById('cfg-intersect-layer')?.value || 'QH_NGAM_MONG_X3',
+      is_default: document.getElementById('cfg-intersect-is-default')?.checked ?? false,
+      create_line: document.getElementById('cfg-intersect-create-line')?.checked ?? false,
+      extend_x: extendVal,
+      offset: parseFloat(document.getElementById('cfg-intersect-offset')?.value || '0.3'),
+      depth: parseFloat(document.getElementById('cfg-intersect-depth')?.value || '8.0'),
+      t_bone_len: parseFloat(document.getElementById('cfg-intersect-tbone-len')?.value || '0.0'),
+      t_bone_w: parseFloat(document.getElementById('cfg-intersect-tbone-w')?.value || '0.0'),
+      dog_bone: parseFloat(document.getElementById('cfg-intersect-dogbone')?.value || '0.0')
+    };
+  }
+
+  executeApplyIntersection() {
+    const config = this.collectCurrentIntersectConfig();
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.apply_intersection) {
+      this.showMiniToast('Đang tính toán và tạo rãnh tiết diện ngàm cho tấm được chọn...', 'info');
+      window.sketchup.apply_intersection(JSON.stringify(config));
+    } else {
+      this.showMiniToast(`[Demo] Đã tạo rãnh tiết diện ngàm (Kéo dài ${config.extend_x}mm, Hở ${config.offset}mm, Sâu ${config.depth}mm)!`, 'success');
+    }
+  }
+
+  executeActivateIntersectTool() {
+    const config = this.collectCurrentIntersectConfig();
+    this.closeIntersectStudioModal();
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.activate_intersect_tool) {
+      window.sketchup.activate_intersect_tool(JSON.stringify(config));
+    } else {
+      this.showMiniToast('Đã kích hoạt Công Cụ Tiết Diện Giao Nhau (Click 3D)! Mời anh Huy click chọn tấm trên SketchUp.', 'info');
+    }
+  }
+
+  saveCurrentIntersectPreset() {
+    const currentConfig = this.collectCurrentIntersectConfig();
+    const curPreset = this.intersectPresets.find((p) => p.id === this.activeIntersectPresetId);
+    if (curPreset) {
+      Object.assign(curPreset, currentConfig);
+    }
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.save_intersect_presets) {
+      window.sketchup.save_intersect_presets(JSON.stringify({
+        presets: this.intersectPresets,
+        active_id: this.activeIntersectPresetId
+      }));
+    } else {
+      this.showMiniToast('Đã lưu cấu hình mẫu tiết diện thành công!', 'success');
+    }
+  }
+
+  createNewIntersectPreset() {
+    const name = prompt('Nhập tên mẫu rãnh ngàm mới:', 'Rãnh Ngàm Mới');
+    if (!name || !name.trim()) return;
+    const newId = 'preset_' + Date.now();
+    const newP = {
+      id: newId,
+      name: name.trim(),
+      layer: 'QH_NGAM_' + (this.intersectPresets.length + 1),
+      is_default: false,
+      create_line: false,
+      extend_x: 3.5,
+      offset: 0.3,
+      depth: 8.0,
+      t_bone_len: 0.0,
+      t_bone_w: 0.0,
+      dog_bone: 0.0,
+      stat: true,
+      price: ''
+    };
+    this.intersectPresets.push(newP);
+    this.selectIntersectPreset(newId);
+    this.saveCurrentIntersectPreset();
+  }
+
+  deleteCurrentIntersectPreset() {
+    if (this.intersectPresets.length <= 1) {
+      alert('Không thể xóa mẫu cuối cùng!');
+      return;
+    }
+    if (!confirm('Anh Huy có chắc muốn xóa mẫu này không?')) return;
+    this.intersectPresets = this.intersectPresets.filter((p) => p.id !== this.activeIntersectPresetId);
+    this.activeIntersectPresetId = this.intersectPresets[0].id;
+    this.saveCurrentIntersectPreset();
+  }
+
+  // ===========================================================================
+  // BẢNG ĐIỀU KHIỂN CẤU HÌNH NHÃN VÁN & CHIỀU VÂN GỖ (CHUẨN ABF)
+  // ===========================================================================
+  initLabelStudio() {
+    this.currentGrainAngle = 0;
+
+    // Đóng Modal
+    document.getElementById('btn-close-label-modal')?.addEventListener('click', () => {
+      this.closeLabelStudioModal();
+    });
+
+    const modalEl = document.getElementById('modal-label-settings');
+    modalEl?.addEventListener('click', (e) => {
+      if (e.target === modalEl) this.closeLabelStudioModal();
+    });
+
+    // Nút chọn góc xoay nhanh (Thiết lập góc tuyệt đối chuẩn ABF)
+    document.querySelectorAll('.btn-grain-angle').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const angle = parseFloat(btn.getAttribute('data-angle') || '0');
+        this.setGrainAngle(angle);
+        // Tự động kích hoạt đặt góc tức thì cho ván đang chọn
+        if (this.isSketchUpAvailable && window.sketchup && window.sketchup.set_grain_angle) {
+          window.sketchup.set_grain_angle(JSON.stringify({ angle: angle, selection_only: true }));
+        } else if (this.isSketchUpAvailable && window.sketchup && window.sketchup.rotate_grain_angle) {
+          window.sketchup.rotate_grain_angle(JSON.stringify({ angle: angle, selection_only: true }));
+        }
+      });
+    });
+
+    // Nút cộng/trừ 15 độ
+    document.getElementById('btn-grain-step-plus')?.addEventListener('click', () => {
+      const nextAngle = (this.currentGrainAngle + 15) % 360;
+      this.setGrainAngle(nextAngle);
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.rotate_grain_angle) {
+        window.sketchup.rotate_grain_angle(JSON.stringify({ angle: 15, selection_only: true }));
+      }
+    });
+
+    document.getElementById('btn-grain-step-minus')?.addEventListener('click', () => {
+      const nextAngle = (this.currentGrainAngle - 15 + 360) % 360;
+      this.setGrainAngle(nextAngle);
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.rotate_grain_angle) {
+        window.sketchup.rotate_grain_angle(JSON.stringify({ angle: -15, selection_only: true }));
+      }
+    });
+
+    // Dán nhãn ván đang chọn
+    document.getElementById('btn-apply-labels-selected')?.addEventListener('click', () => {
+      this.executeApplyLabels(true);
+    });
+
+    // Dán nhãn toàn bộ
+    document.getElementById('btn-apply-labels-all')?.addEventListener('click', () => {
+      this.executeApplyLabels(false);
+    });
+
+    // Xóa tất cả nhãn 3D
+    document.getElementById('btn-clear-labels-all')?.addEventListener('click', () => {
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.clear_abf_labels) {
+        window.sketchup.clear_abf_labels();
+      } else {
+        this.showMiniToast('Đã xóa tất cả nhãn 3D trên mô hình!', 'info');
+      }
+    });
+
+    // Lưu cấu hình
+    document.getElementById('btn-save-label-settings')?.addEventListener('click', () => {
+      const cfg = this.collectLabelConfig();
+      if (this.isSketchUpAvailable && window.sketchup && window.sketchup.save_label_config) {
+        window.sketchup.save_label_config(JSON.stringify(cfg));
+      } else {
+        this.showMiniToast('Đã lưu cấu hình nhãn mặc định!', 'success');
+      }
+    });
+  }
+
+  openLabelStudioModal() {
+    const modal = document.getElementById('modal-label-settings');
+    if (modal) modal.style.display = 'flex';
+    // Yêu cầu nạp cấu hình hiện tại từ Ruby
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.get_label_config) {
+      window.sketchup.get_label_config();
+    }
+  }
+
+  closeLabelStudioModal() {
+    const modal = document.getElementById('modal-label-settings');
+    if (modal) modal.style.display = 'none';
+  }
+
+  setGrainAngle(angle) {
+    this.currentGrainAngle = angle;
+    const dispEl = document.getElementById('cfg-display-angle');
+    if (dispEl) {
+      let desc = `${angle}°`;
+      if (angle === 0) desc = '0° (↕ Vân Dọc)';
+      else if (angle === 90) desc = '90° (↔ Vân Ngang)';
+      dispEl.textContent = desc;
+    }
+
+    // Đổi style active nút
+    document.querySelectorAll('.btn-grain-angle').forEach((b) => {
+      const bAngle = parseFloat(b.getAttribute('data-angle') || '0');
+      if (bAngle === angle) {
+        b.style.borderColor = '#38bdf8';
+        b.style.color = '#7dd3fc';
+        b.style.fontWeight = 'bold';
+      } else {
+        b.style.borderColor = '#64748b';
+        b.style.color = '#cbd5e1';
+        b.style.fontWeight = 'normal';
+      }
+    });
+  }
+
+  collectLabelConfig() {
+    return {
+      show_id: document.getElementById('cfg-label-show-id')?.checked ?? true,
+      show_name: document.getElementById('cfg-label-show-name')?.checked ?? true,
+      show_grain: document.getElementById('cfg-label-show-grain')?.checked ?? true,
+      show_brand: document.getElementById('cfg-label-show-brand')?.checked ?? true,
+      brand_text: document.getElementById('cfg-label-brand-text')?.value || 'NOI THAT CHILL CHILL DECOR',
+      max_size: parseFloat(document.getElementById('cfg-label-max-size')?.value || '80'),
+      font_size: parseFloat(document.getElementById('cfg-label-font-size')?.value || '20'),
+      grain_angle: this.currentGrainAngle || 0,
+      grain_mode: this.currentGrainAngle === 90 ? 'width' : (this.currentGrainAngle === 0 ? 'length' : 'custom')
+    };
+  }
+
+  populateLabelConfig(cfg) {
+    if (!cfg) return;
+    if (document.getElementById('cfg-label-show-id')) {
+      document.getElementById('cfg-label-show-id').checked = cfg.show_id !== false;
+    }
+    if (document.getElementById('cfg-label-show-name')) {
+      document.getElementById('cfg-label-show-name').checked = cfg.show_name !== false;
+    }
+    if (document.getElementById('cfg-label-show-grain')) {
+      document.getElementById('cfg-label-show-grain').checked = cfg.show_grain !== false;
+    }
+    if (document.getElementById('cfg-label-show-brand')) {
+      document.getElementById('cfg-label-show-brand').checked = cfg.show_brand !== false;
+    }
+    if (document.getElementById('cfg-label-brand-text') && cfg.brand_text) {
+      document.getElementById('cfg-label-brand-text').value = cfg.brand_text;
+    }
+    if (document.getElementById('cfg-label-max-size') && cfg.max_size) {
+      document.getElementById('cfg-label-max-size').value = cfg.max_size;
+    }
+    if (document.getElementById('cfg-label-font-size') && cfg.font_size) {
+      document.getElementById('cfg-label-font-size').value = cfg.font_size;
+    }
+    if (typeof cfg.grain_angle === 'number') {
+      this.setGrainAngle(cfg.grain_angle);
+    }
+  }
+
+  executeApplyLabels(selectionOnly = false) {
+    const cfg = this.collectLabelConfig();
+    const statusEl = document.getElementById('dock-cnc-abf-status');
+    if (statusEl) statusEl.textContent = '⏳ Đang vẽ nhãn 3D dính trên mặt ván...';
+    this.showMiniToast('Đang tạo cụm nhãn và mũi tên chiều vân...', 'info');
+
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.apply_abf_labels) {
+      window.sketchup.apply_abf_labels(JSON.stringify({ selection_only: selectionOnly, config: cfg }));
+    } else {
+      setTimeout(() => {
+        if (statusEl) statusEl.textContent = '✅ Đã dán nhãn chuẩn ABF (Mô phỏng trình duyệt)';
+        this.showMiniToast('Đã dán nhãn thành công!', 'success');
+        if (this.avatar) {
+          this.avatar.setEmotion('happy');
+          this.avatar.addMessage('bot', `Anh Huy ơi! Em đã tạo cụm nhãn hình thoi, mũi tên chiều vân gỗ và thương hiệu "${cfg.brand_text}" dính chặt trên mặt ván rồi nhé! 🏷️`);
+        }
+      }, 500);
+    }
+  }
+
   nestToSketchUpDirectly() {
     const camRequest = this.getCamRequest();
     if (this.isSketchUpAvailable && window.sketchup && window.sketchup.nest_to_sketchup) {
-      this.showMiniToast("Đang bóc tách và trải phẳng các tấm ván ra mặt bàn SketchUp...", "info");
+      this.showMiniToast("Đang bóc tách và trải phẳng tấm ván ra mặt bàn SketchUp (Chuẩn ABF)...", "info");
       window.sketchup.nest_to_sketchup(JSON.stringify(camRequest));
     } else {
       this.recalculateCAM();
@@ -4280,7 +4910,43 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       this.showMiniToast(`Đang chuyển đổi ${targetName} thành Dynamic Component...`, 'info');
     });
 
-    // 3. Nút Đồng Bộ SketchUp
+    // =========================================================================
+    // HÀM GỬI LỆNH AN TOÀN TUYỆT ĐỐI VỀ SKETCHUP RUBY QUA DISPATCH
+    // =========================================================================
+    const sendToRubySafe = function(action, data) {
+      console.log('[Chill AI Bridge] Gửi lệnh:', action, data);
+      if (window.sketchup) {
+        if (window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({ action: action, data: data || {} }));
+        } else if (window.sketchup[action]) {
+          window.sketchup[action](JSON.stringify(data || {}));
+        }
+      }
+    };
+
+    const openPrintLabelsHandler = function() {
+      console.log('[Chill AI] Mở Cửa Sổ In Tem Nhãn Chuẩn ABF');
+      sendToRubySafe('open_print_labels_dialog', {});
+    };
+
+    // Gắn sự kiện mở Cửa Sổ In Tem Nhãn cho cả 3 nút (Nút to trong tab CNC, nút mini và nút footer)
+    document.getElementById('dock-btn-cnc-print-labels')?.addEventListener('click', openPrintLabelsHandler);
+    document.getElementById('dock-btn-open-print-labels-mini')?.addEventListener('click', openPrintLabelsHandler);
+    document.getElementById('dock-btn-print-labels')?.addEventListener('click', openPrintLabelsHandler);
+
+    // Nút thu gọn kích thước khay đứng 320px chống phình ngang
+    document.getElementById('dock-btn-snap-dock')?.addEventListener('click', () => {
+      document.body.classList.remove('studio-mode');
+      document.body.classList.add('dock-mode');
+      localStorage.setItem('chill_layout_mode', 'dock');
+      sendToRubySafe('snap_dock', {});
+    });
+
+    // Tự động ép co lại chuẩn 320px ngay khi khởi động
+    setTimeout(() => {
+      sendToRubySafe('snap_dock', {});
+    }, 400);
+
     document.getElementById('dock-btn-refresh-selection')?.addEventListener('click', () => {
       if (window.sketchup && window.sketchup.get_current_selection) {
         window.sketchup.get_current_selection();
@@ -4391,7 +5057,18 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       this.switchDockTab('dock-pane-shopee');
     });
     document.getElementById('dock-btn-footer-nest')?.addEventListener('click', () => {
-      this.nestToSketchUpDirectly();
+      const activePane = document.querySelector('.dock-workspace-pane.active');
+      if (activePane && activePane.id === 'dock-pane-dc') {
+        if (window.sketchup && window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({
+            action: 'activate_flatten_tool',
+            data: {}
+          }));
+        }
+        this.showMiniToast('🎯 Đã bật công cụ 3D: Rê chuột chọn mặt ván bo cong để trải phẳng!', 'success', 3000);
+      } else {
+        this.nestToSketchUpDirectly();
+      }
     });
     document.getElementById('dock-btn-footer-shopee')?.addEventListener('click', () => {
       this.switchDockTab('dock-pane-shopee');
@@ -4757,6 +5434,91 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       });
     }
   }
+
+  // ==============================================================================
+  // 🌟 KHỞI TẠO BỘ ĐIỀU KHIỂN UỐN CONG & TRẢI PHẲNG (FLATTEN FACE - CHUẨN UNITOOL)
+  // ==============================================================================
+  initFlattenFaceControls() {
+    let currentSide = 'inside';
+
+    const btnSideInside = document.getElementById('dock-btn-side-inside');
+    const btnSideOutside = document.getElementById('dock-btn-side-outside');
+    const btnActivate = document.getElementById('dock-btn-activate-flatten-tool');
+    const btnOpenDialog = document.getElementById('dock-btn-open-flatten-dialog');
+    const btnFlattenSelected = document.getElementById('dock-btn-flatten-selected');
+
+    if (btnSideInside && btnSideOutside) {
+      btnSideInside.addEventListener('click', () => {
+        btnSideInside.style.background = '#0891b2';
+        btnSideInside.style.borderColor = '#22d3ee';
+        btnSideInside.style.color = '#ffffff';
+
+        btnSideOutside.style.background = '#0f172a';
+        btnSideOutside.style.borderColor = '#334155';
+        btnSideOutside.style.color = '#94a3b8';
+        currentSide = 'inside';
+        this.showMiniToast('Đã chọn Mặt Trong (Lõm) - Giấu rãnh vào lòng tủ', 'info', 2000);
+      });
+
+      btnSideOutside.addEventListener('click', () => {
+        btnSideOutside.style.background = '#06b6d4';
+        btnSideOutside.style.borderColor = '#22d3ee';
+        btnSideOutside.style.color = '#ffffff';
+
+        btnSideInside.style.background = '#0f172a';
+        btnSideInside.style.borderColor = '#334155';
+        btnSideInside.style.color = '#94a3b8';
+        currentSide = 'outside';
+        this.showMiniToast('Đã chọn Mặt Ngoài (Lồi) - Phay rãnh mặt ngoài tạo lam sóng', 'info', 2000);
+      });
+    }
+
+    // 1. Kích hoạt công cụ 3D Trải Phẳng (Click 3D)
+    if (btnActivate) {
+      btnActivate.addEventListener('click', () => {
+        if (window.sketchup && window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({
+            action: 'activate_flatten_tool',
+            data: { bend_side: currentSide }
+          }));
+        }
+        this.showMiniToast('🎯 Đã bật công cụ 3D: Rê chuột chọn mặt cong để trải phẳng!', 'success', 3000);
+      });
+    }
+
+    // 2. Mở Bảng Cài Đặt Thông Số (Ảnh 2)
+    if (btnOpenDialog) {
+      btnOpenDialog.addEventListener('click', () => {
+        if (window.sketchup && window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({
+            action: 'open_flatten_dialog',
+            data: {}
+          }));
+        }
+      });
+    }
+
+    // 3. Trải phẳng nhanh tấm ván đang chọn
+    if (btnFlattenSelected) {
+      btnFlattenSelected.addEventListener('click', () => {
+        if (window.sketchup && window.sketchup.dispatch) {
+          window.sketchup.dispatch(JSON.stringify({
+            action: 'apply_flatten_panel',
+            data: { bend_side: currentSide }
+          }));
+        }
+      });
+    }
+
+    // Lắng nghe callback hoàn thành trải phẳng
+    window.ChillAI = window.ChillAI || {};
+    window.ChillAI.onFlattenCompleted = (res) => {
+      if (res && res.status === 'success') {
+        this.showDockNotification(res.message, 'success');
+        this.showMiniToast('✅ ' + res.message, 'success', 4000);
+      }
+    };
+  }
 }
 
 // Instantiate on DOM Loaded
@@ -4764,3 +5526,66 @@ window.ChillAIApp = ChillAIApp;
 document.addEventListener('DOMContentLoaded', () => {
   window.app = new ChillAIApp();
 });
+
+
+// Callback nhận phản hồi từ SketchUp Ruby cho quy trình 4 bước ABF
+window.onCncActionCompleted = function(action, data) {
+  const statusEl = document.getElementById('dock-cnc-abf-status');
+  const theApp = window.app;
+  if (data && data.status === 'success') {
+    if (statusEl) statusEl.textContent = '✅ ' + (data.grain_label || data.face_label || data.message || 'Thành công');
+    if (theApp && theApp.showMiniToast) {
+      theApp.showMiniToast(data.message, 'success');
+    }
+    // Đối với các thao tác nhanh lặp đi lặp lại như Lật Mặt (flip_face) và Đổi Chiều Vân (toggle_grain):
+    // KHÔNG gọi TTS / Avatar để đảm bảo phản hồi tức thì (Instant Zero Lag):
+    if (action !== 'flip_face' && action !== 'toggle_grain') {
+      if (theApp && theApp.avatar) {
+        theApp.avatar.setEmotion('happy');
+        theApp.avatar.addMessage('bot', data.message);
+      }
+    }
+  } else if (data && data.status === 'warning') {
+    if (statusEl) statusEl.textContent = '⚠️ ' + data.message;
+    if (theApp && theApp.showMiniToast) {
+      theApp.showMiniToast(data.message, 'warning');
+    }
+    if (theApp && theApp.avatar) {
+      theApp.avatar.addMessage('bot', data.message);
+    }
+  } else if (data && data.status === 'error') {
+    if (statusEl) statusEl.textContent = '❌ ' + data.message;
+    if (theApp && theApp.showMiniToast) {
+      theApp.showMiniToast(data.message, 'error');
+    }
+  }
+};
+
+
+// Callbacks nạp và lưu cấu hình nhãn ABF
+window.onLabelConfigLoaded = function(cfg) {
+  if (window.app && window.app.populateLabelConfig) {
+    window.app.populateLabelConfig(cfg);
+  }
+};
+
+window.onLabelConfigSaved = function(cfg) {
+  if (window.app && window.app.showMiniToast) {
+    window.app.showMiniToast('Đã lưu cấu hình nhãn ABF thành công!', 'success');
+  }
+};
+
+window.onIntersectPresetsLoaded = function(data) {
+  if (window.app && window.app.populateIntersectPresets) {
+    window.app.populateIntersectPresets(data);
+  }
+};
+
+window.onIntersectPresetsSaved = function(data) {
+  if (window.app && window.app.showMiniToast) {
+    window.app.showMiniToast('Đã lưu danh sách mẫu tiết diện giao nhau thành công!', 'success');
+  }
+  if (window.app && window.app.populateIntersectPresets) {
+    window.app.populateIntersectPresets(data);
+  }
+};

@@ -1072,6 +1072,56 @@
 
           <!-- ==================== PANE 4: CỖ MÁY KẾT CẤU & DYNAMIC DC ==================== -->
           <section class="dock-workspace-pane" id="dock-pane-dc" style="display:none;">
+
+            <!-- ================================================================= -->
+            <!-- 🌟 BỘ CÔNG CỤ TRẢI PHẲNG BỀ MẶT VÁN BO CONG (FLATTEN FACE CHUẨN UNITOOL - GHIM ĐẦU TRANG) -->
+            <!-- ================================================================= -->
+            <div class="dock-cnc-section-box" style="border: 2px solid #06b6d4; background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(15, 23, 42, 0.9)); padding: 10px 8px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);">
+              <div class="cnc-section-title" style="color:#22d3ee; font-size:11.5px; font-weight:800; display:flex; justify-content:space-between; align-items:center; text-transform:uppercase; letter-spacing:0.5px;">
+                <span style="display:flex; align-items:center; gap:6px;">🌀 TRẢI PHẲNG BỀ MẶT (FLATTEN FACE)</span>
+                <span style="font-size:9px; background:linear-gradient(135deg, #0891b2, #0e7490); color:#ffffff; padding:2px 7px; border-radius:4px; font-weight:bold; border:1px solid #22d3ee;">UNITOOL CHUẨN MỘC</span>
+              </div>
+              <div style="font-size:9.5px; color:#cbd5e1; margin-top:3px; line-height:1.35;">
+                Tự động nhận diện <strong>Mặt Trước</strong> / <strong>Mặt Sau</strong> ván cong, duỗi phẳng và sẻ rãnh uốn cong CNC kèm cữ dưỡng.
+              </div>
+
+              <!-- Lựa chọn Mặt Trước / Mặt Sau -->
+              <div style="display:flex; gap:5px; margin-top:8px; align-items:center;">
+                <span style="font-size:9.5px; color:#fbbf24; font-weight:bold; white-space:nowrap;">Mặt Uốn:</span>
+                <button type="button" id="dock-btn-side-inside" class="btn-dock-side-select" style="flex:1; background:#0891b2; border:1.5px solid #22d3ee; color:#ffffff; border-radius:4px; padding:5px 2px; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Mặt Trong (Lõm) - Giấu rãnh phay vào trong lòng tủ">
+                  Mặt Trong (Lõm)
+                </button>
+                <button type="button" id="dock-btn-side-outside" class="btn-dock-side-select" style="flex:1; background:#0f172a; border:1px solid #334155; color:#94a3b8; border-radius:4px; padding:5px 2px; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Mặt Ngoài (Lồi) - Phay rãnh mặt ngoài tạo lam sóng">
+                  Mặt Ngoài (Lồi)
+                </button>
+              </div>
+
+              <!-- Nút kích hoạt 3D to nổi bật (Ảnh 1 & Ảnh 3) -->
+              <div style="margin-top:8px;">
+                <button type="button" id="dock-btn-activate-flatten-tool" class="dock-tree-action-btn pulse-btn" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); border:1.5px solid #38bdf8; color:#ffffff; font-weight:800; font-size:11px; padding:8px 4px; display:flex; align-items:center; justify-content:center; gap:6px; border-radius:6px; box-shadow:0 0 12px rgba(2, 132, 199, 0.5); cursor:pointer;" title="Kích hoạt công cụ 3D: Rê chuột lên mặt cong (nổi lưới Cyan + Hợp Lệ) và click để trải phẳng">
+                  <span style="font-size:13px;">🎯</span> 1. BẬT CÔNG CỤ TRẢI PHẲNG (CLICK 3D)
+                </button>
+              </div>
+
+              <!-- Hàng nút: Cài đặt thông số (Ảnh 2) & Trải phẳng nhanh -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:6px;">
+                <button type="button" id="dock-btn-open-flatten-dialog" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1px dashed #38bdf8; color:#7dd3fc; font-weight:bold; font-size:9.5px; padding:6px 2px; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer;" title="Mở bảng điều chỉnh thông số D, L, P, S, Cữ dưỡng (Chuẩn Ảnh 2)">
+                  <span>⚙️</span> CÀI ĐẶT THÔNG SỐ
+                </button>
+                <button type="button" id="dock-btn-flatten-selected" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1px solid #10b981; color:#6ee7b7; font-weight:bold; font-size:9.5px; padding:6px 2px; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer;" title="Trải phẳng trực tiếp tấm ván bo cong đang chọn trong mô hình">
+                  <span>⚡</span> TRẢI PHẲNG NHANH
+                </button>
+              </div>
+
+              <!-- Tóm tắt thông số nhanh -->
+              <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:9px; color:#94a3b8; background:rgba(15, 23, 42, 0.7); padding:4px 6px; border-radius:4px; border:1px solid #1e293b;">
+                <span>Dao [D]: <strong id="dock-val-d" style="color:#f59e0b;">3mm</strong></span>
+                <span>Phôi [P]: <strong id="dock-val-p" style="color:#38bdf8;">3mm</strong></span>
+                <span>Bước [S]: <strong id="dock-val-s" style="color:#ef4444;">15mm</strong></span>
+                <span>Dưỡng: <strong id="dock-val-jig" style="color:#a3e635;">50x17.5mm</strong></span>
+              </div>
+            </div>
+
             <!-- Chọn Bộ Gen Kết Cấu Xưởng (Preset Engine) -->
             <div class="dock-preset-selector-box">
               <label class="dock-preset-lbl">🧠 BỘ GEN KẾT CẤU XƯỞNG:</label>
@@ -1155,6 +1205,89 @@
 
           <!-- ==================== PANE 5: BÓC TÁCH CNC & NESTING (2 LỰA CHỌN) ==================== -->
           <section class="dock-workspace-pane" id="dock-pane-cnc" style="display:none;">
+            <!-- ================================================================= -->
+            <!-- 🌟 BỘ 4 CHỨC NĂNG CHUẨN ABF / CNC NESTING MỘC (GHIM ĐẦU TRANG) -->
+            <!-- ================================================================= -->
+            <div class="dock-cnc-section-box abf-workflow-box" style="border: 2px solid #38bdf8; background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(15, 23, 42, 0.75)); padding: 10px 8px; margin: 4px 0 10px 0; border-radius: 8px; box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);">
+              <div class="cnc-section-title" style="color:#38bdf8; font-size:11px; font-weight:800; display:flex; justify-content:space-between; align-items:center; text-transform:uppercase; letter-spacing:0.5px;">
+                <span style="display:flex; align-items:center; gap:5px;">🪵 4 BƯỚC CHUẨN ABF & CNC MỘC</span>
+                <span style="font-size:9px; background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; padding:2px 6px; border-radius:4px; font-weight:bold; border:1px solid #38bdf8;">CHUẨN XƯỞNG</span>
+              </div>
+              <div class="cnc-section-desc" style="font-size:9.5px; color:#e2e8f0; margin-top:3px; line-height:1.35;">
+                Tránh lỗi chặn Popup: <strong>Gắn nhãn</strong> ➔ <strong>Đổi mặt phay</strong> ➔ <strong>Chiều vân</strong> ➔ <strong>Nesting</strong>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">
+                <button id="dock-btn-cnc-label" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1.5px solid #38bdf8; color:#7dd3fc; font-weight:bold; font-size:10.5px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.4);" title="Bước 1: Tự động đánh số P01, P02... và nhận diện tên tấm ván">
+                  <span style="font-size:12px;">🏷️</span> 1. GẮN NHÃN
+                </button>
+                <button id="dock-btn-cnc-flip-face" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1.5px solid #c084fc; color:#e9d5ff; font-weight:bold; font-size:10.5px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.4);" title="Bước 2: Lật mặt khoan cam/phay rãnh ngửa lên trên cho máy CNC Router">
+                  <span style="font-size:12px;">🔄</span> 2. ĐỔI MẶT
+                </button>
+                <button id="dock-btn-cnc-grain" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1.5px solid #fbbf24; color:#fef08a; font-weight:bold; font-size:10.5px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.4);" title="Bước 3: Chuyển đổi chiều vân gỗ (↕ Vân Dọc / ↔ Vân Ngang / 🔄 Tự do)">
+                  <span style="font-size:12px;">🪵</span> 3. CHIỀU VÂN
+                </button>
+                <button id="dock-btn-cnc-nest-step" class="dock-tree-action-btn pulse-btn" style="background:linear-gradient(135deg, #ea580c, #c2410c); border:1.5px solid #fb923c; color:#ffffff; font-weight:bold; font-size:10.5px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:5px; box-shadow:0 0 10px rgba(234, 88, 12, 0.6);" title="Bước 4: Xếp ván tối ưu vào khổ phôi 1220x2440mm chuẩn mộc">
+                  <span style="font-size:12px;">🗂️</span> 4. NESTING
+                </button>
+              </div>
+              <!-- Hàng chọn nhanh góc xoay vân chuẩn ABF -->
+              <div style="display:flex; gap:3px; margin-top:5px; align-items:center;">
+                <span style="font-size:9.5px; color:#fbbf24; font-weight:bold; white-space:nowrap;">🪵 Vân:</span>
+                <button type="button" class="btn-dock-grain-quick" data-angle="0" style="flex:1; background:#0f172a; border:1px solid #38bdf8; color:#7dd3fc; border-radius:3px; padding:3px 0; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Vân Dọc theo chiều dài (0°)">0°</button>
+                <button type="button" class="btn-dock-grain-quick" data-angle="90" style="flex:1; background:#0f172a; border:1px solid #fbbf24; color:#fde68a; border-radius:3px; padding:3px 0; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Vân Ngang theo chiều rộng (90°)">90°</button>
+                <button type="button" class="btn-dock-grain-quick" data-angle="45" style="flex:1; background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:3px; padding:3px 0; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Xoay vân 45°">45°</button>
+                <button type="button" class="btn-dock-grain-quick" data-angle="-45" style="flex:1; background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:3px; padding:3px 0; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Xoay vân -45°">-45°</button>
+                <button type="button" id="btn-dock-open-grain-palette" style="background:linear-gradient(135deg, #d97706, #b45309); border:1px solid #fbbf24; color:#ffffff; border-radius:3px; padding:3px 6px; font-size:9.5px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:2px;" title="Mở Bảng Chọn Góc Xoay Vân Nổi Chuẩn ABF">
+                  <span>📐</span> ABF
+                </button>
+              </div>
+              <!-- NÚT IN TEM NHÃN TO NỔI BẬT CHUẨN ABF -->
+              <div style="margin-top:6px;">
+                <button id="dock-btn-cnc-print-labels" class="dock-tree-action-btn pulse-btn" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); border:1.5px solid #38bdf8; color:#ffffff; font-weight:800; font-size:10.5px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:6px; border-radius:5px; box-shadow:0 0 12px rgba(2, 132, 199, 0.6); cursor:pointer;" title="Mở Cửa Sổ In Tem Nhãn Chuẩn ABF (Khổ 60x40mm, mã QR, sơ đồ dán cạnh, in Xprinter/Gprinter & PDF)">
+                  <span style="font-size:13px;">🖨️</span> IN TEM NHÃN (CHUẨN ABF)
+                </button>
+              </div>
+              <!-- NÚT BUNG NỔ MÔ HÌNH / SƠ ĐỒ LẮP RÁP CHUẨN ABF -->
+              <div style="margin-top:5px;">
+                <button id="dock-btn-exploded-view" class="dock-tree-action-btn pulse-btn" style="width:100%; background:linear-gradient(135deg, #8b5cf6, #6d28d9); border:1.5px solid #a78bfa; color:#ffffff; font-weight:800; font-size:10.5px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:6px; border-radius:5px; box-shadow:0 0 12px rgba(139, 92, 246, 0.5); cursor:pointer;" title="Mở Sơ Đồ Bung Chi Tiết / Bản Vẽ Lắp Ráp 3D (Thanh trượt X, Y, Z, t, r chuẩn ABF)">
+                  <span style="font-size:13px;">💥</span> SƠ ĐỒ LẮP RÁP (EXPLODED VIEW)
+                </button>
+              </div>
+              <!-- Hàng 4 nút: Cấu hình nhãn - Đổi tên - Thống kê - In tem chuẩn ABF -->
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:3px; margin-top:6px;">
+                <button id="dock-btn-open-label-studio" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1px dashed #38bdf8; color:#7dd3fc; font-weight:bold; font-size:8.5px; padding:6px 1px; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:2px; cursor:pointer;" title="Mở bảng điều khiển chi tiết nhãn ván & thương hiệu (chuẩn ABF)">
+                  <span style="font-size:9px;">⚙️</span> NHÃN
+                </button>
+                <button id="dock-btn-open-rename-dialog" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1px dashed #f59e0b; color:#fde68a; font-weight:bold; font-size:8.5px; padding:6px 1px; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:2px; cursor:pointer;" title="Mở bảng đổi tên tấm ván & cụm module (chuẩn ABF)">
+                  <span style="font-size:9px;">🏷️</span> ĐỔI TÊN
+                </button>
+                <button id="dock-btn-open-report-dialog" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0f172a, #1e293b); border:1px dashed #10b981; color:#6ee7b7; font-weight:bold; font-size:8.5px; padding:6px 1px; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:2px; cursor:pointer;" title="Mở Bảng Thống Kê Phụ Kiện & Cấu Kiện Ván (Chuẩn ABF)">
+                  <span style="font-size:9px;">📊</span> THỐNG KÊ
+                </button>
+                <button id="dock-btn-open-print-labels-mini" class="dock-tree-action-btn" style="background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; color:#ffffff; font-weight:bold; font-size:8.5px; padding:6px 1px; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:2px; cursor:pointer;" title="Mở Cửa Sổ In Tem Nhãn Chuẩn ABF">
+                  <span style="font-size:9px;">🖨️</span> IN TEM
+                </button>
+              </div>
+              <!-- Nút kích hoạt Di Chuyển Chùm Điểm (Chuẩn ABF) -->
+              <div style="margin-top:6px;">
+                <button id="dock-btn-activate-stretch-tool" class="dock-tree-action-btn pulse-btn" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); border:1.5px solid #38bdf8; color:#ffffff; font-weight:bold; font-size:10px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:6px; border-radius:5px; box-shadow:0 2px 8px rgba(2,132,199,0.5); cursor:pointer;" title="Kéo chuột quét chùm điểm (xuyên thấu), bấm mũi tên chọn hướng, gõ khoảng cách rồi Enter">
+                  <span style="font-size:12px;">🎯</span> DI CHUYỂN CHÙM ĐIỂM (CO GIÃN VÁN ABF)
+                </button>
+              </div>
+              <!-- Hàng 2 nút: Dán Chỉ Cạnh & Cài Đặt Chỉ Chuẩn ABF -->
+              <div style="display:flex; gap:4px; margin-top:5px;">
+                <button id="dock-btn-activate-edge-band-tool" class="dock-tree-action-btn pulse-btn" style="flex:1.3; background:linear-gradient(135deg, #10b981, #059669); border:1.5px solid #34d399; color:#ffffff; font-weight:bold; font-size:10px; padding:7px 4px; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:5px; box-shadow:0 2px 8px rgba(16,185,129,0.4); cursor:pointer;" title="Kích hoạt công cụ Chỉ Dán Cạnh: Chọn tấm ván (nổi viền xanh), chọn cạnh để dán chỉ">
+                  <span style="font-size:12px;">🎨</span> CHỈ DÁN CẠNH (ABF)
+                </button>
+                <button id="dock-btn-open-edge-band-dialog" class="dock-tree-action-btn" style="flex:0.7; background:linear-gradient(135deg, #0f172a, #1e293b); border:1px solid #64748b; color:#cbd5e1; font-weight:bold; font-size:9.5px; padding:7px 2px; display:flex; align-items:center; justify-content:center; gap:3px; border-radius:5px; cursor:pointer;" title="Mở Bảng Điều Chỉnh Thông Số Dán Chỉ Cạnh (Độ dày, màu sắc, đơn giá)">
+                  <span>⚙️</span> CÀI ĐẶT
+                </button>
+              </div>
+              <div id="dock-cnc-abf-status" style="font-size:9.5px; color:#38bdf8; margin-top:6px; background:rgba(0,0,0,0.45); border:1px solid rgba(56, 189, 248, 0.3); padding:4px 6px; border-radius:4px; text-align:center; font-weight:bold;">
+                💡 Sẵn sàng: Chọn tấm ván trong SketchUp rồi bấm nút tương ứng
+              </div>
+            </div>
+
             <div class="dock-cnc-stat-row">
               <div class="dock-cnc-pill">Số Tấm: <b id="dock-cam-sheet-count">0 tấm</b></div>
               <div class="dock-cnc-pill">Hiệu Suất: <b id="dock-cam-utilization">0%</b></div>
@@ -1195,11 +1328,41 @@
               </div>
               <div style="margin-top:6px; display:flex; gap:5px;">
                 <button id="dock-btn-activate-fitting-tool" class="dock-tree-action-btn pulse-btn" style="flex:1.2; font-size:10px; font-weight:bold; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fbbf24; color:#000; padding:6px; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Kích hoạt chế độ liên kết ngang: Kích đúp chuột trái vào tấm ván để tạo liên kết">
-                  <span>👆</span> CLICK ĐÚP VÁN 3D
+                  <span>👆</span> LIÊN KẾT NGANG 3D
                 </button>
                 <button id="dock-btn-open-fitting-studio" class="dock-tree-action-btn" style="flex:1; font-size:10px; font-weight:bold; background:linear-gradient(135deg, #1e293b, #0f172a); border:1px solid #f5a623; color:#ffd666; padding:6px; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Mở Bảng Cấu Hình Cam Chốt & Liên Kết Ngang Đa Năng">
-                  <span>⚙️</span> BẢNG THÔNG SỐ
+                  <span>⚙️</span> THÔNG SỐ
                 </button>
+              </div>
+              <div style="margin-top:5px; display:flex; gap:5px;">
+                <button id="dock-btn-activate-hinge-tool" class="dock-tree-action-btn pulse-btn" style="flex:1; font-size:10.5px; font-weight:bold; background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; color:#fff; padding:6px; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Kích hoạt công cụ khoan bản lề ABF: Kích chọn cánh cửa, sau đó kích chọn hông tủ">
+                  <span>🚪</span> KHOAN BẢN LỀ ABF (CLICK 3D)
+                </button>
+              </div>
+            </div>
+
+            <!-- CỤM TÍNH NĂNG TIẾT DIỆN GIAO NHAU (CHUẨN ABF) -->
+            <div class="dock-cnc-section-box" style="border-color:#38bdf8; background:rgba(56, 189, 248, 0.08); padding:8px; margin:6px 0;">
+              <div class="cnc-section-title" style="color:#38bdf8; font-size:10.5px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+                <span>📐 TIẾT DIỆN GIAO NHAU (ABF)</span>
+                <span id="dock-intersect-active-badge" style="font-size:9px; background:#0284c7; color:#fff; padding:1px 5px; border-radius:3px; font-weight:normal;">Ngàm Âm Dương</span>
+              </div>
+              <div class="cnc-section-desc" style="font-size:9.5px; color:#cbd5e1; margin-top:2px;">
+                Tự động tạo rãnh ngàm âm dương, rãnh hậu, rãnh cửa lùa. Kéo dài 2 đầu X=3.5mm cho dao tròn 6mm phay trọn đứt rãnh.
+              </div>
+              <div style="margin-top:6px; display:flex; gap:5px;">
+                <button id="dock-btn-apply-intersect-sel" class="dock-tree-action-btn pulse-btn" style="flex:1.2; font-size:10px; font-weight:bold; background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; color:#fff; padding:6px; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Tạo rãnh tiết diện ngàm cho tấm đang chọn (1-Click như nút [+] của ABF)">
+                  <span>➕</span> TẠO RÃNH NGÀM [+]
+                </button>
+                <button id="dock-btn-activate-intersect-tool" class="dock-tree-action-btn" style="flex:1; font-size:10px; font-weight:bold; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fbbf24; color:#000; padding:6px; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Kích hoạt công cụ click 3D: Chọn tấm cạnh rồi chọn tấm mặt">
+                  <span>👆</span> CLICK 3D
+                </button>
+                <button id="dock-btn-open-intersect-modal" class="dock-tree-action-btn" style="flex:0.8; font-size:10px; font-weight:bold; background:linear-gradient(135deg, #1e293b, #0f172a); border:1px solid #38bdf8; color:#38bdf8; padding:6px; cursor:pointer; border-radius:4px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Mở Bảng Điều Chỉnh Thông Số Tiết Diện Giao Nhau (Chuẩn ABF)">
+                  <span>⚙️</span> BẢNG MẪU
+                </button>
+              </div>
+              <div style="margin-top:4px; display:flex; justify-content:flex-end;">
+                <button id="dock-btn-clear-intersections" style="background:none; border:none; color:#94a3b8; font-size:9.5px; cursor:pointer; text-decoration:underline;">🧹 Xóa các rãnh tiết diện</button>
               </div>
             </div>
 
@@ -1430,10 +1593,13 @@
 
           <!-- HÀNG NÚT PHỤ 2 BÊN DƯỚI -->
           <div class="dock-footer-btn-row" style="display:flex; gap:3px;">
-            <button class="dock-btn-secondary-action" id="dock-btn-generate-dc" style="font-size:9.5px; padding:5px 2px;" title="Tạo Dynamic Component có thể đổi kích thước">
+            <button class="dock-btn-secondary-action" id="dock-btn-generate-dc" style="flex:1; font-size:9.5px; padding:5px 2px;" title="Tạo Dynamic Component có thể đổi kích thước">
               🪄 Dynamic DC
             </button>
-            <button class="dock-btn-secondary-action" id="dock-btn-refresh-selection" style="font-size:9.5px; padding:5px 2px;" title="Làm mới vùng chọn từ SketchUp">
+            <button class="dock-btn-secondary-action" id="dock-btn-print-labels" style="flex:1; font-size:9.5px; padding:5px 2px; background:linear-gradient(135deg, #0284c7, #0369a1); color:#ffffff; border:1px solid #38bdf8; font-weight:bold;" title="Mở bảng In Tem Nhãn chuẩn ABF (kết nối máy in Xprinter, Gprinter)">
+              🏷️ In Tem
+            </button>
+            <button class="dock-btn-secondary-action" id="dock-btn-refresh-selection" style="flex:1; font-size:9.5px; padding:5px 2px;" title="Làm mới vùng chọn từ SketchUp">
               🔄 Đồng Bộ SU
             </button>
           </div>
@@ -1731,6 +1897,301 @@
           Mở Bảng Tùy Chỉnh Thông Số Dao & Lề ➔
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL BẢNG CẤU HÌNH NHÃN VÁN & CHIỀU VÂN (CHUẨN ABF) ==================== -->
+  <div class="game-modal" id="modal-label-settings" style="display: none; z-index: 100060;">
+    <div class="modal-box" style="max-width: 440px; background: #0f172a; border: 2px solid #38bdf8; border-radius: 8px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      
+      <!-- Modal Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:10px; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:14px; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+          <span>🏷️</span> CẤU HÌNH NHÃN VÁN & CHIỀU VÂN (CHUẨN ABF)
+        </h3>
+        <button id="btn-close-label-modal" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:0 4px;" title="Đóng">✕</button>
+      </div>
+
+      <!-- Thân Modal -->
+      <div style="display:flex; flex-direction:column; gap:10px; max-height:75vh; overflow-y:auto; padding-right:4px;">
+        
+        <!-- Khối 1: Các tùy chọn hiển thị trên mặt ván (Theo đúng ảnh 3 của ABF) -->
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:6px; padding:10px;">
+          <div style="font-weight:bold; font-size:11.5px; color:#fde68a; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+            <span>📋</span> THÔNG TIN HIỂN THỊ DÍNH TRÊN MẶT VÁN:
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="cfg-label-show-id" checked style="accent-color:#38bdf8;">
+              <span><strong>ID tấm:</strong> Hiển thị hình thoi chứa số thứ tự (1, 2, 3...)</span>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="cfg-label-show-name" checked style="accent-color:#38bdf8;">
+              <span><strong>Tên tấm:</strong> Cú pháp [P01] Tên_Tấm (DxRxC mm)</span>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="cfg-label-show-grain" checked style="accent-color:#38bdf8;">
+              <span><strong>Chiều vân gỗ:</strong> Đường trục & Ký hiệu mũi tên 2 chiều (↕/↔)</span>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="cfg-label-show-brand" checked style="accent-color:#38bdf8;">
+              <span><strong>Thương hiệu:</strong> In tên xưởng/công ty lên mặt ván</span>
+            </label>
+          </div>
+
+          <!-- Ô nhập Thương hiệu xưởng -->
+          <div style="margin-top:8px; padding-top:6px; border-top:1px dashed #334155;">
+            <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">Tên thương hiệu xưởng (mặc định):</label>
+            <input type="text" id="cfg-label-brand-text" value="NOI THAT CHILL CHILL DECOR" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:6px 8px; font-size:11px; border-radius:4px; font-weight:bold;">
+          </div>
+        </div>
+
+        <!-- Khối 2: Kích thước nhãn -->
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:6px; padding:10px; display:flex; gap:10px;">
+          <div style="flex:1;">
+            <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">Kích thước tối đa (mm):</label>
+            <input type="number" id="cfg-label-max-size" value="80" min="40" max="200" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:5px 8px; font-size:11px; border-radius:4px;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:3px;">Cỡ chữ nhãn (mm):</label>
+            <input type="number" id="cfg-label-font-size" value="20" min="10" max="50" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:5px 8px; font-size:11px; border-radius:4px;">
+          </div>
+        </div>
+
+        <!-- Khối 3: Xoay Nhãn / Chiều Vân Gỗ (Chuẩn ảnh 3 của ABF) -->
+        <div style="background:#1e293b; border:1px solid #f59e0b; border-radius:6px; padding:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-weight:bold; font-size:11.5px; color:#fde68a; display:flex; align-items:center; gap:5px;">
+              <span>🪵</span> XOAY NHÃN / CHIỀU VÂN GỖ:
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <div style="font-size:10.5px; color:#38bdf8; font-weight:bold;">
+                Góc: <span id="cfg-display-angle">0° (Vân Dọc)</span>
+              </div>
+              <button type="button" id="btn-modal-open-grain-palette" style="background:linear-gradient(135deg, #d97706, #b45309); border:1px solid #fbbf24; color:#ffffff; border-radius:3px; padding:2px 6px; font-size:9.5px; font-weight:bold; cursor:pointer;" title="Mở Bảng Chọn Góc Nổi Chuẩn ABF">
+                📐 Mở Bảng ABF
+              </button>
+            </div>
+          </div>
+          
+          <div style="font-size:9.5px; color:#cbd5e1; margin-bottom:8px; line-height:1.3;">
+            Mũi tên trên 3D sẽ xoay theo góc này để quy định chiều thớ ván khi Nesting cắt CNC.
+          </div>
+
+          <!-- Lưới nút chọn góc xoay nhanh -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:5px;">
+            <button type="button" class="btn-grain-angle" data-angle="0" style="background:#0f172a; border:1.5px solid #38bdf8; color:#7dd3fc; border-radius:4px; padding:6px 2px; font-size:10px; font-weight:bold; cursor:pointer;" title="Vân chạy dọc theo chiều dài tấm ván">
+              ↕ 0° Dọc
+            </button>
+            <button type="button" class="btn-grain-angle" data-angle="90" style="background:#0f172a; border:1px solid #fbbf24; color:#fde68a; border-radius:4px; padding:6px 2px; font-size:10px; font-weight:bold; cursor:pointer;" title="Vân chạy ngang theo chiều rộng tấm ván">
+              ↔ 90° Ngang
+            </button>
+            <button type="button" class="btn-grain-angle" data-angle="45" style="background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:4px; padding:6px 2px; font-size:10px; cursor:pointer;">
+              45°
+            </button>
+            <button type="button" class="btn-grain-angle" data-angle="-45" style="background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:4px; padding:6px 2px; font-size:10px; cursor:pointer;">
+              -45°
+            </button>
+            <button type="button" class="btn-grain-angle" data-angle="30" style="background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:4px; padding:6px 2px; font-size:10px; cursor:pointer;">
+              30°
+            </button>
+            <button type="button" class="btn-grain-angle" data-angle="-30" style="background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:4px; padding:6px 2px; font-size:10px; cursor:pointer;">
+              -30°
+            </button>
+            <button type="button" class="btn-grain-angle" data-angle="60" style="background:#0f172a; border:1px solid #64748b; color:#cbd5e1; border-radius:4px; padding:6px 2px; font-size:10px; cursor:pointer;">
+              60°
+            </button>
+            <div style="display:flex; gap:2px;">
+              <button type="button" id="btn-grain-step-plus" style="flex:1; background:#0f172a; border:1px solid #10b981; color:#34d399; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;" title="Cộng thêm 15 độ">+</button>
+              <button type="button" id="btn-grain-step-minus" style="flex:1; background:#0f172a; border:1px solid #ef4444; color:#f87171; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;" title="Trừ đi 15 độ">-</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Khối 4: Các nút hành động chính -->
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+          <div style="display:flex; gap:6px;">
+            <button id="btn-apply-labels-selected" style="flex:1; background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; color:#fff; padding:8px 4px; border-radius:4px; font-weight:bold; font-size:11px; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.4);" title="Dán nhãn cho các tấm ván đang chọn trong SketchUp">
+              🏷️ Dán Ván Đang Chọn
+            </button>
+            <button id="btn-apply-labels-all" style="flex:1.2; background:linear-gradient(135deg, #ea580c, #c2410c); border:1px solid #fb923c; color:#fff; padding:8px 4px; border-radius:4px; font-weight:bold; font-size:11px; cursor:pointer; box-shadow:0 2px 6px rgba(234,88,12,0.4);" title="Quét toàn bộ mô hình và dán nhãn toàn bộ">
+              🌟 Dán Nhãn Toàn Bộ
+            </button>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button id="btn-clear-labels-all" style="flex:1; background:#1e293b; border:1px solid #64748b; color:#cbd5e1; padding:6px 4px; border-radius:4px; font-size:10px; cursor:pointer;" title="Xóa tất cả các group nhãn 3D trên mô hình">
+              🧹 Xóa Hết Nhãn 3D
+            </button>
+            <button id="btn-save-label-settings" style="flex:1; background:#1e293b; border:1px solid #10b981; color:#34d399; padding:6px 4px; border-radius:4px; font-weight:bold; font-size:10px; cursor:pointer;" title="Lưu cấu hình nhãn làm mặc định">
+              💾 Lưu Cấu Hình
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL BẢNG THÔNG SỐ TIẾT DIỆN GIAO NHAU (CHUẨN ẢNH 1 ABF) ==================== -->
+  <div class="game-modal" id="modal-intersect-settings" style="display: none; z-index: 100070;">
+    <div class="modal-box" style="max-width: 680px; width: 92vw; background: #0b1329; border: 2px solid #38bdf8; border-radius: 8px; padding: 14px; box-shadow: 0 10px 35px rgba(0,0,0,0.95); color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:14px; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+          <span>📐</span> BẢNG THÔNG SỐ TIẾT DIỆN GIAO NHAU (CHUẨN ABF CNC)
+        </h3>
+        <button id="btn-close-intersect-modal" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:0 4px;" title="Đóng">✕</button>
+      </div>
+
+      <!-- Bố cục 2 cột chuẩn ABF (Ảnh 1) -->
+      <div style="display:flex; gap:12px; max-height:76vh; overflow-y:auto; padding-right:2px;">
+        
+        <!-- CỘT TRÁI: DANH SÁCH MẪU PRESETS (Rãnh hậu, Rãnh cửa lùa, Khẩu ngàm âm dương...) -->
+        <div style="flex:1; min-width:210px; background:#0f172a; border:1px solid #1e293b; border-radius:6px; padding:8px; display:flex; flex-direction:column;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:11px; font-weight:bold; color:#fde68a;">📁 MẪU THIẾT LẬP:</span>
+            <div style="display:flex; gap:3px;">
+              <button id="btn-new-intersect-preset" style="background:#0284c7; border:none; color:#fff; font-size:9.5px; padding:3px 6px; border-radius:3px; cursor:pointer; font-weight:bold;">+ Tạo mới</button>
+              <button id="btn-del-intersect-preset" style="background:#ef4444; border:none; color:#fff; font-size:9.5px; padding:3px 6px; border-radius:3px; cursor:pointer;">Xóa</button>
+            </div>
+          </div>
+
+          <!-- Danh sách item presets -->
+          <div id="intersect-preset-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:3px; max-height:360px; padding-right:2px;">
+            <!-- Render động bằng JS -->
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: FORM ĐIỀU CHỈNH CHI TIẾT (Ảnh 1 ABF) -->
+        <div style="flex:1.6; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+          
+          <!-- Layer -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:11px; width:65px; color:#cbd5e1; font-weight:bold;">Layer:</label>
+            <input type="text" id="cfg-intersect-layer" value="QH_NGAM_MONG_X3" style="flex:1; background:#1e293b; border:1px solid #475569; color:#38bdf8; padding:5px 8px; font-size:11px; border-radius:4px; font-weight:bold;">
+          </div>
+
+          <!-- Checkbox Mặc định & Tạo đường -->
+          <div style="display:flex; gap:12px; font-size:11px; padding:4px 0; border-top:1px dashed #1e293b; border-bottom:1px dashed #1e293b;">
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+              <input type="checkbox" id="cfg-intersect-is-default" style="accent-color:#38bdf8;">
+              <span>Mặc định</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+              <input type="checkbox" id="cfg-intersect-create-line" style="accent-color:#38bdf8;">
+              <span>Tạo đường [?] (Chỉ tim rãnh)</span>
+            </label>
+          </div>
+
+          <!-- Kéo giãn X (Quan trọng nhất: Overcut cho dao 6mm phay trọn rãnh) -->
+          <div style="background:#13203c; border:1px solid #0284c7; border-radius:5px; padding:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:11px; font-weight:bold; color:#7dd3fc;">
+                <input type="checkbox" id="cfg-intersect-use-extend" checked style="accent-color:#0284c7;">
+                <span>Kéo giãn 2 đầu (Overcut) [?]:</span>
+              </label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span style="font-size:11px; color:#fde68a; font-weight:bold;">X =</span>
+                <input type="number" id="cfg-intersect-extend-x" value="3.5" step="0.5" min="0" max="20" style="width:55px; background:#0f172a; border:1px solid #38bdf8; color:#fde68a; padding:4px 6px; font-size:11px; border-radius:4px; font-weight:bold; text-align:center;">
+                <span style="font-size:10.5px; color:#94a3b8;">mm</span>
+              </div>
+            </div>
+            <div style="font-size:9.5px; color:#94a3b8; margin-top:4px; line-height:1.3;">
+              💡 <em>Kéo dài 2 đầu rãnh thò ra ngoài ván thêm 3.5mm để dao tròn Ø6mm chạy thoát hết mép ngoài, không bị góc bo tù ván!</em>
+            </div>
+          </div>
+
+          <!-- Offset & Độ sâu rãnh (Depth) -->
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1; background:#1e293b; border:1px solid #334155; border-radius:5px; padding:6px 8px;">
+              <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:2px;">Offset độ hở ngàm [?]:</label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <input type="number" id="cfg-intersect-offset" value="0.3" step="0.1" min="0" max="5" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:4px 6px; font-size:11px; border-radius:4px; font-weight:bold;">
+                <span style="font-size:10px; color:#94a3b8;">mm</span>
+              </div>
+            </div>
+            <div style="flex:1; background:#1e293b; border:1px solid #334155; border-radius:5px; padding:6px 8px;">
+              <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:2px;">Độ sâu phay rãnh (Depth):</label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <input type="number" id="cfg-intersect-depth" value="8.0" step="0.5" min="1" max="25" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #475569; color:#34d399; padding:4px 6px; font-size:11px; border-radius:4px; font-weight:bold;">
+                <span style="font-size:10px; color:#94a3b8;">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- T-Bone & DogBone -->
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1; background:#1e293b; border:1px solid #334155; border-radius:5px; padding:6px 8px;">
+              <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">T-Bone: R_length / R_width:</label>
+              <div style="display:flex; gap:4px;">
+                <input type="number" id="cfg-intersect-tbone-len" placeholder="R_len" value="0.0" step="0.5" min="0" style="width:50%; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:3px 4px; font-size:10px; border-radius:3px;">
+                <input type="number" id="cfg-intersect-tbone-w" placeholder="R_w" value="0.0" step="0.5" min="0" style="width:50%; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:3px 4px; font-size:10px; border-radius:3px;">
+              </div>
+            </div>
+            <div style="flex:1; background:#1e293b; border:1px solid #334155; border-radius:5px; padding:6px 8px;">
+              <label style="font-size:10px; color:#cbd5e1; display:block; margin-bottom:2px;">DogBone: R_dog:</label>
+              <input type="number" id="cfg-intersect-dogbone" placeholder="R_dog" value="0.0" step="0.5" min="0" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #475569; color:#f8fafc; padding:3px 4px; font-size:10px; border-radius:3px;">
+            </div>
+          </div>
+
+          <!-- Các icon minh họa trực quan chuẩn Ảnh 1 ABF -->
+          <div style="background:#131d35; border:1px solid #1e293b; border-radius:6px; padding:6px; display:flex; justify-content:space-around; align-items:center;">
+            <div style="text-align:center;">
+              <div style="width:26px; height:36px; background:#475569; margin:0 auto; border-radius:2px;"></div>
+              <span style="font-size:9px; color:#94a3b8; display:block; margin-top:2px;">Default</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:26px; height:36px; background:#475569; margin:0 auto; border-radius:2px; position:relative;">
+                <div style="position:absolute; top:0; bottom:0; left:12px; width:2px; background:#ef4444;"></div>
+              </div>
+              <span style="font-size:9px; color:#94a3b8; display:block; margin-top:2px;">Line</span>
+            </div>
+            <div style="text-align:center;">
+              <!-- Icon kéo dài X (Đang active) -->
+              <div style="width:26px; height:36px; background:#0284c7; margin:0 auto; border-radius:2px; border-top:3px solid #fde68a; border-bottom:3px solid #fde68a; box-shadow:0 0 6px rgba(56,189,248,0.5);"></div>
+              <span style="font-size:9px; color:#38bdf8; font-weight:bold; display:block; margin-top:2px;">+X (3.5mm)</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:26px; height:36px; background:#475569; margin:0 auto; border-radius:2px; position:relative;">
+                <div style="position:absolute; top:-2px; left:-2px; width:6px; height:6px; border-radius:50%; background:#f59e0b;"></div>
+                <div style="position:absolute; top:-2px; right:-2px; width:6px; height:6px; border-radius:50%; background:#f59e0b;"></div>
+              </div>
+              <span style="font-size:9px; color:#94a3b8; display:block; margin-top:2px;">T-Bone</span>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:26px; height:36px; background:#475569; margin:0 auto; border-radius:2px; position:relative;">
+                <div style="position:absolute; top:-2px; left:-2px; width:6px; height:6px; border-radius:50%; background:#10b981;"></div>
+                <div style="position:absolute; bottom:-2px; left:-2px; width:6px; height:6px; border-radius:50%; background:#10b981;"></div>
+              </div>
+              <span style="font-size:9px; color:#94a3b8; display:block; margin-top:2px;">DogBone</span>
+            </div>
+          </div>
+
+          <!-- Các nút hành động chính (Ảnh 2 ABF) -->
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+            <button id="btn-modal-apply-intersect" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); border:1.5px solid #38bdf8; color:#fff; padding:9px 8px; border-radius:5px; font-weight:bold; font-size:11.5px; cursor:pointer; box-shadow:0 2px 8px rgba(2,132,199,0.5); display:flex; align-items:center; justify-content:center; gap:6px;" title="Tạo rãnh tiết diện ngàm cho tấm đang chọn">
+              <span>➕</span> TẠO TIẾT DIỆN CHO VÙNG CHỌN [+]
+            </button>
+            <div style="display:flex; gap:6px;">
+              <button id="btn-modal-activate-tool" style="flex:1.2; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fbbf24; color:#000; padding:7px 4px; border-radius:4px; font-weight:bold; font-size:10.5px; cursor:pointer;" title="Kích hoạt công cụ click 3D: Chọn tấm cạnh rồi chọn tấm mặt">
+                👆 CLICK 3D TRÊN MÔ HÌNH
+              </button>
+              <button id="btn-modal-save-preset" style="flex:1; background:#1e293b; border:1px solid #10b981; color:#34d399; padding:7px 4px; border-radius:4px; font-weight:bold; font-size:10.5px; cursor:pointer;" title="Lưu thông số này vào Preset">
+                💾 LƯU MẪU NÀY
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   </div>
 

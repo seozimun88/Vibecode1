@@ -179,6 +179,7 @@ module ChillAIInterior
     # Tìm khối tổng lớn nhất (Tầng 1) chứa đối tượng được chọn
     def self.find_root_entity(entity, model)
       return entity unless entity && entity.valid? && model
+      return nil if entity.name.to_s =~ /^(ABF_NESTING|CHILL_AI_NESTING|Khổ Ván)/i
 
       # 1. Nếu đang mở group để sửa (active_path)
       if model.active_path && !model.active_path.empty?
@@ -206,27 +207,35 @@ module ChillAIInterior
         end
       end
 
-      # 3. Nếu root vẫn là chính entity nhưng là một chi tiết nhỏ (ví dụ tay nắm/bản lề),
-      # tìm khối tổng lớn nhất trong model
-      if root == entity
+      # 3. Nếu root vẫn là chính entity nhưng là một chi tiết nhỏ hoặc tấm ván phẳng (thickness <= 45mm),
+      # tự động tìm khối tổng (Assembly) lớn nhất trong model để cung cấp thông tin Tầng 1 chuẩn xác!
+      bb_root = root.bounds
+      dim_root = [bb_root.width.to_mm, bb_root.height.to_mm, bb_root.depth.to_mm].sort
+      is_thin_root = dim_root[0] <= 45.0 || root.name.to_s =~ /\[P\d+\]/i
+
+      if root == entity || is_thin_root
         begin
-          bb = entity.bounds
-          dim_max = [bb.width.to_mm, bb.height.to_mm, bb.depth.to_mm].max
-          if dim_max < 350 # Đối tượng nhỏ, chắc chắn là phụ kiện/chi tiết
-            biggest_entity = nil
-            biggest_vol = 0
-            model.entities.each do |e|
-              if (e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance)) && e.valid?
-                vol = e.bounds.width * e.bounds.height * e.bounds.depth
-                if vol > biggest_vol
-                  biggest_vol = vol
-                  biggest_entity = e
-                end
+          biggest_entity = nil
+          biggest_vol = 0
+          container = (model.active_entities || model.entities)
+          container.each do |e|
+            next unless (e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance)) && e.valid?
+            next if e == entity
+            next if e.name.to_s =~ /^(ABF_NESTING|CHILL_AI_NESTING|Khổ Ván|Chill_AI_Label|Chill_AI_Exploded)/i
+
+            eb = e.bounds
+            ed = [eb.width.to_mm, eb.height.to_mm, eb.depth.to_mm].sort
+            # Khối tổng thực sự phải là khối không gian 3 chiều (chiều mỏng nhất > 60mm)
+            if ed[0] > 60.0
+              vol = eb.width * eb.height * eb.depth
+              if vol > biggest_vol
+                biggest_vol = vol
+                biggest_entity = e
               end
             end
-            root = biggest_entity if biggest_entity
           end
-        rescue => e
+          root = biggest_entity if biggest_entity
+        rescue => _e
         end
       end
 
@@ -246,6 +255,13 @@ module ChillAIInterior
       return handle_cleared(dialog) unless raw_entity
 
       target = raw_entity
+
+      # Bỏ qua tuyệt đối bản vẽ Nesting 2D trên sàn (ABF_NESTING hoặc CHILL_AI_NESTING)
+      ent_name = target.name.to_s.strip
+      defn_name = (target.respond_to?(:definition) && target.definition) ? target.definition.name.to_s.strip : ""
+      if ent_name =~ /^(ABF_NESTING|CHILL_AI_NESTING|Khổ Ván)/i || defn_name =~ /^(ABF_NESTING|CHILL_AI_NESTING|Khổ Ván)/i
+        return handle_cleared(dialog)
+      end
 
       # 1. Nếu người dùng click vào Face hoặc Edge bên trong một Group/Component
       if target.is_a?(Sketchup::Face) || target.is_a?(Sketchup::Edge)
@@ -460,12 +476,15 @@ module ChillAIInterior
         has_sub_groups = entity.respond_to?(:entities) && entity.entities.any? { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }
         sub_group_count = entity.respond_to?(:entities) ? entity.entities.count { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) } : 0
 
+        is_leaf_panel_part = (thickness <= 45.0) || (raw_name =~ /\[P\d+\]/i) || (entity.get_attribute("Chill_AI_CNC", "label_id") != nil) || (entity.get_attribute("abf_part", "id") != nil)
+        is_real_assembly = !is_leaf_panel_part && (thickness > 65.0) && ((has_sub_groups && sub_group_count >= 2) || (dim_x >= 250.0 && dim_y >= 250.0 && dim_z >= 250.0))
+
         if is_scale_figure
           tier = 1
           tier_label = "Mẫu Người Tỷ Lệ (Scale Figure)"
           category = "Người Mẫu Tham Chiếu Không Gian"
           icon_type = "person"
-        elsif (has_sub_groups && (sub_group_count >= 2 || name_lower.include?('chill_ai') || name_lower.include?('tổng') || is_cabinet || is_desk || is_bed || is_shelf)) || (is_wardrobe || is_kitchen || is_bed || is_desk)
+        elsif is_real_assembly
           tier = 1
           tier_label = if is_wardrobe
             "Tầng 1: Khối Tổng (Hệ Tủ Quần Áo)"
@@ -682,13 +701,19 @@ module ChillAIInterior
         style_name = "Hiện Đại May Đo (Bespoke Luxury)"
         origin_country = "Gia Công CNC Tại Xưởng Liên Kết Chill AI"
         color_options = ["Vân Gỗ Sồi Sáng", "Óc Chó Bắc Mỹ", "Trắng Sứ Acrylic", "Xám Ghi Bê Tông"]
-        size_options = ["May đo theo kích thước phòng", "Khổ chuẩn 1600x2200", "Khổ chuẩn 1800x2400"]
+        h_cabinet = (dim_z > 0 ? dim_z : (dims_sorted[2] rescue 850)).to_i
+        is_tall_wardrobe = (h_cabinet >= 1500) && (name_lower.include?('áo') || name_lower.include?('wardrobe'))
+        if is_tall_wardrobe
+          size_options = ["May đo theo kích thước phòng", "Khổ chuẩn 1600x2200", "Khổ chuẩn 1800x2400"]
+          specs = "Dài #{length.to_i}mm • Cao #{h_cabinet}mm • Sâu #{width.to_i}mm • Thùng Gỗ Sồi / MDF Chống Ẩm"
+        else
+          size_options = ["May đo theo kích thước phòng", "Khổ chuẩn #{length.to_i}x#{width.to_i}x#{h_cabinet}mm", "Khổ 1000x500x850mm", "Khổ 1200x500x850mm"]
+          specs = "Dài #{length.to_i}mm • Cao #{h_cabinet}mm • Sâu #{width.to_i}mm • Thùng MDF Lõi Xanh Chống Ẩm V313"
+        end
         price_cur = "4.200.000 đ"
         price_orig = "5.000.000 đ"
         discount = "-16%"
         unit = "Mét dài / Bộ"
-        is_wardrobe_item = name_lower.include?('áo') || name_lower.include?('tủ') || name_lower.include?('wardrobe')
-        specs = is_wardrobe_item ? "Dài #{length.to_i}mm • Cao 1800-2400mm • Sâu #{width.to_i}mm • Thùng Gỗ Sồi / MDF Chống Ẩm" : "Dài #{length.to_i}mm • Cao 750-810mm • Sâu #{width.to_i}mm • Thùng MDF Chống Ẩm V313"
         warranty_text = "Bảo hành kết cấu 5 năm • Bảo trì trọn đời hệ phụ kiện"
         return_text = "Cam kết đúng mẫu 3D và vật liệu đã duyệt, đền 200% nếu sai vật liệu"
         durability_score = "9.9 / 10 điểm"
@@ -843,7 +868,7 @@ module ChillAIInterior
       return list if depth > 6
 
       name_str = entity.name.to_s
-      return list if name_str.start_with?("CHILL_AI_NESTING")
+      return list if name_str =~ /^(ABF_NESTING|CHILL_AI_NESTING|Khổ Ván)/i
 
       combined_scale = current_scale.dup
       if entity.respond_to?(:transformation)
@@ -930,6 +955,7 @@ module ChillAIInterior
     # Kiểm tra tổng thể cảnh báo tấm quá khổ (Cả cấp độ chi tiết lẫn cấp độ khối tổng thể)
     def self.check_oversized_warning(entity)
       return { 'has_oversized' => false, 'panels' => [] } unless entity && entity.valid?
+      return { 'has_oversized' => false, 'panels' => [] } if entity.name.to_s =~ /^(ABF_NESTING|CHILL_AI_NESTING|Khổ Ván)/i
 
       all_panels = collect_all_panels(entity)
       oversized_panels = all_panels.select { |p| p['is_oversized'] }

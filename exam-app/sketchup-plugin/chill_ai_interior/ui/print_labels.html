@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In Tem Nhãn - Chill AI Interior</title>
+  <script src="assets/qrcode.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #e2e8f0;
+      color: #1e293b;
+      font-size: 12px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* BỐ CỤC 3 CỘT CHUẨN ABF */
+    .app-container {
+      display: flex;
+      flex: 1;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* CỘT 1: DANH SÁCH TẤM VÁN (TREE VIEW) */
+    .col-tree {
+      width: 270px;
+      min-width: 240px;
+      background: #f8fafc;
+      border-right: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+    }
+    .search-box {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 11.5px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      outline: none;
+    }
+    .search-box input:focus {
+      border-color: #3b82f6;
+    }
+    .tree-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 6px;
+      font-size: 11.5px;
+    }
+    .tree-node {
+      margin-bottom: 3px;
+    }
+    .tree-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .tree-row:hover {
+      background: #e2e8f0;
+    }
+    .tree-row.selected {
+      background: #dbeafe;
+    }
+    .tree-row input[type="checkbox"] {
+      cursor: pointer;
+    }
+    .tree-sub-list {
+      padding-left: 18px;
+    }
+    .tree-actions {
+      padding: 6px 10px;
+      background: #f1f5f9;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+    }
+    .btn-link {
+      background: none;
+      border: none;
+      color: #2563eb;
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* CỘT 2: KHUNG PREVIEW TEM NHÃN (NỀN XÁM CUỘN DỌC) */
+    .col-preview {
+      flex: 1;
+      background: #64748b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      padding: 20px 10px;
+      gap: 15px;
+    }
+
+    /* CON TEM CHUẨN TỈ LỆ (MẶC ĐỊNH 60mm x 40mm ~ 300px x 200px) */
+    .label-card {
+      width: 290px;
+      height: 193px;
+      background: #ffffff;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      display: flex;
+      padding: 5px;
+      gap: 5px;
+      position: relative;
+      font-family: Arial, sans-serif;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    /* PHẦN 1: BÊN TRÁI TEM (SỐ KHỔ/TẤM & MÃ QR CODE) */
+    .label-left-bar {
+      width: 58px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #000000;
+    }
+    .bar-top-numbers {
+      display: flex;
+      height: 38px;
+      border-bottom: 1px solid #000;
+    }
+    .num-block {
+      flex: 1;
+      background: #000000;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .num-block:first-child {
+      border-right: 1px solid #ffffff;
+    }
+    .bar-qr-box {
+      flex: 1;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+    }
+    .bar-qr-box img, .bar-qr-box canvas {
+      max-width: 48px;
+      max-height: 48px;
+    }
+    .bar-bottom-tags {
+      height: 48px;
+      border-top: 1px solid #000;
+      display: flex;
+      flex-direction: column;
+      font-size: 8px;
+      font-weight: bold;
+      text-align: center;
+      justify-content: space-around;
+      padding: 2px;
+    }
+
+    /* PHẦN 2: Ở GIỮA TEM (SƠ ĐỒ TẤM VÁN THU NHỎ & DÁN CẠNH) */
+    .label-mid-diagram {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 4px;
+    }
+    .panel-box {
+      width: 78%;
+      height: 72%;
+      border: 1px solid #000000;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+    }
+    .panel-id-number {
+      font-size: 26px;
+      font-weight: 900;
+      color: #000000;
+    }
+    /* Chú thích dán cạnh xung quanh 4 phía */
+    .edge-badge {
+      position: absolute;
+      font-size: 8.5px;
+      font-weight: bold;
+      white-space: nowrap;
+      color: #000000;
+    }
+    .edge-left {
+      left: -22px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      border-bottom: 2px solid #000;
+      padding-bottom: 1px;
+    }
+    .edge-bottom {
+      bottom: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-top: 2px solid #000;
+      padding-top: 1px;
+    }
+    .edge-right {
+      right: -22px;
+      top: 50%;
+      transform: translateY(-50%) rotate(90deg);
+      border-bottom: 2px solid #000;
+      padding-bottom: 1px;
+    }
+    .edge-top {
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-bottom: 2px solid #000;
+      padding-bottom: 1px;
+    }
+    .banded-edge-left { border-left: 2.5px solid #000000 !important; }
+    .banded-edge-bottom { border-bottom: 2.5px solid #000000 !important; }
+    .banded-edge-right { border-right: 2.5px solid #000000 !important; }
+    .banded-edge-top { border-top: 2.5px solid #000000 !important; }
+
+    /* PHẦN 3: BÊN PHẢI TEM (CHỮ XOAY DỌC 90 ĐỘ CHUẨN ABF) */
+    .label-right-text {
+      width: 76px;
+      border-left: 1px solid #000000;
+      padding: 2px 2px 2px 4px;
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+    .v-line {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      font-size: 8.5px;
+      line-height: 1.1;
+      color: #000000;
+    }
+    .v-brand-1 {
+      font-weight: 900;
+      font-size: 9.5px;
+      letter-spacing: 0.5px;
+    }
+    .v-brand-2 {
+      font-size: 7.5px;
+      color: #334155;
+    }
+    .v-cut-dim {
+      font-weight: bold;
+      font-size: 8.5px;
+    }
+    .v-part-name {
+      font-weight: bold;
+      font-size: 8.5px;
+    }
+    .v-design-dim {
+      font-size: 8px;
+    }
+
+    /* CỘT 3: BẢNG ĐIỀU KHIỂN & CÀI ĐẶT THÔNG SỐ */
+    .col-ctrl {
+      width: 275px;
+      min-width: 260px;
+      background: #f8fafc;
+      border-left: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 12px;
+      gap: 12px;
+    }
+
+    .notice-text {
+      font-size: 10px;
+      color: #64748b;
+      line-height: 1.35;
+      font-style: italic;
+    }
+
+    .btn-action-group {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-primary {
+      flex: 1;
+      background: #ffffff;
+      color: #1e293b;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .btn-primary:hover {
+      background: #f1f5f9;
+      border-color: #64748b;
+    }
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    /* ACCORDION / SECTION */
+    .sec-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .sec-header {
+      background: #f1f5f9;
+      padding: 6px 9px;
+      font-size: 11.5px;
+      font-weight: bold;
+      color: #334155;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .sec-body {
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .preset-listbox {
+      width: 100%;
+      height: 72px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      font-size: 11.5px;
+      padding: 2px;
+      outline: none;
+    }
+    .preset-listbox option {
+      padding: 2px 4px;
+    }
+
+    .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .field-label {
+      font-size: 10.5px;
+      color: #475569;
+      font-weight: 600;
+    }
+    .field-input {
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      font-size: 11.5px;
+      outline: none;
+    }
+    .field-input:focus {
+      border-color: #3b82f6;
+    }
+
+    .btn-row-3 {
+      display: flex;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .btn-mini {
+      flex: 1;
+      padding: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-mini:hover {
+      background: #e2e8f0;
+    }
+
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .scale-row label {
+      font-size: 11px;
+      color: #475569;
+    }
+    .scale-row input {
+      width: 48px;
+      padding: 3px 5px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .select-input {
+      width: 100%;
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      font-size: 11px;
+      background: #fff;
+    }
+
+    .logo-preview-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      background: #f1f5f9;
+      border: 1px dashed #cbd5e1;
+      border-radius: 3px;
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: 3px;
+      color: #0f172a;
+    }
+
+    .qr-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
+      color: #334155;
+    }
+    .qr-checklist label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    /* =========================================================================
+       CSS TỐI ƯU HOÁ CHO MÁY IN TEM NHÃN NHIỆT (XPRINTER / GPRINTER)
+       ========================================================================= */
+    @media print {
+      @page {
+        size: 60mm 40mm;
+        margin: 0;
+      }
+      html, body {
+        width: 100%;
+        height: auto;
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      .col-tree, .col-ctrl, .tree-actions, .search-box {
+        display: none !important;
+      }
+      .app-container {
+        display: block !important;
+        height: auto !important;
+      }
+      .col-preview {
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+        overflow: visible !important;
+      }
+      .label-card {
+        width: 60mm !important;
+        height: 40mm !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- CỘT 1: CÂY DANH MỤC TẤM VÁN -->
+    <div class="col-tree">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="tree-search" placeholder="Tìm kiếm chi tiết ván...">
+      </div>
+      <div class="tree-content" id="tree-root">
+        <!-- Render động từ dữ liệu SketchUp -->
+      </div>
+      <div class="tree-actions">
+        <button class="btn-link" id="btn-select-all">Chọn tất cả</button>
+        <button class="btn-link" id="btn-deselect-all">Bỏ chọn</button>
+      </div>
+    </div>
+
+    <!-- CỘT 2: KHUNG XEM TRƯỚC BẢN IN TEM -->
+    <div class="col-preview" id="preview-container">
+      <!-- Render động các con tem được tick chọn -->
+    </div>
+
+    <!-- CỘT 3: BẢNG ĐIỀU KHIỂN & CÀI ĐẶT -->
+    <div class="col-ctrl">
+      <div class="notice-text">
+        (Bấm vào nút In Tem, chọn máy in và khổ giấy phù hợp với tỉ lệ tem đang cài đặt, luôn xuất kèm PDF tem)
+      </div>
+
+      <div class="btn-action-group">
+        <button class="btn-primary" id="btn-print-labels">
+          <span>🖨️</span> In Tem
+        </button>
+        <button class="btn-primary" id="btn-export-pdf">
+          <span>📄</span> PDF
+        </button>
+      </div>
+
+      <!-- NHÓM TIÊU ĐỀ -->
+      <div class="sec-card">
+        <div class="sec-header">
+          <span>Tiêu đề</span>
+          <span style="font-size: 9px;">▼</span>
+        </div>
+        <div class="sec-body">
+          <div class="field-row">
+            <span class="field-label">Lọc:</span>
+            <select class="preset-listbox" id="preset-select" size="3">
+              <!-- Render động danh sách preset -->
+            </select>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Dòng 1:</span>
+            <input type="text" class="field-input" id="input-line1" value="ABF">
+          </div>
+          <div class="field-row">
+            <span class="field-label">Dòng 2:</span>
+            <input type="text" class="field-input" id="input-line2" value="www.getabf.net">
+          </div>
+          <div class="btn-row-3">
+            <button class="btn-mini" id="btn-preset-create">Tạo</button>
+            <button class="btn-mini" id="btn-preset-update">Update</button>
+            <button class="btn-mini" id="btn-preset-delete">Xóa</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- NHÓM CÀI ĐẶT -->
+      <div class="sec-card">
+        <div class="sec-header">
+          <span>Cài đặt</span>
+          <span style="font-size: 9px;">▼</span>
+        </div>
+        <div class="sec-body">
+          <div class="scale-row">
+            <span class="field-label" style="width: 58px;">Tỉ lệ tem:</span>
+            <label>Rộng</label>
+            <input type="number" id="input-label-w" value="60">
+            <label>Cao</label>
+            <input type="number" id="input-label-h" value="40">
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">Mẫu tem:</span>
+            <select class="select-input" id="select-template">
+              <option value="tpl_3" selected>ABF - Mẫu tem 3</option>
+              <option value="tpl_1">ABF - Mẫu tem 1</option>
+              <option value="tpl_2">ABF - Mẫu tem 2</option>
+              <option value="tpl_4">ABF - Mẫu tem 4</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">Mẫu phụ:</span>
+            <select class="select-input" id="select-sub-template">
+              <option value="none" selected>- None -</option>
+              <option value="sub_1">Mẫu phụ CNC 1</option>
+              <option value="sub_2">Mẫu phụ Xưởng 2</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">Logo:</span>
+            <div class="logo-preview-box" id="logo-display">ABF</div>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">QR Code:</span>
+            <div class="qr-checklist">
+              <label><input type="checkbox" id="qr-id" checked> ID tấm</label>
+              <label><input type="checkbox" id="qr-name" checked> Tên tấm</label>
+              <label><input type="checkbox" id="qr-code-n1"> Code N.1</label>
+              <label><input type="checkbox" id="qr-code-n2"> Code N.2</label>
+              <label><input type="checkbox" id="qr-code-n3"> Code N.3</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // LOGIC ĐIỀU PHỐI GIAO DIỆN IN TEM NHÃN CHUẨN ABF
+    // =========================================================================
+    let allParts = [];
+    let selectedPartIds = new Set();
+    let currentConfig = {
+      label_width: 60,
+      label_height: 40,
+      line1: 'ABF',
+      line2: 'www.getabf.net',
+      presets: [
+        { id: 'p1', name: 'AD, AD', line1: 'ABF', line2: 'www.getabf.net' },
+        { id: 'p2', name: 'AD, AD1', line1: 'Chill AI Decor', line2: 'Hotline: 0988.xxx.xxx' },
+        { id: 'p3', name: 'A DUC, AD', line1: 'Xưởng Mộc A Đức', line2: 'Thiết Kế & Thi Công' }
+      ]
+    };
+
+    function callRuby(action, data = {}) {
+      if (window.sketchup && window.sketchup[action]) {
+        window.sketchup[action](JSON.stringify(data));
+      } else {
+        console.log(`[Dev CallRuby] ${action}:`, data);
+      }
+    }
+
+    // 1. RENDER CÂY DANH MỤC PHÂN CẤP (TREE VIEW)
+    function renderTreeView(data) {
+      const root = document.getElementById('tree-root');
+      if (!root) return;
+      root.innerHTML = '';
+
+      if (!data || !data.parts || data.parts.length === 0) {
+        root.innerHTML = '<div style="padding:10px; color:#64748b; font-style:italic;">Không tìm thấy tấm ván nào. Vui lòng chọn mô hình hoặc quét chi tiết!</div>';
+        return;
+      }
+
+      allParts = data.parts;
+      selectedPartIds.clear();
+      allParts.forEach(p => selectedPartIds.add(p.id));
+
+      const modelName = data.model_name || 'hoi AI.skp';
+      const groups = data.groups || {};
+
+      // Node File mô hình
+      const fileNode = document.createElement('div');
+      fileNode.className = 'tree-node';
+      fileNode.innerHTML = `
+        <div class="tree-row">
+          <input type="checkbox" id="cb-file-all" checked>
+          <span style="font-weight:bold;">📁 ${modelName}</span>
+        </div>
+        <div class="tree-sub-list">
+          <div style="font-size:10.5px; color:#64748b; margin-bottom:4px;">Note</div>
+          <div id="thickness-groups-container"></div>
+        </div>
+      `;
+      root.appendChild(fileNode);
+
+      const tgContainer = fileNode.querySelector('#thickness-groups-container');
+
+      // Từng nhóm độ dày
+      Object.keys(groups).forEach((gKey, gIdx) => {
+        const pList = groups[gKey];
+        const gNode = document.createElement('div');
+        gNode.className = 'tree-node';
+        gNode.innerHTML = `
+          <div class="tree-row">
+            <input type="checkbox" class="cb-group" data-group="${gKey}" checked>
+            <span style="font-weight:600;">☑ ${gKey}</span>
+          </div>
+          <div class="tree-sub-list" id="group-list-${gIdx}"></div>
+        `;
+        tgContainer.appendChild(gNode);
+
+        const subList = gNode.querySelector(`#group-list-${gIdx}`);
+        pList.forEach(pt => {
+          const ptRow = document.createElement('div');
+          ptRow.className = 'tree-row';
+          ptRow.innerHTML = `
+            <input type="checkbox" class="cb-part" data-id="${pt.id}" checked>
+            <span title="${pt.full_title}">${pt.full_title}</span>
+          `;
+          subList.appendChild(ptRow);
+
+          ptRow.querySelector('.cb-part').addEventListener('change', (e) => {
+            if (e.target.checked) {
+              selectedPartIds.add(pt.id);
+            } else {
+              selectedPartIds.delete(pt.id);
+            }
+            renderPreviews();
+          });
+        });
+
+        // Group checkbox toggle
+        gNode.querySelector('.cb-group').addEventListener('change', (e) => {
+          const isChecked = e.target.checked;
+          pList.forEach(pt => {
+            if (isChecked) selectedPartIds.add(pt.id);
+            else selectedPartIds.delete(pt.id);
+            const cb = subList.querySelector(`.cb-part[data-id="${pt.id}"]`);
+            if (cb) cb.checked = isChecked;
+          });
+          renderPreviews();
+        });
+      });
+
+      // File checkbox toggle
+      fileNode.querySelector('#cb-file-all').addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        document.querySelectorAll('.cb-group, .cb-part').forEach(cb => cb.checked = isChecked);
+        if (isChecked) {
+          allParts.forEach(p => selectedPartIds.add(p.id));
+        } else {
+          selectedPartIds.clear();
+        }
+        renderPreviews();
+      });
+
+      renderPreviews();
+    }
+
+    // 2. RENDER KHUNG XEM TRƯỚC TEM NHÃN
+    function renderPreviews() {
+      const container = document.getElementById('preview-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const line1 = document.getElementById('input-line1')?.value || currentConfig.line1 || 'ABF';
+      const line2 = document.getElementById('input-line2')?.value || currentConfig.line2 || 'www.getabf.net';
+      const partsToRender = allParts.filter(p => selectedPartIds.has(p.id));
+
+      if (partsToRender.length === 0) {
+        container.innerHTML = '<div style="color:#ffffff; font-style:italic; padding-top:40px;">Chưa chọn con tem nào để in.</div>';
+        return;
+      }
+
+      partsToRender.forEach(part => {
+        const card = document.createElement('div');
+        card.className = 'label-card';
+
+        // Phân tích dán cạnh
+        const bands = part.bands || {};
+        const bL1 = bands['L1'];
+        const bW1 = bands['W1'];
+        const bL2 = bands['L2'];
+        const bW2 = bands['W2'];
+
+        const hasBandedLeft = !!bL1;
+        const hasBandedBottom = !!bW1;
+        const hasBandedRight = !!bL2;
+        const hasBandedTop = !!bW2;
+
+        const leftEdgeLabel = bL1 ? `1: ${bL1.name}` : '';
+        const bottomEdgeLabel = bW1 ? `2: ${bW1.name}` : '';
+        const rightEdgeLabel = bL2 ? `3: ${bL2.name}` : '';
+        const topEdgeLabel = bW2 ? `4: ${bW2.name}` : '';
+
+        // Tỷ lệ khổ tem
+        const cutStr = `[${part.cutting_l}x${part.cutting_w}]`;
+        const designStr = `(${part.design_l.toFixed(0)}x${part.design_w.toFixed(0)}x${part.design_t.toFixed(0)})`;
+
+        card.innerHTML = `
+          <!-- Cột 1: Mã QR & Số Khổ/Tấm -->
+          <div class="label-left-bar">
+            <div class="bar-top-numbers">
+              <div class="num-block">${part.sheet_index || 1}</div>
+              <div class="num-block">${part.part_index_in_sheet || part.id}</div>
+            </div>
+            <div class="bar-qr-box" id="qr-box-${part.id}"></div>
+            <div class="bar-bottom-tags">
+              <span>${part.code}</span>
+              <span>17.5mm</span>
+            </div>
+          </div>
+
+          <!-- Cột 2: Sơ đồ tấm ván thu nhỏ -->
+          <div class="label-mid-diagram">
+            <div class="panel-box ${hasBandedLeft ? 'banded-edge-left' : ''} ${hasBandedBottom ? 'banded-edge-bottom' : ''} ${hasBandedRight ? 'banded-edge-right' : ''} ${hasBandedTop ? 'banded-edge-top' : ''}">
+              <div class="panel-id-number">${part.id}</div>
+              ${leftEdgeLabel ? `<div class="edge-badge edge-left">${leftEdgeLabel}</div>` : ''}
+              ${bottomEdgeLabel ? `<div class="edge-badge edge-bottom">${bottomEdgeLabel}</div>` : ''}
+              ${rightEdgeLabel ? `<div class="edge-badge edge-right">${rightEdgeLabel}</div>` : ''}
+              ${topEdgeLabel ? `<div class="edge-badge edge-top">${topEdgeLabel}</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Cột 3: Chữ xoay dọc 90 độ -->
+          <div class="label-right-text">
+            <div class="v-line v-brand-1">${line1}</div>
+            <div class="v-line v-brand-2">${line2}</div>
+            <div class="v-line v-cut-dim">${cutStr}</div>
+            <div class="v-line v-part-name">[${part.code}] __ ${part.name}</div>
+            <div class="v-line v-design-dim">${designStr}</div>
+          </div>
+        `;
+
+        container.appendChild(card);
+
+        // Sinh mã QR Code sắc nét
+        const qrBox = card.querySelector(`#qr-box-${part.id}`);
+        if (qrBox && typeof QRCode !== 'undefined') {
+          const qrText = `ChillAI|${part.code}|${part.name}|${cutStr}|${designStr}`;
+          new QRCode(qrBox, {
+            text: qrText,
+            width: 46,
+            height: 46,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      });
+    }
+
+    // 3. XỬ LÝ PRESET TIÊU ĐỀ
+    function renderPresetList(presets, activeId) {
+      const select = document.getElementById('preset-select');
+      if (!select) return;
+      select.innerHTML = '';
+
+      presets.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (p.id === activeId) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', (e) => {
+        const sel = presets.find(p => p.id === e.target.value);
+        if (sel) {
+          document.getElementById('input-line1').value = sel.line1;
+          document.getElementById('input-line2').value = sel.line2;
+          renderPreviews();
+        }
+      });
+    }
+
+    // 4. SỰ KIỆN NÚT BẤM
+    document.getElementById('btn-select-all')?.addEventListener('click', () => {
+      document.querySelectorAll('.cb-group, .cb-part, #cb-file-all').forEach(cb => cb.checked = true);
+      allParts.forEach(p => selectedPartIds.add(p.id));
+      renderPreviews();
+    });
+
+    document.getElementById('btn-deselect-all')?.addEventListener('click', () => {
+      document.querySelectorAll('.cb-group, .cb-part, #cb-file-all').forEach(cb => cb.checked = false);
+      selectedPartIds.clear();
+      renderPreviews();
+    });
+
+    document.getElementById('input-line1')?.addEventListener('input', renderPreviews);
+    document.getElementById('input-line2')?.addEventListener('input', renderPreviews);
+
+    // Bấm In Tem -> Mở cửa sổ in hệ thống Windows (kết nối trực tiếp máy in Xprinter, Gprinter)
+    document.getElementById('btn-print-labels')?.addEventListener('click', () => {
+      window.print();
+    });
+
+    // Bấm PDF -> Xuất file PDF tem
+    document.getElementById('btn-export-pdf')?.addEventListener('click', () => {
+      const printHtml = document.documentElement.outerHTML;
+      callRuby('export_labels_pdf', { html_content: printHtml });
+    });
+
+    // Preset Tạo / Update / Xóa
+    document.getElementById('btn-preset-create')?.addEventListener('click', () => {
+      const l1 = document.getElementById('input-line1').value.trim();
+      const l2 = document.getElementById('input-line2').value.trim();
+      const pName = prompt('Nhập tên gợi nhớ cho Tiêu đề mới:', `${l1}, ${l2.slice(0, 5)}`);
+      if (pName) {
+        const newP = { id: `preset_${Date.now()}`, name: pName, line1: l1, line2: l2 };
+        currentConfig.presets.push(newP);
+        renderPresetList(currentConfig.presets, newP.id);
+        callRuby('save_print_label_config', currentConfig);
+      }
+    });
+
+    document.getElementById('btn-preset-update')?.addEventListener('click', () => {
+      const selId = document.getElementById('preset-select')?.value;
+      const target = currentConfig.presets.find(p => p.id === selId);
+      if (target) {
+        target.line1 = document.getElementById('input-line1').value.trim();
+        target.line2 = document.getElementById('input-line2').value.trim();
+        callRuby('save_print_label_config', currentConfig);
+        alert(`Đã cập nhật preset "${target.name}"!`);
+      }
+    });
+
+    document.getElementById('btn-preset-delete')?.addEventListener('click', () => {
+      const selId = document.getElementById('preset-select')?.value;
+      if (currentConfig.presets.length <= 1) {
+        alert('Phải giữ lại ít nhất 1 preset mặc định!');
+        return;
+      }
+      currentConfig.presets = currentConfig.presets.filter(p => p.id !== selId);
+      renderPresetList(currentConfig.presets, currentConfig.presets[0]?.id);
+      callRuby('save_print_label_config', currentConfig);
+    });
+
+    // Nhận dữ liệu nạp từ Ruby khi mở cửa sổ
+    window.onLabelsDataLoaded = function(resp) {
+      if (resp && resp.status === 'success') {
+        if (resp.config) {
+          currentConfig = resp.config;
+          renderPresetList(currentConfig.presets || [], currentConfig.active_preset_id);
+          const activeP = (currentConfig.presets || []).find(p => p.id === currentConfig.active_preset_id) || currentConfig.presets[0];
+          if (activeP) {
+            document.getElementById('input-line1').value = activeP.line1 || 'ABF';
+            document.getElementById('input-line2').value = activeP.line2 || 'www.getabf.net';
+          }
+        }
+        renderTreeView(resp);
+      } else {
+        alert(resp ? resp.message : 'Không thể tải dữ liệu tấm ván!');
+      }
+    };
+
+    // Khởi chạy khi nạp trang
+    window.addEventListener('DOMContentLoaded', () => {
+      callRuby('get_print_labels_data', {});
+
+      // Fallback dữ liệu mẫu chuẩn ABF nếu mở độc lập trên Chrome test giao diện
+      setTimeout(() => {
+        if (allParts.length === 0) {
+          console.log('[Dev Mock] Nạp dữ liệu mô phỏng chuẩn ABF để test trên trình duyệt');
+          const mockData = {
+            status: 'success',
+            model_name: 'hoi AI.skp',
+            parts: [
+              {
+                id: 1,
+                code: 'P01',
+                name: 'TB1_Tủ Áo_1',
+                full_title: '1. [P01] __ 1. TB1_Tủ Áo_1 (802x496x17)',
+                model_name: 'hoi AI.skp',
+                thickness_group: '1 - 17.5mm',
+                design_l: 802,
+                design_w: 496,
+                design_t: 17,
+                cutting_l: 802.5,
+                cutting_w: 496,
+                bands: {
+                  'L1': { name: 'Chỉ Cánh - 1mm', thickness: 1.0 },
+                  'W1': { name: 'Vát Cánh 45 - 1mm', thickness: 1.0 }
+                },
+                sheet_index: 1,
+                part_index_in_sheet: 1
+              },
+              {
+                id: 2,
+                code: 'P02',
+                name: 'TB1_Tủ Áo_2',
+                full_title: '2. [P02] __ 2. TB1_Tủ Áo_2 (802x496x17)',
+                model_name: 'hoi AI.skp',
+                thickness_group: '1 - 17.5mm',
+                design_l: 802,
+                design_w: 496,
+                design_t: 17,
+                cutting_l: 802.5,
+                cutting_w: 496,
+                bands: {
+                  'L1': { name: 'Chỉ Cánh - 1mm', thickness: 1.0 }
+                },
+                sheet_index: 1,
+                part_index_in_sheet: 2
+              },
+              {
+                id: 3,
+                code: 'P03',
+                name: 'TB1_Tủ Áo_3',
+                full_title: '3. [P03] __ 3. TB1_Tủ Áo_3 (802x496x17)',
+                model_name: 'hoi AI.skp',
+                thickness_group: '1 - 17.5mm',
+                design_l: 802,
+                design_w: 496,
+                design_t: 17,
+                cutting_l: 802.5,
+                cutting_w: 496,
+                bands: {
+                  'W1': { name: 'Vát Cánh 45 - 1mm', thickness: 1.0 }
+                },
+                sheet_index: 1,
+                part_index_in_sheet: 3
+              }
+            ],
+            groups: {
+              '1 - 17.5mm': [
+                { id: 1, full_title: '1. [P01] __ 1. TB1_Tủ Áo_1 (802x496x17)' },
+                { id: 2, full_title: '2. [P02] __ 2. TB1_Tủ Áo_2 (802x496x17)' },
+                { id: 3, full_title: '3. [P03] __ 3. TB1_Tủ Áo_3 (802x496x17)' }
+              ]
+            },
+            config: currentConfig
+          };
+          window.onLabelsDataLoaded(mockData);
+        }
+      }, 350);
+    });
+  </script>
+</body>
+</html>

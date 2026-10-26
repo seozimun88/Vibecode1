@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exploded View</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #c8cbd0; /* Màu xám đặc trưng chuẩn ABF */
+      color: #1e293b;
+      font-size: 11px;
+      padding: 8px 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      border: 1px solid #94a3b8;
+    }
+
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #b0b5be;
+    }
+    .hud-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.3px;
+    }
+    .header-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-icon-hud {
+      background: none;
+      border: none;
+      color: #475569;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      border-radius: 2px;
+    }
+    .btn-icon-hud:hover {
+      background: #b0b5be;
+      color: #0f172a;
+    }
+    .btn-close-hud:hover {
+      color: #ef4444;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-label {
+      width: 14px;
+      font-family: 'Times New Roman', Times, serif, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+      text-align: right;
+    }
+
+    .slider-track {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 2px;
+      background: #848a96;
+      border-radius: 1px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-track::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 10px;
+      height: 18px;
+      background: #7a8290;
+      border: 1px solid #475569;
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.25);
+      border-radius: 1px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .slider-track::-webkit-slider-thumb:hover {
+      background: #475569;
+    }
+
+    .slider-track:active::-webkit-slider-thumb {
+      background: #1e293b;
+    }
+
+    .slider-val {
+      width: 34px;
+      font-size: 9.5px;
+      color: #334155;
+      font-weight: 700;
+      text-align: right;
+      font-family: monospace;
+    }
+
+    .hud-divider {
+      height: 1px;
+      background: #a2a8b4;
+      margin: 3px 0;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 6px;
+      padding-top: 4px;
+    }
+
+    .btn-ok {
+      background: #bcbfc6;
+      border: 1px solid #7a8290;
+      border-radius: 2px;
+      padding: 4px 26px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+      cursor: pointer;
+      box-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+      transition: all 0.1s;
+    }
+
+    .btn-ok:hover {
+      background: #9ca3af;
+      border-color: #4b5563;
+    }
+
+    .btn-ok:active {
+      background: #6b7280;
+      color: #fff;
+    }
+
+    .btn-reset {
+      background: none;
+      border: 1px solid #94a3b8;
+      border-radius: 2px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #475569;
+      cursor: pointer;
+    }
+    .btn-reset:hover {
+      background: #cbd5e1;
+      color: #0f172a;
+    }
+
+    .status-bar-hud {
+      font-size: 9.5px;
+      color: #334155;
+      text-align: center;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hud-header">
+    <div class="hud-title">
+      <span>📦</span> Exploded View (ABF)
+    </div>
+    <div class="header-btns">
+      <button class="btn-icon-hud" id="btn-refresh" title="Quét lại các tấm ván trong mô hình">🔄</button>
+      <button class="btn-icon-hud btn-close-hud" id="btn-close" title="Đóng cửa sổ">✕</button>
+    </div>
+  </div>
+
+  <div class="slider-group">
+    <!-- Trục X -->
+    <div class="slider-row">
+      <span class="slider-label">X</span>
+      <input type="range" id="slider-x" class="slider-track" min="0" max="600" step="5" value="120">
+      <span class="slider-val" id="val-x">120</span>
+    </div>
+
+    <!-- Trục Y -->
+    <div class="slider-row">
+      <span class="slider-label">Y</span>
+      <input type="range" id="slider-y" class="slider-track" min="0" max="600" step="5" value="80">
+      <span class="slider-val" id="val-y">80</span>
+    </div>
+
+    <!-- Trục Z -->
+    <div class="slider-row">
+      <span class="slider-label">Z</span>
+      <input type="range" id="slider-z" class="slider-track" min="0" max="600" step="5" value="150">
+      <span class="slider-val" id="val-z">150</span>
+    </div>
+
+    <div class="hud-divider"></div>
+
+    <!-- Text offset t -->
+    <div class="slider-row">
+      <span class="slider-label">t</span>
+      <input type="range" id="slider-t" class="slider-track" min="0" max="400" step="5" value="100">
+      <span class="slider-val" id="val-t">100</span>
+    </div>
+
+    <!-- Rotation r -->
+    <div class="slider-row">
+      <span class="slider-label">r</span>
+      <input type="range" id="slider-r" class="slider-track" min="-180" max="180" step="5" value="0">
+      <span class="slider-val" id="val-r">0°</span>
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn-reset" id="btn-reset" title="Khôi phục toàn bộ mô hình về vị trí ban đầu">↺ Reset</button>
+    <button class="btn-ok" id="btn-ok" title="Chấp nhận sơ đồ và tự động tạo Scene Bản Vẽ Lắp Ráp">OK</button>
+  </div>
+
+  <div class="status-bar-hud" id="hud-status">Kéo thanh trượt để bung mô hình</div>
+
+  <script>
+    const sliderX = document.getElementById('slider-x');
+    const sliderY = document.getElementById('slider-y');
+    const sliderZ = document.getElementById('slider-z');
+    const sliderT = document.getElementById('slider-t');
+    const sliderR = document.getElementById('slider-r');
+
+    const valX = document.getElementById('val-x');
+    const valY = document.getElementById('val-y');
+    const valZ = document.getElementById('val-z');
+    const valT = document.getElementById('val-t');
+    const valR = document.getElementById('val-r');
+
+    const hudStatus = document.getElementById('hud-status');
+
+    function callRuby(action, data = {}) {
+      if (window.sketchup && typeof window.sketchup[action] === 'function') {
+        window.sketchup[action](JSON.stringify(data));
+      } else if (window.sketchup && typeof window.sketchup.dispatch === 'function') {
+        window.sketchup.dispatch(JSON.stringify({ action: action, data: data }));
+      } else {
+        console.log(`[Dev CallRuby] ${action}:`, data);
+      }
+    }
+
+    let isThrottled = false;
+    let pendingParams = null;
+
+    function emitExplodeUpdate() {
+      const params = {
+        x: parseFloat(sliderX.value) || 0,
+        y: parseFloat(sliderY.value) || 0,
+        z: parseFloat(sliderZ.value) || 0,
+        t: parseFloat(sliderT.value) || 0,
+        r: parseFloat(sliderR.value) || 0
+      };
+
+      valX.textContent = sliderX.value;
+      valY.textContent = sliderY.value;
+      valZ.textContent = sliderZ.value;
+      valT.textContent = sliderT.value;
+      valR.textContent = sliderR.value + '°';
+
+      if (isThrottled) {
+        pendingParams = params;
+        return;
+      }
+
+      isThrottled = true;
+      callRuby('update_exploded_view', params);
+
+      setTimeout(() => {
+        isThrottled = false;
+        if (pendingParams) {
+          const next = pendingParams;
+          pendingParams = null;
+          callRuby('update_exploded_view', next);
+        }
+      }, 35); // ~30fps mượt mà không nghẽn luồng SketchUp
+    }
+
+    // Sự kiện kéo trượt thời gian thực
+    [sliderX, sliderY, sliderZ, sliderT, sliderR].forEach(slider => {
+      slider.addEventListener('input', emitExplodeUpdate);
+    });
+
+    // Nút OK: Chấp nhận & Tạo Scene Lắp Ráp
+    document.getElementById('btn-ok').addEventListener('click', () => {
+      callRuby('commit_exploded_view', {});
+      if (hudStatus) hudStatus.textContent = '✅ Đã tạo Scene Bản Vẽ Lắp Ráp!';
+    });
+
+    // Nút Reset: Trả về vị trí ban đầu
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      sliderX.value = 0;
+      sliderY.value = 0;
+      sliderZ.value = 0;
+      sliderT.value = 0;
+      sliderR.value = 0;
+      valX.textContent = '0';
+      valY.textContent = '0';
+      valZ.textContent = '0';
+      valT.textContent = '0';
+      valR.textContent = '0°';
+      callRuby('reset_exploded_view', {});
+      if (hudStatus) hudStatus.textContent = '↺ Đã khôi phục vị trí gốc!';
+    });
+
+    // Nút Refresh: Quét lại vùng chọn / mô hình
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+      if (hudStatus) hudStatus.textContent = '🔍 Đang quét lại tấm ván...';
+      callRuby('init_exploded_view', {});
+    });
+
+    // Nút đóng cửa sổ
+    document.getElementById('btn-close').addEventListener('click', () => {
+      callRuby('close_exploded_hud', {});
+    });
+
+    // Nhận thông báo khởi tạo từ Ruby
+    window.onExplodedViewReady = function(resp) {
+      if (resp && resp.status === 'success') {
+        if (resp.initial_params) {
+          const p = resp.initial_params;
+          sliderX.value = p.x;
+          sliderY.value = p.y;
+          sliderZ.value = p.z;
+          sliderT.value = p.t;
+          sliderR.value = p.r;
+          valX.textContent = p.x;
+          valY.textContent = p.y;
+          valZ.textContent = p.z;
+          valT.textContent = p.t;
+          valR.textContent = p.r + '°';
+        }
+        if (hudStatus) hudStatus.textContent = `✅ Đã kết nối ${resp.total_parts || 0} tấm ván (viền xanh)`;
+      } else if (resp && resp.status === 'warning') {
+        if (hudStatus) hudStatus.textContent = resp.message;
+      } else if (resp && resp.status === 'error') {
+        if (hudStatus) hudStatus.textContent = `❌ ${resp.message}`;
+      }
+    };
+
+    // Tự động gọi khởi tạo khi trang nạp xong kèm retry an toàn
+    function triggerInit() {
+      callRuby('init_exploded_view', {});
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      triggerInit();
+      // Retry sau 150ms phòng trường hợp bridge kết nối trễ
+      setTimeout(triggerInit, 150);
+    });
+  </script>
+</body>
+</html>

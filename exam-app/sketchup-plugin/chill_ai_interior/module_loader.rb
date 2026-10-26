@@ -51,7 +51,7 @@ module ChillAIInterior
         begin
           require fpath
           loaded_count += 1
-        rescue => e
+        rescue Exception => e
           puts "[Chill AI Loader Error] Lỗi nạp #{File.basename(fpath)}: #{e.message}"
         end
       end
@@ -68,14 +68,14 @@ module ChillAIInterior
         begin
           load fpath
           reloaded << File.basename(fpath)
-        rescue => e
+        rescue Exception => e
           puts "[Chill AI Hot-Reload Error] Lỗi reload #{File.basename(fpath)}: #{e.message}"
         end
       end
 
       puts "[Chill AI Hot-Reload] Đã nạp đè tươi mới #{reloaded.length} file vào RAM: #{reloaded.join(', ')}"
       reloaded
-    rescue => err
+    rescue Exception => err
       puts "[Chill AI Hot-Reload Fatal] #{err.message}"
       []
     end

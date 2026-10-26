@@ -72,6 +72,8 @@ module ChillAIInterior
         layer.color = Sketchup::Color.new(242, 153, 74)  # Vàng cam (Chén bản lề 35)
       when /HINGE_BASE/i
         layer.color = Sketchup::Color.new(155, 81, 224)  # Tím (Vít đế bản lề)
+      when /QH_NGAM|QH_RANH|QH_KHAU|QH_MONG/i
+        layer.color = Sketchup::Color.new(47, 128, 237)  # Xanh dương ABF (Rãnh tiết diện ngàm âm dương)
       end
     rescue => _e
     end
@@ -724,6 +726,276 @@ module ChillAIInterior
     end
 
     # ==========================================================================
+    # 🚪 5b. TÍNH TOÁN HÌNH HỌC BẢN LỀ TƯƠNG TÁC 3D (CẶP CỬA - HÔNG TỦ) CHUẨN ABF
+    # ==========================================================================
+    def self.calculate_hinge_geometry(door_info, cabinet_info, options = {})
+      return nil unless door_info && cabinet_info && door_info[:entity] && cabinet_info[:entity]
+
+      ent_door = door_info[:entity]
+      ent_cab  = cabinet_info[:entity]
+      bb_door  = get_world_bounds(ent_door, door_info[:parent])
+      bb_cab   = get_world_bounds(ent_cab, cabinet_info[:parent])
+
+      # 1. Tìm cặp góc đứng (X, Y) gần nhau nhất giữa 4 góc cánh và 4 góc hông tủ
+      door_corners = [
+        Geom::Point3d.new(bb_door.min.x, bb_door.min.y, 0),
+        Geom::Point3d.new(bb_door.max.x, bb_door.min.y, 0),
+        Geom::Point3d.new(bb_door.min.x, bb_door.max.y, 0),
+        Geom::Point3d.new(bb_door.max.x, bb_door.max.y, 0)
+      ]
+      cab_corners = [
+        Geom::Point3d.new(bb_cab.min.x, bb_cab.min.y, 0),
+        Geom::Point3d.new(bb_cab.max.x, bb_cab.min.y, 0),
+        Geom::Point3d.new(bb_cab.min.x, bb_cab.max.y, 0),
+        Geom::Point3d.new(bb_cab.max.x, bb_cab.max.y, 0)
+      ]
+
+      best_dist = 100000.0
+      best_door_pt = nil
+      best_cab_pt = nil
+
+      door_corners.each do |dp|
+        cab_corners.each do |cp|
+          d = dp.distance(cp)
+          if d < best_dist
+            best_dist = d
+            best_door_pt = dp
+            best_cab_pt = cp
+          end
+        end
+      end
+
+      return nil if best_dist > 150.mm # Khoảng cách quá xa không phải là cặp cánh - hông kề nhau
+
+      # 2. Xác định phương hướng của cánh cửa
+      dx_door = bb_door.max.x - bb_door.min.x
+      dy_door = bb_door.max.y - bb_door.min.y
+      door_faces_y = dx_door >= dy_door # Chiều rộng cửa theo X, độ dày theo Y
+
+      if door_faces_y
+        door_in_dir = (best_door_pt.x - bb_door.min.x).abs < (best_door_pt.x - bb_door.max.x).abs ? Geom::Vector3d.new(1, 0, 0) : Geom::Vector3d.new(-1, 0, 0)
+        door_back_y = (best_cab_pt.y - bb_door.min.y).abs < (best_cab_pt.y - bb_door.max.y).abs ? bb_door.min.y : bb_door.max.y
+        door_back_normal = (door_back_y == bb_door.min.y) ? Geom::Vector3d.new(0, 1, 0) : Geom::Vector3d.new(0, -1, 0)
+      else
+        door_in_dir = (best_door_pt.y - bb_door.min.y).abs < (best_door_pt.y - bb_door.max.y).abs ? Geom::Vector3d.new(0, 1, 0) : Geom::Vector3d.new(0, -1, 0)
+        door_back_x = (best_cab_pt.x - bb_door.min.x).abs < (best_cab_pt.x - bb_door.max.x).abs ? bb_door.min.x : bb_door.max.x
+        door_back_normal = (door_back_x == bb_door.min.x) ? Geom::Vector3d.new(1, 0, 0) : Geom::Vector3d.new(-1, 0, 0)
+      end
+
+      # 3. Xác định phương hướng của hông tủ
+      dx_cab = bb_cab.max.x - bb_cab.min.x
+      dy_cab = bb_cab.max.y - bb_cab.min.y
+      cab_depth_along_y = dy_cab >= dx_cab
+
+      door_center_x = (bb_door.min.x + bb_door.max.x) / 2.0
+      door_center_y = (bb_door.min.y + bb_door.max.y) / 2.0
+
+      if cab_depth_along_y
+        cab_depth_dir = (best_cab_pt.y - bb_cab.min.y).abs < (best_cab_pt.y - bb_cab.max.y).abs ? Geom::Vector3d.new(0, 1, 0) : Geom::Vector3d.new(0, -1, 0)
+        cab_inner_x = (door_center_x - bb_cab.min.x).abs < (door_center_x - bb_cab.max.x).abs ? bb_cab.min.x : bb_cab.max.x
+        cab_inner_normal = (cab_inner_x == bb_cab.min.x) ? Geom::Vector3d.new(1, 0, 0) : Geom::Vector3d.new(-1, 0, 0)
+      else
+        cab_depth_dir = (best_cab_pt.x - bb_cab.min.x).abs < (best_cab_pt.x - bb_cab.max.x).abs ? Geom::Vector3d.new(1, 0, 0) : Geom::Vector3d.new(-1, 0, 0)
+        cab_inner_y = (door_center_y - bb_cab.min.y).abs < (door_center_y - bb_cab.max.y).abs ? bb_cab.min.y : bb_cab.max.y
+        cab_inner_normal = (cab_inner_y == bb_cab.min.y) ? Geom::Vector3d.new(0, 1, 0) : Geom::Vector3d.new(0, -1, 0)
+      end
+
+      # 4. Tính toán cao độ các bản lề (Z positions)
+      h_door = bb_door.max.z - bb_door.min.z
+      margin = (options[:margin] || options['margin'] || 100.mm).to_l rescue 100.mm
+      margin = 100.mm if margin < 20.mm
+
+      count = (options[:count] || options['count']).to_i
+      if count < 2
+        count = if h_door <= 900.mm then 2
+                elsif h_door <= 1600.mm then 3
+                elsif h_door <= 2000.mm then 4
+                else 5
+                end
+      end
+      count = 7 if count > 7
+
+      z_positions = []
+      if count == 2
+        z_positions = [bb_door.min.z + margin, bb_door.max.z - margin]
+      elsif count == 3
+        z_positions = [bb_door.min.z + margin, (bb_door.min.z + bb_door.max.z) / 2.0, bb_door.max.z - margin]
+      else
+        gap = (bb_door.max.z - bb_door.min.z - 2 * margin) / (count - 1)
+        z_positions = (0...count).map { |i| bb_door.min.z + margin + (i * gap) }
+      end
+
+      # 5. Thông số kỹ thuật chuẩn ABF
+      cup_dia = (options[:cup_dia] || 35.mm)
+      cup_radius = cup_dia / 2.0
+      cup_c = (options[:cup_c] || 4.mm) # Cữ mép C = 4mm
+      offset_cup = cup_c + cup_radius    # 4 + 17.5 = 21.5mm từ mép
+      screw_b = 6.mm                     # Tim chén đến tim 2 vít B = 6mm
+      screw_l1_half = 24.mm              # L1 = 48mm / 2 = 24mm
+      plate_n1 = 37.mm                   # Mép trước đến hàng lỗ 1 = 37mm
+      plate_l2_half = 16.mm              # L2 = 32mm / 2 = 16mm
+
+      guides = []
+
+      z_positions.each do |z|
+        # Toạ độ tâm chén trên cánh cửa
+        if door_faces_y
+          cup_x = best_door_pt.x + (door_in_dir.x * offset_cup)
+          cup_y = door_back_y
+          cup_center = Geom::Point3d.new(cup_x, cup_y, z)
+
+          # 2 vít chén
+          screw_mid_x = cup_x + (door_in_dir.x * screw_b)
+          cup_screws = [
+            Geom::Point3d.new(screw_mid_x, cup_y, z + screw_l1_half),
+            Geom::Point3d.new(screw_mid_x, cup_y, z - screw_l1_half)
+          ]
+        else
+          cup_x = door_back_x
+          cup_y = best_door_pt.y + (door_in_dir.y * offset_cup)
+          cup_center = Geom::Point3d.new(cup_x, cup_y, z)
+
+          screw_mid_y = cup_y + (door_in_dir.y * screw_b)
+          cup_screws = [
+            Geom::Point3d.new(cup_x, screw_mid_y, z + screw_l1_half),
+            Geom::Point3d.new(cup_x, screw_mid_y, z - screw_l1_half)
+          ]
+        end
+
+        # Toạ độ đế bản lề trên hông tủ
+        if cab_depth_along_y
+          plate_x = cab_inner_x
+          plate_y = best_cab_pt.y + (cab_depth_dir.y * plate_n1)
+          plate_center = Geom::Point3d.new(plate_x, plate_y, z)
+
+          plate_screws = [
+            Geom::Point3d.new(plate_x, plate_y, z + plate_l2_half),
+            Geom::Point3d.new(plate_x, plate_y, z - plate_l2_half)
+          ]
+        else
+          plate_x = best_cab_pt.x + (cab_depth_dir.x * plate_n1)
+          plate_y = cab_inner_y
+          plate_center = Geom::Point3d.new(plate_x, plate_y, z)
+
+          plate_screws = [
+            Geom::Point3d.new(plate_x, plate_y, z + plate_l2_half),
+            Geom::Point3d.new(plate_x, plate_y, z - plate_l2_half)
+          ]
+        end
+
+        # Đường gạch đứt (stipple) nối trục bản lề xuyên qua mép 2 tấm
+        stipple_start = cup_center + (door_in_dir * 15.mm)
+        stipple_end   = plate_center + (cab_depth_dir * 25.mm)
+
+        guides << {
+          z: z,
+          cup_center: cup_center,
+          cup_normal: door_back_normal,
+          cup_radius: cup_radius,
+          cup_screws: cup_screws,
+          plate_center: plate_center,
+          plate_normal: cab_inner_normal,
+          plate_screws: plate_screws,
+          stipple_line: [stipple_start, stipple_end]
+        }
+      end
+
+      {
+        door_panel: door_info,
+        cabinet_panel: cabinet_info,
+        best_door_pt: best_door_pt,
+        best_cab_pt: best_cab_pt,
+        door_in_dir: door_in_dir,
+        cab_depth_dir: cab_depth_dir,
+        door_back_normal: door_back_normal,
+        cab_inner_normal: cab_inner_normal,
+        hinge_count: count,
+        margin: margin,
+        guides: guides
+      }
+    end
+
+    # ==========================================================================
+    # 🎯 5c. THI CÔNG KHOAN BẢN LỀ CẶP CỬA - HÔNG TỦ DÍNH TRỰC TIẾP TRÊN 2 TẤM VÁN
+    # ==========================================================================
+    def self.apply_hinge_pair(door_info, cabinet_info, options = {})
+      model = Sketchup.active_model
+      return { status: 'error', message: 'Chưa mở bản vẽ SketchUp!' } unless model
+
+      geo = calculate_hinge_geometry(door_info, cabinet_info, options)
+      return { status: 'error', message: 'Không thể tính toán vị trí bản lề giữa 2 tấm này (khoảng cách quá xa hoặc không cùng hướng đứng).' } unless geo
+
+      model.start_operation("Chill AI: Khoan Bản Lề Chuẩn ABF", true)
+      ensure_layers(model)
+
+      # 1. Xóa các lỗ bản lề cũ trên cặp này nếu có (chống trùng lặp khi đổi số lượng)
+      remove_hinge_pair(door_info, cabinet_info)
+
+      door_ent = door_info[:entity]
+      cab_ent  = cabinet_info[:entity]
+
+      # 2. Tạo Group con trên cánh cửa: Chill_AI_Hinges_35
+      door_entities = door_ent.is_a?(Sketchup::Group) ? door_ent.entities : (door_ent.make_unique rescue nil; door_ent.definition.entities)
+      door_hinge_group = door_entities.add_group
+      door_hinge_group.name = "Chill_AI_Hinges_35"
+
+      # 3. Tạo Group con trên hông tủ: Chill_AI_Hinge_Base_5
+      cab_entities = cab_ent.is_a?(Sketchup::Group) ? cab_ent.entities : (cab_ent.make_unique rescue nil; cab_ent.definition.entities)
+      cab_plate_group = cab_entities.add_group
+      cab_plate_group.name = "Chill_AI_Hinge_Base_5"
+
+      total_drilled = 0
+
+      geo[:guides].each do |g|
+        # a. Lỗ chén Ø35mm trên cánh
+        add_circle_to_panel(door_info, g[:cup_center], g[:cup_normal], 17.5.mm, LAYER_HINGE_35, 11.5.mm, door_hinge_group)
+
+        # b. 2 Lỗ vít chén trên cánh (Ø2.5mm - Ø3mm sâu 10mm)
+        g[:cup_screws].each do |sc|
+          add_circle_to_panel(door_info, sc, g[:cup_normal], 1.5.mm, LAYER_HINGE_BASE_5, 10.0.mm, door_hinge_group)
+        end
+
+        # c. 2 Lỗ vít đế trên hông tủ (Ø5mm sâu 12mm)
+        g[:plate_screws].each do |ps|
+          add_circle_to_panel(cabinet_info, ps, g[:plate_normal], 2.5.mm, LAYER_HINGE_BASE_5, 12.0.mm, cab_plate_group)
+        end
+
+        total_drilled += 1
+      end
+
+      model.commit_operation
+
+      msg = "Chill AI: Đã khoan thành công #{total_drilled} bản lề (Chén Ø35mm & Vít đế) dính trực tiếp trên cả cánh và hông tủ chuẩn ABF!"
+      Sketchup.status_text = msg
+      puts "[Chill AI FittingEngine] #{msg}"
+
+      { status: 'success', hinge_count: total_drilled, geometry: geo, message: msg }
+    rescue => e
+      model.abort_operation rescue nil
+      err_msg = "Lỗi khi khoan bản lề: #{e.message}"
+      puts "[Chill AI FittingEngine Error] #{err_msg}\n#{e.backtrace.first(3).join("\n")}"
+      { status: 'error', message: err_msg }
+    end
+
+    # ==========================================================================
+    # 🧹 5d. XÓA BẢN LỀ CŨ TRÊN CẶP TẤM CỬA - HÔNG TỦ
+    # ==========================================================================
+    def self.remove_hinge_pair(door_info, cabinet_info)
+      [door_info, cabinet_info].each do |p_info|
+        next unless p_info && p_info[:entity] && p_info[:entity].valid?
+        ent = p_info[:entity]
+        ents = ent.is_a?(Sketchup::Group) ? ent.entities : ent.definition.entities
+        to_erase = []
+        ents.grep(Sketchup::Group).each do |g|
+          if g.name =~ /^Chill_AI_Hinges/i || g.name =~ /^Chill_AI_Hinge_Base/i
+            to_erase << g
+          end
+        end
+        to_erase.each { |g| g.erase! rescue nil }
+      end
+    end
+
+    # ==========================================================================
     # 🧹 6. XÓA CÁC LỖ KHOAN PHỤ KIỆN (DỌN SẠCH CẢ KHỐI CŨ LẪN GROUP CHÙM VÀ CIRCLE)
     # ==========================================================================
     def self.clear_fittings(dialog = nil)
@@ -749,7 +1021,7 @@ module ChillAIInterior
         to_erase = []
         entities.each do |item|
           if item.is_a?(Sketchup::Group)
-            if item.name =~ /^Chill_AI_Joint_/i || item.name =~ /^Chill_AI_Hinges/i || item.name =~ /^ABF_Minifix/i
+            if item.name =~ /^Chill_AI_Joint_/i || item.name =~ /^Chill_AI_Hinge/i || item.name =~ /^ABF_Minifix/i
               to_erase << item
             end
           elsif item.is_a?(Sketchup::Edge)

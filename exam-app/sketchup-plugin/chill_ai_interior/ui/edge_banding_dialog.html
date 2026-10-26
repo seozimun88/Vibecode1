@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bảng Điều Chỉnh Thông Số Chỉ Dán Cạnh (Chuẩn ABF)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 11px;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP BAR / HEADER */
+    .app-header {
+      height: 38px;
+      background: #090d16;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .user-avatar-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+    }
+    .window-controls {
+      display: flex;
+      gap: 6px;
+    }
+    .win-btn {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+    }
+    .win-btn.close { background: #ef4444; }
+    .win-btn.min { background: #f59e0b; }
+    .win-btn.max { background: #10b981; }
+
+    /* BODY CONTAINER */
+    .app-body {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 38px);
+      overflow: hidden;
+    }
+
+    /* SIDEBAR BÊN TRÁI (DANH MỤC CHUẨN ABF) */
+    .sidebar {
+      width: 175px;
+      background: #111827;
+      border-right: 1px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .menu-item {
+      padding: 9px 14px;
+      color: #94a3b8;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .menu-item:hover {
+      background: #1e293b;
+      color: #e2e8f0;
+    }
+    .menu-item.active {
+      background: #1e293b;
+      color: #38bdf8;
+      font-weight: 700;
+      border-left-color: #38bdf8;
+    }
+
+    /* MAIN CONTENT BÊN PHẢI */
+    .main-content {
+      flex: 1;
+      background: #0f172a;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    /* KHỐI TRÊN: 2 CỘT (CHỌN ĐỘ DÀY & THÔNG TIN LOẠI CHỈ) */
+    .top-section {
+      display: flex;
+      gap: 16px;
+    }
+
+    /* Cột trên-trái: Danh sách độ dày (4 items) */
+    .thickness-box {
+      width: 240px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .box-header {
+      background: #162032;
+      padding: 5px 8px;
+      border-bottom: 1px solid #334155;
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .box-header-badge {
+      background: #0f172a;
+      border: 1px solid #475569;
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: #38bdf8;
+    }
+    .thickness-list {
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .thickness-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #0f172a;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .thickness-item:hover {
+      border-color: #475569;
+    }
+    .thickness-item.active {
+      border-color: #38bdf8;
+      background: #1e293b;
+      font-weight: 700;
+    }
+    .dot-indicator {
+      width: 14px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    /* Cột trên-phải: Form chỉnh sửa chi tiết */
+    .edit-form-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .form-btn-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .action-btn {
+      padding: 5px 12px;
+      border-radius: 4px;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #f8fafc;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .action-btn:hover {
+      background: #334155;
+      border-color: #38bdf8;
+    }
+    .action-btn.btn-del {
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+    .action-btn.btn-del:hover {
+      background: #991b1b;
+      color: #ffffff;
+    }
+    .action-btn.btn-save {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+    .action-btn.btn-save:hover {
+      background: #0369a1;
+    }
+
+    .form-field-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-field-label {
+      width: 60px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-align: right;
+    }
+    .form-input {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      color: #f8fafc;
+      padding: 5px 8px;
+      font-size: 11px;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 5px rgba(56, 189, 248, 0.4);
+    }
+    .color-picker-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .color-input {
+      width: 28px;
+      height: 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: none;
+    }
+
+    /* KHỐI DƯỚI: DANH SÁCH 12 LOẠI CHỈ DÁN CẠNH */
+    .bottom-section {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preset-list-container {
+      flex: 1;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow-y: auto;
+    }
+    .preset-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      background: #0f172a;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-item:hover {
+      background: #162032;
+      border-color: #475569;
+    }
+    .preset-item.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    .preset-item input[type="checkbox"] {
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+    .preset-color-badge {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      flex-shrink: 0;
+    }
+    .preset-name-text {
+      flex: 1;
+      font-size: 11px;
+    }
+    .preset-price-text {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .preset-item.active .preset-price-text {
+      color: #e0f2fe;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER CỬA SỔ -->
+  <div class="app-header">
+    <div class="user-profile">
+      <div class="user-avatar-icon">👑</div>
+      <span>lequanghuyiqh123</span>
+      <span style="color:#94a3b8; font-weight:normal;">| Bảng Điều Chỉnh Thông Số Dán Chỉ Cạnh</span>
+    </div>
+    <div class="window-controls">
+      <button class="win-btn min" title="Thu nhỏ"></button>
+      <button class="win-btn max" title="Phóng to"></button>
+      <button class="win-btn close" id="btn-win-close" title="Đóng"></button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- SIDEBAR BÊN TRÁI -->
+    <div class="sidebar">
+      <div class="menu-item">Liên kết ngang</div>
+      <div class="menu-item">Bản lề</div>
+      <div class="menu-item">Tiết diện giao nhau</div>
+      <div class="menu-item">Nhãn</div>
+      <div class="menu-item active">Chỉ dán cạnh</div>
+      <div class="menu-item">Layer</div>
+      <div class="menu-item">Xuất tấm</div>
+      <div class="menu-item">Trải phẳng</div>
+      <div class="menu-item">Nesting</div>
+      <div class="menu-item">Exploded View</div>
+      <div class="menu-item">Import / Export Setting</div>
+      <div class="menu-item">Lịch sử thanh toán</div>
+      <div class="menu-item">Tài khoản</div>
+    </div>
+
+    <!-- MAIN CONTENT BÊN PHẢI -->
+    <div class="main-content">
+      <!-- KHỐI TRÊN: ĐỘ DÀY & FORM THÔNG TIN -->
+      <div class="top-section">
+        <!-- Khung chọn độ dày (4 mục) -->
+        <div class="thickness-box">
+          <div class="box-header">
+            <span>NHÓM ĐỘ DÀY</span>
+            <span class="box-header-badge" id="badge-thick-count">4</span>
+          </div>
+          <div class="thickness-list" id="thickness-list">
+            <!-- Render động từ JS -->
+          </div>
+        </div>
+
+        <!-- Khung form sửa chi tiết -->
+        <div class="edit-form-box">
+          <div class="form-btn-row">
+            <button class="action-btn btn-del" id="btn-del-preset">Xóa</button>
+            <button class="action-btn" id="btn-new-preset">Tạo mới</button>
+            <button class="action-btn btn-save" id="btn-save-preset">Lưu lại</button>
+          </div>
+
+          <div class="form-field-row">
+            <span class="form-field-label">Tên:</span>
+            <input type="text" class="form-input" id="input-name" value="Chỉ Cánh" style="flex:1;">
+          </div>
+
+          <div class="form-field-row">
+            <span class="form-field-label">Độ dày:</span>
+            <input type="number" class="form-input" id="input-thick" value="1.0" step="0.05" min="0" max="10" style="width:75px;">
+            <span style="color:#94a3b8;">mm</span>
+
+            <span class="form-field-label" style="width:40px;">Màu:</span>
+            <div class="color-picker-box">
+              <input type="color" class="color-input" id="input-color" value="#a3e635">
+              <span id="label-hex" style="color:#38bdf8; font-weight:bold;">#a3e635</span>
+            </div>
+          </div>
+
+          <div class="form-field-row">
+            <span class="form-field-label">Giá:</span>
+            <input type="number" class="form-input" id="input-price" value="3000" step="500" min="0" style="width:110px;">
+            <span style="color:#94a3b8;">đ / mét</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI DƯỚI: DANH SÁCH CÁC LOẠI CHỈ DÁN CẠNH (12 MỤC) -->
+      <div class="bottom-section">
+        <div class="box-header">
+          <span>DANH SÁCH CHỈ DÁN CẠNH CHUẨN ABF</span>
+          <span class="box-header-badge" id="badge-preset-count">12</span>
+        </div>
+        <div class="preset-list-container" id="preset-list">
+          <!-- Render động từ JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let config = { presets: [], thicknesses: [], active_preset_id: 'eb_1' };
+    let currentSelectedId = 'eb_1';
+
+    function callSketchUp(action, data) {
+      if (window.sketchup && window.sketchup.dispatch) {
+        window.sketchup.dispatch(JSON.stringify({ action: action, data: data || {} }));
+      } else if (window.sketchup && window.sketchup[action]) {
+        window.sketchup[action](JSON.stringify(data || {}));
+      }
+    }
+
+    function initDialog(cfg) {
+      if (!cfg) return;
+      config = cfg;
+      currentSelectedId = cfg.active_preset_id || (config.presets[0] && config.presets[0].id) || 'eb_1';
+
+      renderThicknesses();
+      renderPresets();
+      loadForm(currentSelectedId);
+    }
+
+    function renderThicknesses() {
+      const container = document.getElementById('thickness-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const list = config.thicknesses || [];
+      document.getElementById('badge-thick-count').innerText = list.length;
+
+      list.forEach((t, idx) => {
+        const item = document.createElement('div');
+        item.className = 'thickness-item' + (idx === 0 ? ' active' : '');
+
+        const dot = document.createElement('div');
+        dot.className = 'dot-indicator';
+        dot.style.backgroundColor = t.color || '#3b82f6';
+
+        const label = document.createElement('span');
+        label.innerText = t.label || (t.thickness + 'mm');
+
+        item.appendChild(dot);
+        item.appendChild(label);
+
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.thickness-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          document.getElementById('input-thick').value = t.thickness;
+        });
+
+        container.appendChild(item);
+      });
+    }
+
+    function renderPresets() {
+      const container = document.getElementById('preset-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const list = config.presets || [];
+      document.getElementById('badge-preset-count').innerText = list.length;
+
+      list.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'preset-item' + (p.id === currentSelectedId ? ' active' : '');
+        row.setAttribute('data-id', p.id);
+
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = p.active !== false;
+        chk.addEventListener('click', (e) => {
+          e.stopPropagation();
+          p.active = chk.checked;
+          saveCurrentConfig();
+        });
+
+        const colorBadge = document.createElement('div');
+        colorBadge.className = 'preset-color-badge';
+        colorBadge.style.backgroundColor = p.color || '#a3e635';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'preset-name-text';
+        nameSpan.innerText = p.name;
+
+        const priceSpan = document.createElement('span');
+        priceSpan.className = 'preset-price-text';
+        priceSpan.innerText = p.price ? (p.price.toLocaleString('vi-VN') + ' đ/m') : '';
+
+        row.appendChild(chk);
+        row.appendChild(colorBadge);
+        row.appendChild(nameSpan);
+        row.appendChild(priceSpan);
+
+        row.addEventListener('click', () => {
+          currentSelectedId = p.id;
+          config.active_preset_id = p.id;
+          document.querySelectorAll('.preset-item').forEach(el => el.classList.remove('active'));
+          row.classList.add('active');
+          loadForm(p.id);
+          callSketchUp('set_active_edge_band', { id: p.id });
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    function loadForm(presetId) {
+      const p = config.presets.find(x => x.id === presetId);
+      if (!p) return;
+
+      document.getElementById('input-name').value = p.name;
+      document.getElementById('input-thick').value = p.thickness;
+      document.getElementById('input-color').value = p.color || '#a3e635';
+      document.getElementById('label-hex').innerText = p.color || '#a3e635';
+      document.getElementById('input-price').value = p.price || 0;
+    }
+
+    // Color picker change
+    document.getElementById('input-color').addEventListener('input', (e) => {
+      document.getElementById('label-hex').innerText = e.target.value;
+    });
+
+    // Save button
+    document.getElementById('btn-save-preset').addEventListener('click', () => {
+      let p = config.presets.find(x => x.id === currentSelectedId);
+      if (!p) return;
+
+      p.name = document.getElementById('input-name').value.trim();
+      p.thickness = parseFloat(document.getElementById('input-thick').value) || 1.0;
+      p.color = document.getElementById('input-color').value;
+      p.price = parseFloat(document.getElementById('input-price').value) || 0;
+
+      saveCurrentConfig();
+      renderPresets();
+    });
+
+    // New button
+    document.getElementById('btn-new-preset').addEventListener('click', () => {
+      const newId = 'eb_' + Date.now();
+      const newPreset = {
+        id: newId,
+        name: 'Chỉ Mới - 1mm',
+        thickness: 1.0,
+        color: '#38bdf8',
+        price: 3000,
+        active: true
+      };
+      config.presets.push(newPreset);
+      currentSelectedId = newId;
+      config.active_preset_id = newId;
+      saveCurrentConfig();
+      renderPresets();
+      loadForm(newId);
+    });
+
+    // Delete button
+    document.getElementById('btn-del-preset').addEventListener('click', () => {
+      if (config.presets.length <= 1) {
+        alert('Phải giữ lại ít nhất 1 loại chỉ dán cạnh.');
+        return;
+      }
+      config.presets = config.presets.filter(x => x.id !== currentSelectedId);
+      currentSelectedId = config.presets[0].id;
+      config.active_preset_id = currentSelectedId;
+      saveCurrentConfig();
+      renderPresets();
+      loadForm(currentSelectedId);
+    });
+
+    function saveCurrentConfig() {
+      callSketchUp('save_edge_banding_config', config);
+    }
+
+    // Close window
+    document.getElementById('btn-win-close').addEventListener('click', () => {
+      callSketchUp('close_edge_banding_dialog', {});
+    });
+
+    window.onConfigLoaded = function(cfg) {
+      initDialog(cfg);
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      callSketchUp('get_edge_banding_config', {});
+    });
+  </script>
+</body>
+</html>

@@ -83,6 +83,157 @@ module ChillAIInterior
         handle_nest_to_sketchup(params, dialog)
       end
 
+      # 4g. Quy trình 4 bước ABF: Gắn nhãn tự động
+      dialog.add_action_callback("cnc_auto_label") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        handle_cnc_auto_label(params, dialog)
+      end
+
+      # 4h. Quy trình 4 bước ABF: Hiệu chỉnh mặt gia công
+      dialog.add_action_callback("cnc_flip_face") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        handle_cnc_flip_face(params, dialog)
+      end
+
+      # 4i. Quy trình 4 bước ABF: Hiệu chỉnh chiều vân gỗ
+      dialog.add_action_callback("cnc_toggle_grain") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        handle_cnc_toggle_grain(params, dialog)
+      end
+
+      # 4j. Cấu hình nhãn chuẩn ABF: Get & Save config
+      dialog.add_action_callback("get_label_config") do |_ctx, *args|
+        cfg = defined?(LabelingEngine) ? LabelingEngine.get_config : {}
+        dialog.execute_script("if(window.onLabelConfigLoaded) window.onLabelConfigLoaded(#{cfg.to_json});")
+      end
+
+      dialog.add_action_callback("save_label_config") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        cfg = defined?(LabelingEngine) ? LabelingEngine.save_config(params) : {}
+        dialog.execute_script("if(window.onLabelConfigSaved) window.onLabelConfigSaved(#{cfg.to_json});")
+      end
+
+      dialog.add_action_callback("apply_abf_labels") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        sel_only = params['selection_only'] ? true : false
+        cfg = params['config']
+        result = defined?(LabelingEngine) ? LabelingEngine.apply_labels(sel_only, cfg) : {}
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('label', #{result.to_json});")
+      end
+
+      dialog.add_action_callback("rotate_grain_angle") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        angle = (params['angle'] || 90.0).to_f
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(LabelingEngine) ? LabelingEngine.rotate_grain_direction(angle, sel_only) : {}
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('grain', #{result.to_json});")
+      end
+
+      dialog.add_action_callback("set_grain_angle") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        angle = (params['angle'] || 0.0).to_f
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(LabelingEngine) ? LabelingEngine.set_grain_angle(angle, sel_only) : {}
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('grain', #{result.to_json});")
+      end
+
+      dialog.add_action_callback("open_grain_palette") do |_ctx, *args|
+        WindowManager.show_grain_palette if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_grain_palette") do |_ctx, *args|
+        WindowManager.close_grain_palette if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("open_rename_dialog") do |_ctx, *args|
+        WindowManager.show_rename_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_rename_dialog") do |_ctx, *args|
+        WindowManager.close_rename_dialog if defined?(WindowManager)
+      end
+
+            dialog.add_action_callback("open_print_labels_dialog") do |_ctx, *args|
+        begin
+          core_dir = File.join(File.dirname(__FILE__), 'core')
+          ['print_label_engine.rb', 'window_manager.rb'].each do |fn|
+            fp = File.join(core_dir, fn)
+            load fp if File.exist?(fp)
+          end
+        rescue => _e
+        end
+        WindowManager.show_print_labels_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_print_labels_dialog") do |_ctx, *args|
+        WindowManager.close_print_labels_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("open_exploded_view") do |_ctx, *args|
+        begin
+          core_dir = File.join(File.dirname(__FILE__), 'core')
+          ['exploded_view_engine.rb', 'window_manager.rb'].each do |fn|
+            fp = File.join(core_dir, fn)
+            load fp if File.exist?(fp)
+          end
+        rescue => _e
+        end
+        WindowManager.show_exploded_hud if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_exploded_hud") do |_ctx, *args|
+        WindowManager.close_exploded_hud if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("open_report_dialog") do |_ctx, *args|
+        WindowManager.show_report_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_report_dialog") do |_ctx, *args|
+        WindowManager.close_report_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("clear_abf_labels") do |_ctx, *args|
+        result = defined?(LabelingEngine) ? LabelingEngine.clear_all_labels : {}
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('clear_label', #{result.to_json});")
+      end
+
+      # 4k. Tiết diện giao nhau (Ngàm âm dương / Rãnh hậu / Mộng xương chó chuẩn ABF)
+      dialog.add_action_callback("get_intersect_presets") do |_ctx, *args|
+        handle_get_intersect_presets(dialog)
+      end
+
+      dialog.add_action_callback("save_intersect_presets") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        handle_save_intersect_presets(params, dialog)
+      end
+
+      dialog.add_action_callback("apply_intersection") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        handle_apply_intersection(params, dialog)
+      end
+
+                  dialog.add_action_callback("activate_edge_banding_tool") do |_ctx, *args|
+        EdgeBandingTool.activate_tool if defined?(EdgeBandingTool)
+      end
+
+      dialog.add_action_callback("open_edge_banding_dialog") do |_ctx, *args|
+        WindowManager.show_edge_banding_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("activate_stretch_tool") do |_ctx, *args|
+        StretchTool.activate_tool if defined?(StretchTool)
+      end
+
+      dialog.add_action_callback("activate_intersect_tool") do |_ctx, *args|
+        params = parse_json_arg(args.first)
+        handle_activate_intersect_tool(params, dialog)
+      end
+
+      dialog.add_action_callback("clear_intersections") do |_ctx, *args|
+        handle_clear_intersections(dialog)
+      end
+
       # 4e. Co về khổ ván tiêu chuẩn 2440mm
       dialog.add_action_callback("clamp_oversized_to_standard") do |_ctx, *args|
         SelectionManager.clamp_to_standard rescue nil if defined?(SelectionManager)
@@ -129,9 +280,7 @@ module ChillAIInterior
       # 9. TẢI LẠI TOÀN BỘ MÃ NGUỒN RUBY (HOT-RELOAD SẠCH RAM)
       dialog.add_action_callback("reload_plugin_all") do |_ctx, *args|
         ModuleLoader.reload_all if defined?(ModuleLoader)
-        UI.start_timer(0.05, false) do
-          WindowManager.reset_dialog_position if defined?(WindowManager)
-        end
+        puts "[Chill AI BridgeRouter] Đã hot-reload tươi mới mã nguồn Ruby vào RAM (Không tạo thêm cửa sổ)."
       end
 
       # 10. Handshake khi giao diện khởi động xong
@@ -226,6 +375,11 @@ module ChillAIInterior
         FittingTool.activate_tool if defined?(FittingTool)
       end
 
+      # 15b. Kích hoạt công cụ 3D Khoan Bản Lề Chuẩn ABF (Chọn Cánh -> Chọn Hông)
+      dialog.add_action_callback("activate_hinge_tool") do |_ctx, *args|
+        HingeTool.activate_tool if defined?(HingeTool)
+      end
+
       # 16. Cầu nối Ollama Local LLM (gemma4:e4b) - Không bị chặn CORS trong CEF
       dialog.add_action_callback("call_ollama") do |_ctx, *args|
         payload = parse_json_arg(args.first)
@@ -265,10 +419,70 @@ module ChillAIInterior
         handle_apply_cam_locks(data, dialog)
       when 'activate_fitting_tool'
         FittingTool.activate_tool if defined?(FittingTool)
+      when 'activate_hinge_tool'
+        HingeTool.activate_tool if defined?(HingeTool)
+      when 'get_intersect_presets'
+        handle_get_intersect_presets(dialog)
+      when 'save_intersect_presets'
+        handle_save_intersect_presets(data, dialog)
+      when 'apply_intersection'
+        handle_apply_intersection(data, dialog)
+      when 'activate_edge_banding_tool'
+        EdgeBandingTool.activate_tool if defined?(EdgeBandingTool)
+      when 'open_edge_banding_dialog'
+        WindowManager.show_edge_banding_dialog if defined?(WindowManager)
+      when 'open_flatten_dialog', 'show_flatten_dialog'
+        WindowManager.show_flatten_dialog if defined?(WindowManager)
+      when 'activate_flatten_tool'
+        FlattenTool.activate_tool(data) if defined?(FlattenTool)
+      when 'get_flatten_config'
+        cfg = defined?(FlattenEngine) ? FlattenEngine.get_config : {}
+        dialog.execute_script("if(window.receiveFlattenConfig) window.receiveFlattenConfig(#{cfg.to_json});")
+      when 'save_flatten_config'
+        cfg = defined?(FlattenEngine) ? FlattenEngine.save_config(data) : {}
+        dialog.execute_script("if(window.receiveFlattenConfig) window.receiveFlattenConfig(#{cfg.to_json});")
+      when 'apply_flatten_panel'
+        handle_apply_flatten_panel(data, dialog)
+      when 'activate_stretch_tool'
+        StretchTool.activate_tool if defined?(StretchTool)
+      when 'activate_intersect_tool'
+        handle_activate_intersect_tool(data, dialog)
+      when 'clear_intersections'
+        handle_clear_intersections(dialog)
       when 'export_gcode'
         handle_export_gcode(data, dialog)
       when 'export_dxf'
         handle_export_dxf_direct(dialog)
+when 'open_exploded_view', 'show_exploded_hud', 'exploded_view'
+        begin
+          core_dir = File.join(File.dirname(__FILE__), 'core')
+          ['exploded_view_engine.rb', 'window_manager.rb'].each do |fn|
+            fp = File.join(core_dir, fn)
+            load fp if File.exist?(fp)
+          end
+        rescue => _e
+        end
+        WindowManager.show_exploded_hud if defined?(WindowManager)
+      when 'open_print_labels_dialog', 'print_labels', 'in_tem'
+        begin
+          plugins_dir = Sketchup.find_support_file("Plugins") rescue nil
+          search_dirs = [
+            (defined?(PLUGIN_ROOT) ? File.join(PLUGIN_ROOT, 'core') : nil),
+            (plugins_dir ? File.join(plugins_dir, 'chill_ai_interior', 'core') : nil)
+          ].compact.uniq
+          search_dirs.each do |cd|
+            ['print_label_engine.rb', 'window_manager.rb'].each do |fn|
+              fp = File.join(cd, fn)
+              load fp if File.exist?(fp)
+            end
+          end
+        rescue => _e
+        end
+        WindowManager.show_print_labels_dialog if defined?(WindowManager)
+      when 'snap_dock', 'snap_dock_to_viewport', 'snap_to_viewport'
+        WindowManager.snap_to_viewport if defined?(WindowManager)
+      when 'open_report_dialog', 'open_statistics'
+        WindowManager.show_report_dialog if defined?(WindowManager)
       when 'reload_plugin'
         ModuleLoader.reload_all if defined?(ModuleLoader)
         WindowManager.snap_to_viewport if defined?(WindowManager)
@@ -452,18 +666,93 @@ module ChillAIInterior
       UI.messagebox("Không thể xuất file DXF: #{e.message}")
     end
 
-    def self.handle_nest_to_sketchup(params, dialog)
+        def self.handle_nest_to_sketchup(params, dialog)
+      # Cưỡng bức Hot-Reload tự động nạp đè tươi mới các module Lego vào RAM của SketchUp
+      begin
+        plugins_dir = Sketchup.find_support_file("Plugins") rescue nil
+        search_dirs = [
+          (defined?(PLUGIN_ROOT) ? File.join(PLUGIN_ROOT, 'core') : nil),
+          (plugins_dir ? File.join(plugins_dir, 'chill_ai_interior', 'core') : nil),
+          File.expand_path(File.join(File.dirname(__FILE__), 'core'))
+        ].compact.uniq
+
+        loaded_files = []
+        search_dirs.each do |cd|
+          if Dir.exist?(cd)
+            ['edge_banding_engine.rb', 'labeling_engine.rb', 'cam_gcode.rb'].each do |fn|
+              fp = File.join(cd, fn)
+              if File.exist?(fp)
+                load fp
+                loaded_files << fn
+              end
+            end
+          end
+        end
+
+        root_dir = defined?(PLUGIN_ROOT) ? PLUGIN_ROOT : (plugins_dir ? File.join(plugins_dir, 'chill_ai_interior') : File.dirname(__FILE__))
+        log_fp = File.join(root_dir, 'runtime_nest.log')
+        File.open(log_fp, 'a') do |f|
+          f.puts("[#{Time.now}] handle_nest_to_sketchup executed with fresh modules: #{loaded_files.uniq.join(', ')}")
+        end rescue nil
+      rescue => e
+        UI.messagebox("Lỗi hot-reload: #{e.message}") rescue nil
+      end
+
       if defined?(CamGCodeExporter)
         result = CamGCodeExporter.nest_to_sketchup(params)
         dialog.execute_script("if(window.onNestingToSUCompleted) window.onNestingToSUCompleted(#{result.to_json});")
         if result['status'] == 'success'
-          Sketchup.status_text = "Chill AI: Đã trải phẳng #{result['total_sheets']} khổ ván lên mặt bàn SketchUp!"
+          Sketchup.status_text = "Chill AI: Đã trải phẳng #{result['total_sheets']} khổ ván lên mặt bàn SketchUp (Chuẩn ABF DXF)!"
+          WindowManager.snap_to_viewport rescue nil if defined?(WindowManager)
         else
           UI.messagebox("Lỗi trải phẳng SU: #{result['message']}")
         end
       end
     rescue => e
       UI.messagebox("Lỗi trải phẳng lên SketchUp: #{e.message}")
+    end
+
+    def self.handle_cnc_auto_label(params, dialog)
+      core_dir = File.join(File.dirname(__FILE__), 'core')
+      ['labeling_engine.rb', 'cam_gcode.rb', 'edge_banding_engine.rb'].each do |fn|
+        fp = File.join(core_dir, fn)
+        load fp if File.exist?(fp)
+      end
+
+      sel_only = params.is_a?(Hash) && params['selection_only'] ? true : false
+      if defined?(LabelingEngine)
+        result = LabelingEngine.apply_labels(sel_only)
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('label', #{result.to_json});")
+      elsif defined?(CamGCodeExporter)
+        result = CamGCodeExporter.auto_label_parts(sel_only)
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('label', #{result.to_json});")
+      end
+    rescue => e
+      UI.messagebox("Lỗi gắn nhãn: #{e.message}")
+    end
+
+    def self.handle_cnc_flip_face(params, dialog)
+      if defined?(LabelingEngine)
+        result = LabelingEngine.flip_machining_face(true)
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('flip_face', #{result.to_json});")
+      elsif defined?(CamGCodeExporter)
+        result = CamGCodeExporter.flip_machining_face(true)
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('flip_face', #{result.to_json});")
+      end
+    rescue => e
+      UI.messagebox("Lỗi đổi mặt gia công: #{e.message}")
+    end
+
+    def self.handle_cnc_toggle_grain(params, dialog)
+      if defined?(LabelingEngine)
+        result = LabelingEngine.rotate_grain_direction(90.0, true)
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('grain', #{result.to_json});")
+      elsif defined?(CamGCodeExporter)
+        result = CamGCodeExporter.toggle_grain_direction(true)
+        dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('grain', #{result.to_json});")
+      end
+    rescue => e
+      UI.messagebox("Lỗi chỉnh chiều vân gỗ: #{e.message}")
     end
 
     def self.handle_build_wardrobe(params, dialog)
@@ -572,6 +861,167 @@ module ChillAIInterior
       end
     end
 
+    # --- TIẾT DIỆN GIAO NHAU (CHUẨN ABF) ---
+    def self.handle_get_intersect_presets(dialog)
+      return unless dialog
+      presets = defined?(IntersectEngine) ? IntersectEngine.get_presets : []
+      active = defined?(IntersectEngine) ? IntersectEngine.get_active_preset : {}
+      payload = { 'presets' => presets, 'active' => active }.to_json
+      dialog.execute_script("if(window.onIntersectPresetsLoaded) window.onIntersectPresetsLoaded(#{payload});")
+    end
+
+    def self.handle_save_intersect_presets(params, dialog)
+      return unless dialog
+      if defined?(IntersectEngine) && params && params['presets']
+        saved = IntersectEngine.save_presets(params['presets'])
+        active_id = params['active_id']
+        IntersectEngine.set_active_preset_id(active_id) if active_id
+        active = IntersectEngine.get_active_preset
+        payload = { 'status' => 'success', 'presets' => saved, 'active' => active }.to_json
+        dialog.execute_script("if(window.onIntersectPresetsSaved) window.onIntersectPresetsSaved(#{payload});")
+      end
+    end
+
+    def self.handle_apply_intersection(params, dialog)
+      result = defined?(IntersectEngine) ? IntersectEngine.apply_to_selection(params || {}) : { 'status' => 'error', 'message' => 'IntersectEngine chưa nạp' }
+      dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('intersect', #{result.to_json});") if dialog
+      result
+    end
+
+    def self.handle_activate_intersect_tool(params, dialog)
+      if defined?(IntersectTool)
+        IntersectTool.activate_tool(params || {})
+      end
+    end
+
+    def self.handle_clear_intersections(dialog)
+      result = defined?(IntersectEngine) ? IntersectEngine.clear_intersections : { 'status' => 'error' }
+      dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('clear_intersect', #{result.to_json});") if dialog
+      result
+    end
+
+    def self.register_grain_palette_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("set_grain_angle") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        angle = (params['angle'] || 0.0).to_f
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(LabelingEngine) ? LabelingEngine.set_grain_angle(angle, sel_only) : {}
+        dialog.execute_script("if(window.onAngleApplied) window.onAngleApplied(#{angle}, #{result.to_json});")
+        if defined?(WindowManager) && WindowManager.dialog && WindowManager.dialog.visible?
+          WindowManager.dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('grain', #{result.to_json});")
+        end
+      end
+
+      dialog.add_action_callback("rotate_grain_step") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        step = (params['step'] || 15.0).to_f
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(LabelingEngine) ? LabelingEngine.rotate_grain_direction(step, sel_only) : {}
+        dialog.execute_script("if(window.onStepApplied) window.onStepApplied(#{step}, #{result.to_json});")
+        if defined?(WindowManager) && WindowManager.dialog && WindowManager.dialog.visible?
+          WindowManager.dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('grain', #{result.to_json});")
+        end
+      end
+
+      dialog.add_action_callback("close_palette") do |_ctx, *args|
+        WindowManager.close_grain_palette if defined?(WindowManager)
+      end
+    end
+
+    def self.register_rename_dialog_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("rename_apply") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        result = defined?(RenameEngine) ? RenameEngine.rename_selection(params) : {}
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted(#{result.to_json});")
+        if defined?(WindowManager) && WindowManager.dialog && WindowManager.dialog.visible?
+          WindowManager.dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('rename', #{result.to_json});")
+        end
+      end
+
+      dialog.add_action_callback("rename_quick") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        name = params['name'].to_s
+        is_mod = params['is_module'] ? true : false
+        auto_idx = params['auto_index'] ? true : false
+        result = defined?(RenameEngine) ? RenameEngine.apply_quick_name(name, is_mod, auto_idx, params) : {}
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted(#{result.to_json});")
+        if defined?(WindowManager) && WindowManager.dialog && WindowManager.dialog.visible?
+          WindowManager.dialog.execute_script("if(window.onCncActionCompleted) window.onCncActionCompleted('rename', #{result.to_json});")
+        end
+      end
+
+      dialog.add_action_callback("rename_replace") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        find_str = params['find'].to_s
+        rep_str = params['replace'].to_s
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(RenameEngine) ? RenameEngine.replace_text(find_str, rep_str, sel_only) : {}
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted(#{result.to_json});")
+      end
+
+      dialog.add_action_callback("rename_clean_copy") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(RenameEngine) ? RenameEngine.clean_copy_names(sel_only) : {}
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted(#{result.to_json});")
+      end
+
+      dialog.add_action_callback("rename_clear_id") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        sel_only = params.key?('selection_only') ? params['selection_only'] : true
+        result = defined?(RenameEngine) ? RenameEngine.clear_part_ids(sel_only) : {}
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted(#{result.to_json});")
+      end
+
+      dialog.add_action_callback("rename_undo") do |_ctx, *args|
+        Sketchup.undo
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted({'status':'success','message':'Đã hoàn tác (Undo) thành công!'});")
+      end
+
+      dialog.add_action_callback("get_rename_presets") do |_ctx, *args|
+        presets = defined?(RenameEngine) ? RenameEngine.get_presets : {}
+        dialog.execute_script("if(window.onPresetsLoaded) window.onPresetsLoaded(#{presets.to_json});")
+      end
+
+      dialog.add_action_callback("save_rename_presets") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        result = defined?(RenameEngine) ? RenameEngine.save_presets(params) : {}
+        dialog.execute_script("if(window.onRenameCompleted) window.onRenameCompleted(#{result.to_json});")
+      end
+    end
+
+    
+    # Cài đặt toàn bộ Callback cho Cửa sổ Thống Kê & Dự Toán (Report Dialog Chuẩn ABF)
+    def self.register_report_dialog_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("get_statistics_data") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        sel_only = params['selection_only'] ? true : false
+        data = defined?(ReportEngine) ? ReportEngine.collect_statistics(sel_only) : { 'status' => 'error' }
+        dialog.execute_script("if(window.onStatisticsLoaded) window.onStatisticsLoaded(#{data.to_json});")
+      end
+
+      dialog.add_action_callback("export_statistics_excel") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        res = defined?(ReportEngine) ? ReportEngine.export_to_excel(data) : { 'status' => 'error' }
+        dialog.execute_script("if(window.onExcelExported) window.onExcelExported(#{res.to_json});")
+      end
+
+      dialog.add_action_callback("save_cost_presets") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        res = defined?(ReportEngine) ? ReportEngine.save_cost_presets(data) : { 'status' => 'error' }
+      end
+
+      dialog.add_action_callback("close_report_dialog") do |_ctx, *args|
+        WindowManager.close_report_dialog if defined?(WindowManager)
+      end
+    end
+
     def self.parse_json_arg(arg)
       return {} if arg.nil?
       return arg if arg.is_a?(Hash)
@@ -580,5 +1030,199 @@ module ChillAIInterior
     rescue => _e
       {}
     end
+
+    # ==========================================================================
+    # CÁC CALLBACK TIẾP NHẬN CHO BẢNG CHỈ DÁN CẠNH (PALETTE & DIALOG)
+    # ==========================================================================
+    def self.register_edge_banding_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("get_edge_banding_config") do |_ctx, *args|
+        cfg = defined?(EdgeBandingEngine) ? EdgeBandingEngine.get_config : {}
+        dialog.execute_script("if(window.onConfigLoaded) window.onConfigLoaded(#{cfg.to_json});")
+      end
+
+      dialog.add_action_callback("save_edge_banding_config") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        cfg = defined?(EdgeBandingEngine) ? EdgeBandingEngine.save_config(data) : {}
+        dialog.execute_script("if(window.onConfigLoaded) window.onConfigLoaded(#{cfg.to_json});")
+      end
+
+      dialog.add_action_callback("set_active_edge_band") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        if defined?(EdgeBandingEngine) && data['id']
+          EdgeBandingEngine.set_active_preset(data['id'])
+        end
+      end
+
+      dialog.add_action_callback("set_edge_banding_mode") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        mode = data['mode'] || 'single'
+        if defined?(EdgeBandingTool) && EdgeBandingTool.current_tool
+          EdgeBandingTool.current_tool.set_mode(mode)
+        end
+      end
+
+      dialog.add_action_callback("toggle_xray_mode") do |_ctx, *args|
+        if defined?(EdgeBandingTool) && EdgeBandingTool.current_tool
+          EdgeBandingTool.current_tool.toggle_xray
+        else
+          opts = Sketchup.active_model.rendering_options rescue nil
+          opts['ModelTransparency'] = !opts['ModelTransparency'] if opts
+        end
+      end
+
+      dialog.add_action_callback("open_edge_banding_dialog") do |_ctx, *args|
+        WindowManager.show_edge_banding_dialog if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("close_edge_banding_dialog") do |_ctx, *args|
+        WindowManager.close_edge_banding_dialog if defined?(WindowManager)
+      end
+    end
+
+    # ==========================================================================
+    # ĐĂNG KÝ CALLBACK CHO CỬA SỔ IN TEM NHÃN (CHUẨN ABF & MÁY IN TEM)
+    # ==========================================================================
+    def self.register_print_label_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("get_print_labels_data") do |_ctx, *args|
+        data = defined?(PrintLabelEngine) ? PrintLabelEngine.collect_panels_for_labels : { 'status' => 'error' }
+        dialog.execute_script("if(window.onLabelsDataLoaded) window.onLabelsDataLoaded(#{data.to_json});")
+      end
+
+      dialog.add_action_callback("save_print_label_config") do |_ctx, *args|
+        cfg = parse_json_arg(args.first) || {}
+        res = defined?(PrintLabelEngine) ? PrintLabelEngine.save_config(cfg) : {}
+      end
+
+      dialog.add_action_callback("export_labels_pdf") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        res = defined?(PrintLabelEngine) ? PrintLabelEngine.export_labels_pdf(params) : { 'status' => 'error' }
+        if res['status'] == 'success'
+          UI.messagebox("Đã xuất file bản in tem nhãn thành công:\n#{res['file_path']}")
+        else
+          UI.messagebox("Lỗi xuất file in tem: #{res['message']}")
+        end
+      end
+
+      dialog.add_action_callback("close_print_labels_dialog") do |_ctx, *args|
+        WindowManager.close_print_labels_dialog if defined?(WindowManager)
+      end
+    end
+
+    # ==========================================================================
+    # ĐĂNG KÝ CALLBACK CHO CỬA SỔ BUNG NỔ MÔ HÌNH (EXPLODED VIEW CHUẨN ABF)
+    # ==========================================================================
+    def self.register_exploded_hud_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("init_exploded_view") do |_ctx, *args|
+        core_dir = File.join(File.dirname(__FILE__), 'core')
+        ['labeling_engine.rb', 'exploded_view_engine.rb'].each do |fn|
+          fp = File.join(core_dir, fn)
+          load fp if File.exist?(fp)
+        end
+        res = defined?(ExplodedViewEngine) ? ExplodedViewEngine.init_exploded_view : { 'status' => 'error' }
+        dialog.execute_script("if(window.onExplodedViewReady) window.onExplodedViewReady(#{res.to_json});")
+      end
+
+      dialog.add_action_callback("update_exploded_view") do |_ctx, *args|
+        params = parse_json_arg(args.first) || {}
+        ExplodedViewEngine.update_explosion(params) if defined?(ExplodedViewEngine)
+      end
+
+      dialog.add_action_callback("reset_exploded_view") do |_ctx, *args|
+        res = defined?(ExplodedViewEngine) ? ExplodedViewEngine.reset_to_original : {}
+      end
+
+      dialog.add_action_callback("commit_exploded_view") do |_ctx, *args|
+        res = defined?(ExplodedViewEngine) ? ExplodedViewEngine.commit_and_create_scene : {}
+      end
+
+      dialog.add_action_callback("close_exploded_hud") do |_ctx, *args|
+        WindowManager.close_exploded_hud if defined?(WindowManager)
+      end
+
+      dialog.add_action_callback("dispatch") do |_ctx, *args|
+        raw = args.first
+        payload = parse_json_arg(raw)
+        action = payload['action'] || payload[:action]
+        data = payload['data'] || payload[:data] || {}
+
+        case action.to_s
+        when 'init_exploded_view'
+          res = defined?(ExplodedViewEngine) ? ExplodedViewEngine.init_exploded_view : { 'status' => 'error' }
+          dialog.execute_script("if(window.onExplodedViewReady) window.onExplodedViewReady(#{res.to_json});")
+        when 'update_exploded_view'
+          ExplodedViewEngine.update_explosion(data) if defined?(ExplodedViewEngine)
+        when 'reset_exploded_view'
+          ExplodedViewEngine.reset_to_original if defined?(ExplodedViewEngine)
+        when 'commit_exploded_view'
+          ExplodedViewEngine.commit_and_create_scene if defined?(ExplodedViewEngine)
+        when 'close_exploded_hud'
+          WindowManager.close_exploded_hud if defined?(WindowManager)
+        end
+      end
+    end
+
+    # ==========================================================================
+    # XỬ LÝ LỆNH TRẢI PHẲNG TẤM VÁN ĐANG CHỌN (TỪ THẺ DC)
+    # ==========================================================================
+    def self.handle_apply_flatten_panel(data, dialog)
+      model = Sketchup.active_model
+      unless model && model.selection && !model.selection.empty?
+        FlattenTool.activate_tool(data) if defined?(FlattenTool)
+        return
+      end
+
+      target = model.selection.find { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }
+      unless target
+        FlattenTool.activate_tool(data) if defined?(FlattenTool)
+        return
+      end
+
+      ents = target.is_a?(Sketchup::Group) ? target.entities : target.definition.entities
+      faces = ents.grep(Sketchup::Face)
+      curved_face = faces.find { |f| f.edges.any? { |e| e.smooth? || e.soft? } }
+
+      if curved_face && defined?(FlattenEngine)
+        res = FlattenEngine.flatten_curved_face(curved_face, target, target.transformation, data)
+        if res && res['status'] == 'success'
+          dialog.execute_script("if (window.ChillAI && window.ChillAI.onFlattenCompleted) { window.ChillAI.onFlattenCompleted(#{res.to_json}); }") rescue nil
+        end
+      else
+        FlattenTool.activate_tool(data) if defined?(FlattenTool)
+      end
+    end
+
+    # ==========================================================================
+    # ĐĂNG KÝ CALLBACK CHO CỬA SỔ BẢNG THÔNG SỐ VÁN UỐN CONG (CHUẨN ẢNH 2)
+    # ==========================================================================
+    def self.register_flatten_dialog_callbacks(dialog)
+      return unless dialog
+
+      dialog.add_action_callback("get_flatten_config") do |_ctx, *args|
+        cfg = defined?(FlattenEngine) ? FlattenEngine.get_config : {}
+        dialog.execute_script("if(window.receiveFlattenConfig) window.receiveFlattenConfig(#{cfg.to_json});")
+      end
+
+      dialog.add_action_callback("save_flatten_config") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        cfg = defined?(FlattenEngine) ? FlattenEngine.save_config(data) : {}
+        dialog.execute_script("if(window.receiveFlattenConfig) window.receiveFlattenConfig(#{cfg.to_json});")
+      end
+
+      dialog.add_action_callback("activate_flatten_tool") do |_ctx, *args|
+        data = parse_json_arg(args.first) || {}
+        FlattenTool.activate_tool(data) if defined?(FlattenTool)
+      end
+
+      dialog.add_action_callback("close_flatten_dialog") do |_ctx, *args|
+        WindowManager.close_flatten_dialog if defined?(WindowManager)
+      end
+    end
+
   end
 end
