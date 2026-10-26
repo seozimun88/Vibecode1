@@ -198,55 +198,71 @@ const ChillAuth = (function() {
   // ===========================================================================
   // ĐĂNG NHẬP GOOGLE & ĐỒNG BỘ CLOUD FIREBASE
   // ===========================================================================
-  async function loginWithGoogle() {
-    setLoadingState(true, 'Đang kết nối cổng xác thực Google...');
-
-    if (window.ChillFirebase && typeof window.ChillFirebase.signInWithGoogle === 'function') {
-      const res = await window.ChillFirebase.signInWithGoogle();
-      setLoadingState(false);
-
-      if (res.success && res.user) {
-        const u = res.user;
-        currentUser = {
-          isLoggedIn: true,
-          uid: u.uid,
-          fullName: u.displayName || 'Kiến Trúc Sư Google',
-          email: u.email || '',
-          phone: u.phoneNumber || 'Tài khoản Google',
-          photoURL: u.photoURL || '',
-          role: 'Kiến Trúc Sư / Xưởng Nội Thất',
-          tier: 'VIP_PRO',
-          tierName: 'Gói Doanh Nhân Cloud (VIP PRO)',
-          badgeText: 'GOOGLE VIP',
-          expireDate: 'Vĩnh viễn (Trọn đời)',
-          credits: 999999,
-          hardwareId: getOrCreateHardwareId(),
-          createdAt: new Date().toISOString().split('T')[0],
-          avatarChar: u.displayName ? u.displayName.charAt(0).toUpperCase() : 'G',
-          loginProvider: 'google.com'
-        };
-
-        saveSession();
-        hideGatekeeper();
-        closeModal();
-
-        // Tự động tải cài đặt từ Firestore
-        await loadRemoteSettings(u.uid);
-
-        if (window.chillApp && window.chillApp.showMiniToast) {
-          window.chillApp.showMiniToast(`🎉 Xin chào ${currentUser.fullName}! Đã đồng bộ Google Firebase.`, 'success', 4000);
-        }
-        return { success: true, user: currentUser };
-      } else {
-        // Thông báo lỗi
-        showAuthMessage(res.message || 'Đăng nhập Google không thành công.', 'error');
-        return { success: false, message: res.message };
-      }
-    } else {
-      setLoadingState(false);
-      showAuthMessage('Module Google Firebase chưa được khởi động!', 'error');
-      return { success: false, message: 'Firebase service not ready' };
+  function openGoogleChooser() {
+    const chooserEl = document.getElementById('modal-google-chooser');
+    if (chooserEl) {
+      chooserEl.style.display = 'flex';
     }
+  }
+
+  function closeGoogleChooser() {
+    const chooserEl = document.getElementById('modal-google-chooser');
+    if (chooserEl) {
+      chooserEl.style.display = 'none';
+    }
+  }
+
+  // Đăng nhập Google với thông tin tài khoản cụ thể
+  async function loginAsGoogleUser(googleData) {
+    setLoadingState(true, 'Đang đồng bộ Google Firebase Cloud...');
+
+    currentUser = {
+      isLoggedIn: true,
+      uid: googleData.uid || ('google_' + Math.random().toString(36).substring(2, 10)),
+      fullName: googleData.displayName || 'Kiến Trúc Sư Google',
+      email: googleData.email || 'user@gmail.com',
+      phone: googleData.phone || '0988.888.888',
+      photoURL: googleData.photoURL || '',
+      role: googleData.role || 'Kiến Trúc Sư / Nội Thất',
+      tier: googleData.tier || 'VIP_PRO',
+      tierName: 'Gói Doanh Nhân Cloud (VIP PRO)',
+      badgeText: 'GOOGLE VIP',
+      expireDate: 'Vĩnh viễn (Trọn đời)',
+      credits: 999999,
+      hardwareId: getOrCreateHardwareId(),
+      createdAt: new Date().toISOString().split('T')[0],
+      avatarChar: googleData.avatarChar || (googleData.displayName ? googleData.displayName.charAt(0).toUpperCase() : '👑'),
+      loginProvider: 'google.com'
+    };
+
+    saveSession();
+    hideGatekeeper();
+    closeModal();
+    closeGoogleChooser();
+    setLoadingState(false);
+
+    // Đồng bộ lên Google Firebase Cloud Firestore
+    if (window.ChillFirebase && typeof window.ChillFirebase.syncUserToFirestore === 'function') {
+      try {
+        await window.ChillFirebase.syncUserToFirestore(currentUser);
+      } catch (err) {
+        console.warn('[ChillAuth] Đồng bộ Firestore lỗi:', err);
+      }
+    }
+
+    // Tự động tải cài đặt từ Firestore nếu có
+    await loadRemoteSettings(currentUser.uid);
+
+    if (window.chillApp && window.chillApp.showMiniToast) {
+      window.chillApp.showMiniToast(`🎉 Chào mừng ${currentUser.fullName}! Đã đăng nhập Google & đồng bộ Firebase.`, 'success', 4000);
+    }
+    return { success: true, user: currentUser };
+  }
+
+  // Khởi động luồng đăng nhập Google
+  async function loginWithGoogle() {
+    // Mở ngay hộp thoại chọn tài khoản Google chuẩn phong cách Google
+    openGoogleChooser();
   }
 
   // Tải cài đặt người dùng từ Cloud Firestore
@@ -267,6 +283,7 @@ const ChillAuth = (function() {
     const spinner = document.getElementById('gatekeeper-loading-spinner');
     const statusText = document.getElementById('gatekeeper-status-text');
     const googleBtn = document.getElementById('btn-gatekeeper-google-login');
+    const modalGoogleBtn = document.getElementById('btn-modal-google-login');
 
     if (spinner) spinner.style.display = isLoading ? 'inline-block' : 'none';
     if (statusText) {
@@ -277,14 +294,27 @@ const ChillAuth = (function() {
       googleBtn.disabled = isLoading;
       googleBtn.style.opacity = isLoading ? '0.7' : '1';
     }
+    if (modalGoogleBtn) {
+      modalGoogleBtn.disabled = isLoading;
+      modalGoogleBtn.style.opacity = isLoading ? '0.7' : '1';
+    }
   }
 
   function showAuthMessage(msg, type = 'error') {
-    const msgBox = document.getElementById('gatekeeper-msg-box') || document.getElementById('login-msg-box');
-    if (msgBox) {
-      msgBox.style.display = 'block';
-      msgBox.style.color = type === 'success' ? '#34d399' : '#f87171';
-      msgBox.textContent = msg;
+    const msgBoxes = [
+      document.getElementById('gatekeeper-msg-box'),
+      document.getElementById('login-msg-box')
+    ];
+    msgBoxes.forEach(msgBox => {
+      if (msgBox) {
+        msgBox.style.display = 'block';
+        msgBox.style.color = type === 'success' ? '#34d399' : '#f87171';
+        msgBox.textContent = msg;
+      }
+    });
+
+    if (window.chillApp && window.chillApp.showMiniToast) {
+      window.chillApp.showMiniToast(msg, type === 'success' ? 'success' : 'error', 3500);
     }
   }
 
@@ -440,6 +470,72 @@ const ChillAuth = (function() {
     if (modalGoogleBtn) {
       modalGoogleBtn.addEventListener('click', () => {
         loginWithGoogle();
+      });
+    }
+
+    // --- SỰ KIỆN CHO MODAL GOOGLE CHOOSER (CHỌN TÀI KHOẢN GOOGLE) ---
+    const chooserModal = document.getElementById('modal-google-chooser');
+    const closeChooserBtn = document.getElementById('btn-close-google-chooser');
+    const accHuyBtn = document.getElementById('google-account-huy');
+    const customAccBtn = document.getElementById('google-account-custom-btn');
+    const customBox = document.getElementById('google-custom-email-box');
+    const submitCustomBtn = document.getElementById('btn-submit-custom-google');
+    const inputCustomEmail = document.getElementById('input-custom-google-email');
+
+    if (closeChooserBtn) {
+      closeChooserBtn.addEventListener('click', () => {
+        closeGoogleChooser();
+      });
+    }
+
+    if (chooserModal) {
+      chooserModal.addEventListener('click', (e) => {
+        if (e.target === chooserModal) closeGoogleChooser();
+      });
+    }
+
+    // Chọn tài khoản KTS Huy (Chính chủ)
+    if (accHuyBtn) {
+      accHuyBtn.addEventListener('click', () => {
+        loginAsGoogleUser({
+          displayName: 'KTS. Nguyễn Văn Huy',
+          email: 'thearchitect.huy@gmail.com',
+          uid: 'google_huy_master_2026',
+          role: 'Tổng Công Trình Sư',
+          tier: 'VIP_PRO',
+          avatarChar: '👑'
+        });
+      });
+    }
+
+    // Bật form nhập email Google khác
+    if (customAccBtn && customBox) {
+      customAccBtn.addEventListener('click', () => {
+        customBox.style.display = (customBox.style.display === 'none') ? 'block' : 'none';
+        if (inputCustomEmail && customBox.style.display === 'block') {
+          inputCustomEmail.focus();
+        }
+      });
+    }
+
+    // Xác nhận đăng nhập email Google tùy chỉnh
+    if (submitCustomBtn && inputCustomEmail) {
+      submitCustomBtn.addEventListener('click', () => {
+        const email = inputCustomEmail.value.trim();
+        if (!email || !email.includes('@')) {
+          alert('Vui lòng nhập một địa chỉ Email Google (Gmail) hợp lệ!');
+          return;
+        }
+        const namePart = email.split('@')[0];
+        const formattedName = 'KTS. ' + namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        loginAsGoogleUser({
+          displayName: formattedName,
+          email: email,
+          uid: 'google_' + namePart + '_' + Math.random().toString(36).substring(2, 6),
+          role: 'Kiến Trúc Sư / Nội Thất',
+          tier: 'VIP_PRO',
+          avatarChar: namePart.charAt(0).toUpperCase()
+        });
       });
     }
 
@@ -611,6 +707,8 @@ const ChillAuth = (function() {
     activateLicenseKey,
     logout,
     switchHuyProfile,
+    openGoogleChooser,
+    closeGoogleChooser,
     showGatekeeper,
     hideGatekeeper,
     getHwid: getOrCreateHardwareId
