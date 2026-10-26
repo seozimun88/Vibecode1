@@ -1,18 +1,19 @@
 /**
  * CHILL AI INTERIOR - FIREBASE CONFIGURATION MODULE
+ * Dự án chính thức của Anh Huy: chill-chill-decor
  * Quản lý cấu hình Google Firebase (Authentication & Cloud Firestore)
- * Thiết kế cho: Tổng Công Trình Sư - Anh Huy
  */
 
 const ChillFirebaseConfig = (function() {
-  // Cấu hình Firebase mặc định cho Chill AI Interior
+  // Cấu hình Firebase chính thức của Anh Huy
   const DEFAULT_CONFIG = {
-    apiKey: "AIzaSyChillAIInteriorFirebase2026ProKey",
-    authDomain: "chill-ai-interior.firebaseapp.com",
-    projectId: "chill-ai-interior",
-    storageBucket: "chill-ai-interior.appspot.com",
-    messagingSenderId: "987654321098",
-    appId: "1:987654321098:web:chillai2026interior"
+    apiKey: "AIzaSyAnt50KVjx3Ctk0Mu16YE_OiFItBykNRCk",
+    authDomain: "chill-chill-decor.firebaseapp.com",
+    projectId: "chill-chill-decor",
+    storageBucket: "chill-chill-decor.firebasestorage.app",
+    messagingSenderId: "1023430319962",
+    appId: "1:1023430319962:web:7dc942efc2b3da8f9a1d63",
+    measurementId: "G-CFSGEH0HBL"
   };
 
   const STORAGE_KEY = 'chill_custom_firebase_config';
@@ -27,20 +28,20 @@ const ChillFirebaseConfig = (function() {
         }
       }
     } catch (e) {
-      console.warn('[FirebaseConfig] Lỗi đọc custom config từ localStorage:', e);
+      console.warn('[FirebaseConfig] Lỗi đọc custom config:', e);
     }
     return DEFAULT_CONFIG;
   }
 
   function saveConfig(cfg) {
     if (!cfg || !cfg.apiKey || !cfg.projectId) {
-      return { success: false, message: 'Cấu hình Firebase không hợp lệ (cần ít nhất apiKey và projectId)!' };
+      return { success: false, message: 'Cấu hình không hợp lệ!' };
     }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
       return { success: true, message: 'Đã lưu cấu hình Firebase thành công!' };
     } catch (e) {
-      return { success: false, message: 'Lỗi lưu cấu hình: ' + e.message };
+      return { success: false, message: 'Lỗi lưu: ' + e.message };
     }
   }
 
