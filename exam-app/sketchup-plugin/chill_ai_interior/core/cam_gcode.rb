@@ -68,24 +68,39 @@ module ChillAIInterior
     end
 
     # Xuất DXF một chạm từ các Group/Component đang chọn, tương tự luồng ABF.
-    def self.export_selected_dxf
+    def self.export_selected_dxf(params = {})
       model = Sketchup.active_model
       return { 'status' => 'error', 'message' => 'Không tìm thấy không gian làm việc SketchUp!' } unless model
 
-      parts = extract_parts_from_selection_or_params({})
+      config = cam_config(params)
+      parts = extract_parts_from_selection_or_params(params)
       validate_parts!(parts)
-      config = DEFAULT_CONFIG.dup
       nested_data = perform_nesting(parts, config)
       dxf = generate_dxf(nested_data, config)
-      default_name = "CNC_ASPIRE_NESTING_#{Time.now.strftime('%d%m_%H%M%S')}.dxf"
-      path = UI.savepanel('Lưu file DXF 2D cho Vectric Aspire', '', default_name)
-      return { 'status' => 'cancelled' } unless path
+
+      model_name = (params && (params['name'] || params['type'] || params['model_name'])) ? (params['name'] || params['type'] || params['model_name']).to_s.gsub(/\s+/, '_') : 'NESTING'
+      default_name = "CNC_ASPIRE_#{model_name}_#{Time.now.strftime('%d%m_%H%M%S')}.dxf"
+      
+      desktop_dir = ENV['USERPROFILE'] ? File.join(ENV['USERPROFILE'], 'Desktop') : nil
+      desktop_dir = Dir.pwd unless desktop_dir && Dir.exist?(desktop_dir)
+
+      path = UI.savepanel('Lưu file DXF 2D cho Vectric Aspire', desktop_dir, default_name)
+      return { 'status' => 'cancelled', 'message' => 'Đã hủy lưu file DXF.' } unless path
+
+      path = path.tr('\\', '/')
+      path += ".dxf" unless path.downcase.end_with?('.dxf')
 
       File.open(path, 'w:UTF-8') { |file| file.write(dxf) }
       {
-        'status' => 'success', 'path' => path,
-        'total_parts' => parts.length, 'total_sheets' => nested_data[:sheets].length
+        'status' => 'success',
+        'path' => path,
+        'total_parts' => parts.length,
+        'total_sheets' => nested_data[:sheets].length
       }
+    rescue Errno::EACCES => error
+      msg = "File DXF đang được mở trong phần mềm khác (AutoCAD hoặc Vectric Aspire)!\nVui lòng đóng file đó lại hoặc chọn tên file khác để lưu."
+      UI.messagebox(msg)
+      { 'status' => 'error', 'message' => msg }
     rescue CamValidationError => error
       UI.messagebox("Không thể xuất DXF: #{error.message}")
       { 'status' => 'error', 'message' => error.message }
@@ -198,7 +213,7 @@ module ChillAIInterior
       t > 0 && t <= 45.0 && l >= 40.0 && w >= 40.0
     end
 
-        def self.extract_parts_from_selection_or_params(params)
+    def self.extract_parts_from_selection_or_params(params)
       model = Sketchup.active_model
       parts = []
 
@@ -223,6 +238,18 @@ module ChillAIInterior
           collect_sub_parts(ent, parts, params)
         end
 
+        # Nếu người dùng chọn chính cụm Nesting trên sàn (đã trải phẳng)
+        if parts.empty?
+          nesting_groups = model.selection.to_a.select { |ent| ent.name.to_s =~ /^(ABF_NESTING|CHILL_AI_NESTING)/i }
+          nesting_groups.each do |ng|
+            sub_ents = ng.is_a?(Sketchup::Group) ? ng.entities : (ng.respond_to?(:definition) ? ng.definition.entities : [])
+            sub_ents.each do |child|
+              next if child.name.to_s =~ /^(Khổ Ván|Sheet|Chill_AI_Label)/i
+              collect_sub_parts(child, parts, params)
+            end
+          end
+        end
+
         return parts unless parts.empty?
       end
 
@@ -243,15 +270,16 @@ module ChillAIInterior
           collect_sub_parts(ent, parts, params)
         end
 
-        if parts.empty?
-          raise CamValidationError, "Không tìm thấy tấm ván mộc nào trong mô hình để Nesting! Vui lòng chọn tấm ván hoặc dựng hình."
-        end
-
-        return parts
+        return parts unless parts.empty?
       end
 
-      # 4. Fallback ngoài môi trường SketchUp
-      extract_parts(params || {})
+      # 4. Fallback thông minh: Nếu chưa có ván trên sàn SketchUp nhưng giao diện đang có thông số mô hình
+      if params && (params['length'] || params['dim_x'] || params['parts'] || params['type'] || params['model_type'])
+        parts = extract_parts(params)
+        return parts unless parts.empty?
+      end
+
+      raise CamValidationError, "Không tìm thấy tấm ván mộc nào trong mô hình để xuất DXF! Vui lòng chọn mô hình tủ hoặc dựng hình 3D."
     end
 
     def self.collect_sub_parts(entity, parts_list, params = nil)
@@ -1252,6 +1280,8 @@ module ChillAIInterior
       dxf << "0\nLAYER\n2\nCNC_CUT_OUTLINE\n70\n0\n62\n7\n6\nCONTINUOUS"
       # Layer 3: LABELS (Màu Vàng / Xanh Dương - Tên chi tiết & Nhãn)
       dxf << "0\nLAYER\n2\nLABELS\n70\n0\n62\n3\n6\nCONTINUOUS"
+      # Layer 4: CNC_GROOVE (Màu Cam - Rãnh soi hậu & Rãnh ngàm âm dương)
+      dxf << "0\nLAYER\n2\nCNC_GROOVE\n70\n0\n62\n40\n6\nCONTINUOUS"
       dxf << "0\nENDTAB\n0\nENDSEC"
       dxf << "0\nSECTION\n2\nENTITIES"
 
@@ -1344,15 +1374,17 @@ module ChillAIInterior
     end
 
     def self.dxf_add_line(dxf, layer, x1, y1, x2, y2)
-      dxf << "0\nLINE\n8\n#{layer}\n10\n#{x1}\n20\n#{y1}\n30\n0.0\n11\n#{x2}\n20\n#{y2}\n30\n0.0"
+      # Chuẩn AutoCAD R12 & Vectric Aspire: điểm 1 (10, 20, 30), điểm 2 (11, 21, 31)
+      dxf << "0\nLINE\n8\n#{layer}\n10\n#{sprintf('%.3f', x1)}\n20\n#{sprintf('%.3f', y1)}\n30\n0.0\n11\n#{sprintf('%.3f', x2)}\n21\n#{sprintf('%.3f', y2)}\n31\n0.0"
     end
 
     def self.dxf_add_polyline(dxf, layer, pts)
-      dxf << "0\nPOLYLINE\n8\n#{layer}\n66\n1\n70\n1"
+      # Chuẩn POLYLINE khép kín với đầy đủ dummy header và SEQEND có layer cho Vectric Aspire
+      dxf << "0\nPOLYLINE\n8\n#{layer}\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0"
       pts.each do |p|
-        dxf << "0\nVERTEX\n8\n#{layer}\n10\n#{p[0]}\n20\n#{p[1]}\n30\n0.0"
+        dxf << "0\nVERTEX\n8\n#{layer}\n10\n#{sprintf('%.3f', p[0])}\n20\n#{sprintf('%.3f', p[1])}\n30\n0.0"
       end
-      dxf << "0\nSEQEND"
+      dxf << "0\nSEQEND\n8\n#{layer}"
     end
 
     def self.dxf_text(value)

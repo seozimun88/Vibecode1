@@ -80,7 +80,8 @@ module ChillAIInterior
 
       # 4c. Xuất DXF 2D trực tiếp 1-chạm
       dialog.add_action_callback("export_dxf_direct") do |_ctx, *args|
-        handle_export_dxf_direct(dialog)
+        params = parse_json_arg(args.first)
+        handle_export_dxf_direct(params, dialog)
       end
 
       # 4d. Trải phẳng ván lên mặt bàn SketchUp (One Click style)
@@ -461,7 +462,7 @@ module ChillAIInterior
       when 'export_gcode'
         handle_export_gcode(data, dialog)
       when 'export_dxf'
-        handle_export_dxf_direct(dialog)
+        handle_export_dxf_direct(data, dialog)
 when 'open_exploded_view', 'show_exploded_hud', 'exploded_view'
         begin
           core_dir = File.join(File.dirname(__FILE__), 'core')
@@ -652,27 +653,49 @@ when 'open_exploded_view', 'show_exploded_hud', 'exploded_view'
     end
 
     def self.handle_save_dxf_file(data)
-      content = data['content'] || ''
-      default_name = data['filename'] || 'CNC_ASPIRE_NESTING.dxf'
-      chosen_path = UI.savepanel("Lưu file DXF cho Vectric Aspire", "", default_name)
-      if chosen_path
-        File.open(chosen_path, "w:UTF-8") { |f| f.write(content) }
-        UI.messagebox("Đã lưu file DXF thành công tại:\n#{chosen_path}\nBạn có thể mở trực tiếp vào Vectric Aspire (Import Vectors) để gán đường dao!")
-      end
-    rescue => e
-      UI.messagebox("Không thể lưu file DXF: #{e.message}")
-    end
-
-    def self.handle_export_dxf_direct(dialog)
-      if defined?(CamGCodeExporter)
-        result = CamGCodeExporter.export_selected_dxf
-        if result && result['status'] == 'success'
-          UI.messagebox("Đã xuất DXF 2D thành công:\n#{result['path']}\n\n#{result['total_parts']} chi tiết / #{result['total_sheets']} khổ ván.\nMở file này trong Aspire bằng Import Vectors.")
-          dialog.execute_script("if(window.onDxfExported) window.onDxfExported(#{result.to_json});")
+      UI.start_timer(0.05, false) do
+        begin
+          content = data['content'] || ''
+          default_name = data['filename'] || "CNC_ASPIRE_NESTING_#{Time.now.strftime('%d%m_%H%M%S')}.dxf"
+          desktop_dir = ENV['USERPROFILE'] ? File.join(ENV['USERPROFILE'], 'Desktop') : nil
+          chosen_path = UI.savepanel("Lưu file DXF cho Vectric Aspire", desktop_dir, default_name)
+          if chosen_path
+            chosen_path = chosen_path.tr('\\\', '/')
+            chosen_path += ".dxf" unless chosen_path.downcase.end_with?('.dxf')
+            File.open(chosen_path, "w:UTF-8") { |f| f.write(content) }
+            UI.messagebox("Đã lưu file DXF thành công tại:\n#{chosen_path}\n\nBạn có thể mở trực tiếp vào Vectric Aspire (Import Vectors) để gán đường dao!")
+          end
+        rescue => e
+          UI.messagebox("Không thể lưu file DXF: #{e.message}")
         end
       end
-    rescue => e
-      UI.messagebox("Không thể xuất file DXF: #{e.message}")
+    end
+
+    def self.handle_export_dxf_direct(params, dialog)
+      UI.start_timer(0.05, false) do
+        begin
+          core_dir = File.join(File.dirname(__FILE__), 'core')
+          cam_file = File.join(core_dir, 'cam_gcode.rb')
+          load cam_file if File.exist?(cam_file)
+
+          if defined?(CamGCodeExporter)
+            result = CamGCodeExporter.export_selected_dxf(params || {})
+            if result && result['status'] == 'success'
+              UI.messagebox("Đã xuất file DXF 2D cho Vectric Aspire thành công!\n\nĐường dẫn: #{result['path']}\nSố chi tiết: #{result['total_parts']} tấm\nSố khổ ván: #{result['total_sheets']} khổ\n\nBạn có thể mở file này trực tiếp trong Vectric Aspire (Menu File > Import > Import Vectors) để gán Toolpath Profile Cut!")
+              dialog.execute_script("if(window.onDxfExported) window.onDxfExported(#{result.to_json});")
+            elsif result && result['status'] == 'cancelled'
+              dialog.execute_script("if(window.chillApp && window.chillApp.showMiniToast) window.chillApp.showMiniToast('Đã hủy lưu file DXF.', 'info', 2500);")
+            elsif result && result['status'] == 'error'
+              dialog.execute_script("if(window.chillApp && window.chillApp.showMiniToast) window.chillApp.showMiniToast(#{result['message'].to_json}, 'error', 4500);")
+            end
+          else
+            UI.messagebox("Module CamGCodeExporter chưa sẵn sàng! Vui lòng bấm 'Tải lại' plugin.")
+          end
+        rescue => e
+          UI.messagebox("Không thể xuất file DXF: #{e.message}")
+          dialog.execute_script("if(window.chillApp && window.chillApp.showMiniToast) window.chillApp.showMiniToast(#{("Lỗi xuất DXF: " + e.message).to_json}, 'error', 4500);")
+        end
+      end
     end
 
         def self.handle_nest_to_sketchup(params, dialog)

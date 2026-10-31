@@ -2699,16 +2699,23 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
   // --- LỰA CHỌN A: XUẤT FILE DXF CHUẨN CAD CHO VECTRIC ASPIRE ---
   saveDxfFile() {
+    const camRequest = this.getCamRequest ? this.getCamRequest() : {};
+
     // 1. Ưu tiên 1: Chạy trực tiếp trong SketchUp (Gọi hàm 1-chạm đồng bộ tuyệt đối)
-    if (window.sketchup && window.sketchup.export_dxf_direct) {
-      this.showMiniToast('Đang mở hộp thoại Lưu file DXF 2D cho Vectric Aspire…', 'info');
-      const camRequest = this.getCamRequest ? this.getCamRequest() : {};
-      window.sketchup.export_dxf_direct(JSON.stringify(camRequest));
-      return;
+    if (this.isSketchUpAvailable && window.sketchup) {
+      if (window.sketchup.export_dxf_direct) {
+        this.showMiniToast('Đang mở hộp thoại Lưu file DXF 2D cho Vectric Aspire…', 'info', 4000);
+        window.sketchup.export_dxf_direct(JSON.stringify(camRequest));
+        return;
+      } else if (window.sketchup.dispatch) {
+        this.showMiniToast('Đang mở hộp thoại Lưu file DXF 2D cho Vectric Aspire…', 'info', 4000);
+        window.sketchup.dispatch(JSON.stringify({ action: 'export_dxf', data: camRequest }));
+        return;
+      }
     }
 
     // 2. Nếu có save_dxf_file và đã có nội dung DXF sẵn
-    if (window.sketchup && window.sketchup.save_dxf_file && this.lastDxfContent) {
+    if (this.isSketchUpAvailable && window.sketchup && window.sketchup.save_dxf_file && this.lastDxfContent) {
       const modelName = (this.currentModel && this.currentModel.name) || 'NESTING';
       const filename = `CNC_ASPIRE_${modelName.replace(/\s+/g, '_')}_${Date.now()}.dxf`;
       window.sketchup.save_dxf_file(JSON.stringify({ content: this.lastDxfContent, filename: filename }));

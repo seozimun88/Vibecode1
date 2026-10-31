@@ -48,10 +48,16 @@ module ChillAIInterior
 
     # Lệnh xuất DXF 2D Nesting nhanh
     cmd_export_dxf = UI::Command.new('Xuất DXF 2D (Nesting)') do
-      if defined?(CamGCodeExporter)
-        result = CamGCodeExporter.export_selected_dxf
-        if result && result['status'] == 'success'
-          UI.messagebox("Đã xuất DXF 2D thành công:\n#{result['path']}\n\n#{result['total_parts']} chi tiết / #{result['total_sheets']} khổ ván.\nMở file này trong Aspire bằng Import Vectors.")
+      UI.start_timer(0.05, false) do
+        core_dir = File.join(File.dirname(__FILE__), 'core')
+        cam_file = File.join(core_dir, 'cam_gcode.rb')
+        load cam_file if File.exist?(cam_file)
+
+        if defined?(CamGCodeExporter)
+          result = CamGCodeExporter.export_selected_dxf({})
+          if result && result['status'] == 'success'
+            UI.messagebox("Đã xuất DXF 2D cho Vectric Aspire thành công!\n\nĐường dẫn: #{result['path']}\nSố chi tiết: #{result['total_parts']} tấm\nSố khổ ván: #{result['total_sheets']} khổ\n\nBạn có thể mở file này trong Vectric Aspire bằng Import Vectors.")
+          end
         end
       end
     end
