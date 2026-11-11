@@ -5944,3 +5944,30 @@ body.dock-mode .modal-cnc-box {
   gap: 6px;
 }
 
+
+
+/* ==========================================================================
+   VISION STUDIO 2D TO 3D CNC PRODUCTION (NHẬN DIỆN ẢNH 2D THÀNH 3D)
+   ========================================================================== */
+.btn-vision-sample:hover {
+  background: #334155 !important;
+  border-color: #f59e0b !important;
+  color: #fef08a !important;
+  transform: translateY(-1px);
+}
+.btn-vision-sample:active {
+  transform: translateY(0);
+}
+#btn-vision-build-3d:hover {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.6) !important;
+  transform: translateY(-1px);
+}
+#btn-vision-build-3d:active {
+  transform: translateY(0);
+}
+#btn-vision-scan-another:hover,
+#btn-vision-preview-mini3d:hover {
+  background: #334155 !important;
+  color: #f8fafc !important;
+}

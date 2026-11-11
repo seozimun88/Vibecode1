@@ -1446,19 +1446,165 @@
             </div>
           </section>
 
-          <!-- ==================== PANE 6: QUÉT ẢNH MẪU AI ==================== -->
-          <section class="dock-workspace-pane" id="dock-pane-vision" style="display:none;">
-            <div class="dock-vision-upload-box" id="dock-vision-dropzone">
-              <div class="dock-vision-icon">📸</div>
-              <div class="dock-vision-text">Tải ảnh thiết kế mẫu</div>
-              <div class="dock-vision-subtext">(Click hoặc Kéo thả ảnh vào đây)</div>
-              <button id="dock-btn-choose-image" class="dock-tree-action-btn highlight" style="margin-top:6px; padding:3px 12px;">📂 Chọn File Ảnh</button>
+          <!-- ==================== PANE 6: QUÉT ẢNH 2D SANG 3D SẢN XUẤT (VISION AI STUDIO) ==================== -->
+          <section class="dock-workspace-pane" id="dock-pane-vision" style="display:none; flex-direction:column; gap:10px;">
+            <!-- Tiêu đề & Trạng thái Engine -->
+            <div class="dock-vision-header-card" style="background: linear-gradient(135deg, rgba(30, 20, 10, 0.8), rgba(15, 23, 42, 0.95)); border: 1.5px solid #d97706; border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:20px;">📸</span>
+                  <div>
+                    <div style="font-size:12px; font-weight:bold; color:#fbbf24; text-transform:uppercase; letter-spacing:0.5px;">NHẬN DIỆN ẢNH 2D THÀNH 3D</div>
+                    <div style="font-size:9.5px; color:#cbd5e1;">Bóc tách ván Solid chuẩn mộc CNC từng milimét</div>
+                  </div>
+                </div>
+                <span id="vision-engine-badge" style="font-size:9px; background:#047857; color:#a7f3d0; padding:2px 8px; border-radius:12px; font-weight:bold; border:1px solid #10b981;">⚡ Sẵn Sàng</span>
+              </div>
             </div>
-            <div class="dock-vision-preview-row" id="dock-vision-preview-wrap" style="display:none;">
-              <img id="dock-vision-img-preview" src="" alt="Ảnh thiết kế mẫu" class="dock-vision-preview-img">
-              <div class="dock-vision-ai-status">
-                <span style="color:#22c55e; font-weight:bold;">✓ AI đã nhận diện</span>
-                <span style="font-size:9.5px; color:#cbd5e1;" id="dock-vision-ai-desc">Bàn làm việc 1200x600x750mm</span>
+
+            <!-- Khu vực Dropzone & Upload Ảnh -->
+            <div class="dock-vision-upload-box" id="dock-vision-dropzone" style="background: rgba(15, 23, 42, 0.6); border: 2px dashed #f59e0b; border-radius: 8px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.2s ease;">
+              <div class="dock-vision-icon" style="font-size: 28px; margin-bottom: 4px;">🖼️</div>
+              <div class="dock-vision-text" style="font-size: 12px; font-weight: bold; color: #fef08a;">Kéo thả ảnh 2D vào đây hoặc Click để chọn file</div>
+              <div class="dock-vision-subtext" style="font-size: 9.5px; color: #94a3b8; margin-top: 3px;">
+                💡 <strong>Mẹo KTS:</strong> Chụp màn hình rồi bấm <kbd style="background:#334155; padding:1px 5px; border-radius:3px; color:#f8fafc; font-family:monospace;">Ctrl + V</kbd> để dán ảnh ngay!
+              </div>
+              <div style="display:flex; gap:6px; justify-content:center; margin-top:8px;">
+                <button type="button" id="dock-btn-choose-image" class="dock-tree-action-btn highlight" style="padding:4px 14px; font-size:10.5px; background:linear-gradient(135deg, #d97706, #b45309); color:#fff; font-weight:bold; border-radius:5px; border:none; cursor:pointer;">📂 Chọn Ảnh Từ Máy Tính</button>
+              </div>
+              <input type="file" id="vision-file-input" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- Nút ảnh mẫu nội thất nhanh (Quick Presets) -->
+            <div style="background:rgba(0,0,0,0.3); border-radius:6px; padding:8px; border:1px solid #334155;">
+              <div style="font-size:9.5px; color:#94a3b8; margin-bottom:6px; font-weight:bold; display:flex; justify-content:space-between;">
+                <span>✨ THỬ NGAY VỚI MẪU NỘI THẤT:</span>
+                <span style="color:#f59e0b; cursor:pointer;" id="btn-toggle-vision-apikey" title="Cài đặt API Key">⚙️ Cài API Key</span>
+              </div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                <button type="button" class="btn-vision-sample" data-sample="cabinet" style="background:#1e293b; border:1px solid #475569; color:#f1f5f9; padding:5px; font-size:9.5px; border-radius:4px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:5px;">
+                  <span>🚪</span> <span>Tủ Áo 3 Cánh (1m2)</span>
+                </button>
+                <button type="button" class="btn-vision-sample" data-sample="kitchen" style="background:#1e293b; border:1px solid #475569; color:#f1f5f9; padding:5px; font-size:9.5px; border-radius:4px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:5px;">
+                  <span>🍳</span> <span>Tủ Bếp Chữ L</span>
+                </button>
+                <button type="button" class="btn-vision-sample" data-sample="tv_stand" style="background:#1e293b; border:1px solid #475569; color:#f1f5f9; padding:5px; font-size:9.5px; border-radius:4px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:5px;">
+                  <span>📺</span> <span>Kệ Tivi Hiện Đại</span>
+                </button>
+                <button type="button" class="btn-vision-sample" data-sample="desk" style="background:#1e293b; border:1px solid #475569; color:#f1f5f9; padding:5px; font-size:9.5px; border-radius:4px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:5px;">
+                  <span>🪑</span> <span>Bàn Sồi Chân Sắt</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Khung cài đặt nhanh API Key (Collapsible) -->
+            <div id="vision-apikey-box" style="display:none; background:#0f172a; border:1px solid #0284c7; border-radius:6px; padding:8px;">
+              <div style="font-size:10px; color:#38bdf8; font-weight:bold; margin-bottom:4px;">🔑 Google Gemini Vision API Key:</div>
+              <div style="display:flex; gap:4px;">
+                <input type="password" id="input-vision-gemini-key" placeholder="Dán Gemini API Key (AI Studio) vào đây..." style="flex:1; background:#030712; border:1px solid #334155; color:#fff; font-size:10px; padding:4px 6px; border-radius:4px;">
+                <button type="button" id="btn-save-vision-key" style="background:#0284c7; color:#fff; border:none; padding:4px 10px; font-size:10px; border-radius:4px; cursor:pointer; font-weight:bold;">Lưu</button>
+              </div>
+              <div style="font-size:8.5px; color:#94a3b8; margin-top:4px;">
+                Miễn phí 100% tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#38bdf8; text-decoration:underline;">Google AI Studio</a>. Nếu không có Key, plugin vẫn dùng AI Heuristic mộc nội tuyến!
+              </div>
+            </div>
+
+            <!-- Loading Spinner khi đang quét ảnh -->
+            <div id="vision-scanning-indicator" style="display:none; flex-direction:column; align-items:center; justify-content:center; padding:18px 10px; background:rgba(0,0,0,0.5); border-radius:8px; border:1px solid #06b6d4;">
+              <div class="hud-spinner" style="width:32px; height:32px; border:3px solid rgba(6, 182, 212, 0.2); border-top-color:#22d3ee; border-radius:50%; animation:spin 1s linear infinite;"></div>
+              <div style="color:#22d3ee; font-size:11px; font-weight:bold; margin-top:8px;" id="vision-scan-status-text">Đang phân tích tỉ lệ & bóc tách kết cấu ván...</div>
+              <div style="color:#94a3b8; font-size:9px; margin-top:2px;">Ứng dụng Vision AI chuyên sâu đồ gỗ nội thất</div>
+            </div>
+
+            <!-- Khu vực Kết Quả Bóc Tách Kỹ Thuật (Chỉ hiện khi đã quét xong) -->
+            <div id="vision-result-container" style="display:none; flex-direction:column; gap:8px;">
+              <!-- Thẻ Preview Ảnh & Tên Nhận Diện -->
+              <div style="display:flex; gap:10px; background:#0b1329; border:1.5px solid #10b981; border-radius:6px; padding:8px; align-items:center;">
+                <img id="dock-vision-img-preview" src="" alt="Ảnh thiết kế mẫu" style="width:68px; height:68px; object-fit:cover; border-radius:4px; border:1px solid #334155; flex-shrink:0;">
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:10px; background:#047857; color:#a7f3d0; padding:1px 6px; border-radius:3px; font-weight:bold;">✓ ĐÃ BÓC TÁCH</span>
+                    <span id="vision-confidence-pill" style="font-size:8.5px; color:#6ee7b7;">Chuẩn 100% Solid</span>
+                  </div>
+                  <div id="vision-detected-name" style="font-size:11.5px; font-weight:bold; color:#f8fafc; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Tủ Quần Áo 3 Cánh Hiện Đại</div>
+                  <div id="vision-detected-desc" style="font-size:9.5px; color:#94a3b8; margin-top:2px;">Kích thước: 1200 x 600 x 1800mm | Ván 17.5mm</div>
+                </div>
+              </div>
+
+              <!-- Bảng Thông Số Tinh Chỉnh Trước Khi Sinh 3D -->
+              <div style="background:#111827; border:1px solid #374151; border-radius:6px; padding:8px;">
+                <div style="font-size:10px; font-weight:bold; color:#fbbf24; margin-bottom:6px; display:flex; justify-content:space-between;">
+                  <span>📐 KÍCH THƯỚC PHỦ BÌ (MM)</span>
+                  <span style="color:#94a3b8; font-weight:normal; font-size:9px;">Có thể sửa nếu muốn</span>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px;">
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Dài (W):</label>
+                    <input type="number" id="vision-input-length" value="1200" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:11px; padding:3px; border-radius:3px; font-weight:bold; text-align:center;">
+                  </div>
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Sâu (D):</label>
+                    <input type="number" id="vision-input-width" value="600" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:11px; padding:3px; border-radius:3px; font-weight:bold; text-align:center;">
+                  </div>
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Cao (H):</label>
+                    <input type="number" id="vision-input-height" value="1800" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:11px; padding:3px; border-radius:3px; font-weight:bold; text-align:center;">
+                  </div>
+                </div>
+
+                <div style="font-size:10px; font-weight:bold; color:#fbbf24; margin:8px 0 4px 0;">🪵 KẾT CẤU & VẬT LIỆU</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Số Cánh Cửa:</label>
+                    <select id="vision-select-doors" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:10px; padding:3px; border-radius:3px;">
+                      <option value="1">1 Cánh</option>
+                      <option value="2">2 Cánh</option>
+                      <option value="3" selected>3 Cánh</option>
+                      <option value="4">4 Cánh</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Số Ngăn Kéo:</label>
+                    <select id="vision-select-drawers" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:10px; padding:3px; border-radius:3px;">
+                      <option value="0">0 Ngăn</option>
+                      <option value="2" selected>2 Ngăn Kéo</option>
+                      <option value="3">3 Ngăn Kéo</option>
+                      <option value="4">4 Ngăn Kéo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Độ Dày Ván:</label>
+                    <select id="vision-select-thickness" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:10px; padding:3px; border-radius:3px;">
+                      <option value="17.5" selected>17.5mm (An Cường)</option>
+                      <option value="17.0">17.0mm (Minh Long)</option>
+                      <option value="18.0">18.0mm (Nhập khẩu)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:8.5px; color:#9ca3af; display:block;">Vật Liệu Thùng:</label>
+                    <select id="vision-select-material" style="width:100%; background:#1f2937; border:1px solid #4b5563; color:#f9fafb; font-size:10px; padding:3px; border-radius:3px;">
+                      <option value="oak" selected>Gỗ Sồi Tự Nhiên</option>
+                      <option value="walnut">Gỗ Óc Chó (Walnut)</option>
+                      <option value="white_melamine">Melamine Trắng</option>
+                      <option value="dark_melamine">Melamine Ghi Đậm</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Nút Thần Thánh: Sinh 3D Trực Tiếp Vào SketchUp -->
+              <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+                <button type="button" id="btn-vision-build-3d" style="width:100%; background:linear-gradient(135deg, #10b981, #059669); color:#ffffff; font-size:12px; font-weight:800; padding:10px; border-radius:6px; border:none; cursor:pointer; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                  <span>🚀</span> <span>SINH MÔ HÌNH 3D VÀO SKETCHUP NGAY</span>
+                </button>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" id="btn-vision-scan-another" style="flex:1; background:#1e293b; border:1px solid #475569; color:#cbd5e1; font-size:9.5px; padding:5px; border-radius:4px; cursor:pointer;">
+                    🔄 Quét Ảnh Khác
+                  </button>
+                  <button type="button" id="btn-vision-preview-mini3d" style="flex:1; background:#1e293b; border:1px solid #475569; color:#cbd5e1; font-size:9.5px; padding:5px; border-radius:4px; cursor:pointer;">
+                    👁️ Xem 3D Mini
+                  </button>
+                </div>
               </div>
             </div>
           </section>

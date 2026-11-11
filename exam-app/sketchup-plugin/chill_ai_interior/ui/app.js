@@ -528,41 +528,202 @@ class ChillAIApp {
     }
   }
 
-  // --- 1. IMAGE DROPZONE & AI VISION SIMULATION ---
+  // --- 1. IMAGE DROPZONE & AI VISION SIMULATION (VISION STUDIO 2D TO 3D) ---
   initImageDropzone() {
+    // A. Main / Legacy Dropzones
     const dropZone = document.getElementById('drop-zone') || document.getElementById('btn-upload-trigger');
     const fileInput = document.getElementById('file-input') || document.getElementById('image-upload');
     const sampleBtns = document.querySelectorAll('.btn-sample');
 
-    if(dropZone) dropZone.addEventListener('click', (e) => {
-      if (e.target.tagName !== 'BUTTON' || (dropZone && dropZone.id === 'btn-upload-trigger') || e.target.closest('#btn-upload-trigger')) {
-        fileInput.click();
+    if (dropZone) {
+      dropZone.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON' || (dropZone && dropZone.id === 'btn-upload-trigger') || e.target.closest('#btn-upload-trigger')) {
+          if (fileInput) fileInput.click();
+        }
+      });
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+      });
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          this.processUploadedImage(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          this.processUploadedImage(e.target.files[0]);
+        }
+      });
+    }
+
+    // B. New Vision Studio Dropzone in dock-pane-vision
+    const visionDropzone = document.getElementById('dock-vision-dropzone');
+    const visionFileInput = document.getElementById('vision-file-input') || fileInput;
+    const btnChooseImage = document.getElementById('dock-btn-choose-image');
+
+    const triggerVisionUpload = () => {
+      if (visionFileInput) visionFileInput.click();
+      else if (fileInput) fileInput.click();
+    };
+
+    if (visionDropzone) {
+      visionDropzone.addEventListener('click', (e) => {
+        if (e.target.id !== 'dock-btn-choose-image') triggerVisionUpload();
+      });
+      visionDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        visionDropzone.style.borderColor = '#22d3ee';
+        visionDropzone.style.background = 'rgba(6, 182, 212, 0.15)';
+      });
+      visionDropzone.addEventListener('dragleave', () => {
+        visionDropzone.style.borderColor = '#f59e0b';
+        visionDropzone.style.background = 'rgba(15, 23, 42, 0.6)';
+      });
+      visionDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        visionDropzone.style.borderColor = '#f59e0b';
+        visionDropzone.style.background = 'rgba(15, 23, 42, 0.6)';
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          this.processUploadedImage(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    if (btnChooseImage) {
+      btnChooseImage.addEventListener('click', (e) => {
+        e.stopPropagation();
+        triggerVisionUpload();
+      });
+    }
+
+    if (visionFileInput && visionFileInput !== fileInput) {
+      visionFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          this.processUploadedImage(e.target.files[0]);
+        }
+      });
+    }
+
+    // C. Global Clipboard Paste Listener (Ctrl + V)
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          if (blob) {
+            this.switchDockWorkspaceTab('dock-pane-vision');
+            this.processUploadedImage(blob);
+            this.showMiniToast('📋 Đã nhận ảnh chụp màn hình (Ctrl+V) để nhận diện 3D!', 'success', 3500);
+            break;
+          }
+        }
       }
     });
 
-    if(dropZone) dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
+    // D. Header Camera Button (#btn-scan-camera)
+    const btnScanCamera = document.getElementById('btn-scan-camera');
+    if (btnScanCamera) {
+      btnScanCamera.addEventListener('click', () => {
+        this.switchDockWorkspaceTab('dock-pane-vision');
+        this.showMiniToast('Đã mở Xưởng Nhận Diện Ảnh 2D -> 3D AI!', 'info', 2500);
+      });
+    }
+
+    // E. Quick Sample Preset Buttons in dock-pane-vision
+    document.querySelectorAll('.btn-vision-sample').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sampleType = btn.getAttribute('data-sample');
+        this.simulateSampleScan(sampleType);
+      });
     });
 
-    if(dropZone) dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('drag-over');
+    // F. Vision API Key Collapsible Toggle & Save
+    const btnToggleApiKey = document.getElementById('btn-toggle-vision-apikey');
+    const apiKeyBox = document.getElementById('vision-apikey-box');
+    const inputApiKey = document.getElementById('input-vision-gemini-key');
+    const btnSaveApiKey = document.getElementById('btn-save-vision-key');
+
+    if (btnToggleApiKey && apiKeyBox) {
+      btnToggleApiKey.addEventListener('click', () => {
+        apiKeyBox.style.display = apiKeyBox.style.display === 'none' ? 'block' : 'none';
+        if (inputApiKey && this.geminiApiKey) inputApiKey.value = this.geminiApiKey;
+      });
+    }
+
+    if (btnSaveApiKey && inputApiKey) {
+      btnSaveApiKey.addEventListener('click', () => {
+        const val = inputApiKey.value.trim();
+        if (val) {
+          this.geminiApiKey = val;
+          localStorage.setItem('chill_ai_gemini_key', val);
+          const badge = document.getElementById('vision-engine-badge');
+          if (badge) {
+            badge.textContent = '⚡ Cloud AI (Gemini)';
+            badge.style.background = '#0284c7';
+            badge.style.borderColor = '#38bdf8';
+          }
+          this.showMiniToast('Đã lưu Gemini API Key thành công!', 'success', 3000);
+          if (apiKeyBox) apiKeyBox.style.display = 'none';
+        } else {
+          this.showMiniToast('Vui lòng dán API Key hợp lệ!', 'warning', 2500);
+        }
+      });
+    }
+
+    // G. Action: Sinh Mô Hình 3D Ngay (#btn-vision-build-3d)
+    const btnVisionBuild3d = document.getElementById('btn-vision-build-3d');
+    if (btnVisionBuild3d) {
+      btnVisionBuild3d.addEventListener('click', () => {
+        const l = parseFloat(document.getElementById('vision-input-length')?.value) || (this.currentModel.length || 1200);
+        const w = parseFloat(document.getElementById('vision-input-width')?.value) || (this.currentModel.width || 600);
+        const h = parseFloat(document.getElementById('vision-input-height')?.value) || (this.currentModel.height || 1800);
+        const doors = parseInt(document.getElementById('vision-select-doors')?.value, 10) || (this.currentModel.doors || 3);
+        const drawers = parseInt(document.getElementById('vision-select-drawers')?.value, 10) || (this.currentModel.drawers || 0);
+        const thick = parseFloat(document.getElementById('vision-select-thickness')?.value) || 17.5;
+        const mat = document.getElementById('vision-select-material')?.value || this.currentModel.material || 'oak';
+
+        this.currentModel.length = l;
+        this.currentModel.width = w;
+        this.currentModel.height = h;
+        this.currentModel.doors = doors;
+        this.currentModel.drawers = drawers;
+        this.currentModel.thickness = thick;
+        this.currentModel.material = mat;
+
+        this.showMiniToast(`🚀 Đang sinh mô hình ${this.currentModel.name} vào SketchUp...`, 'info', 4000);
+        this.sendToSketchUp('create_3d_model', this.currentModel);
+
+        if (this.avatar) {
+          this.avatar.setEmotion('excited');
+          this.avatar.addMessage('bot', `🚀 Đã sinh mô hình 3D Solid <strong>${this.currentModel.name}</strong> (${l}x${w}x${h}mm) vào SketchUp rồi anh Huy nhé! Anh có thể bấm sang tab CNC để bóc tách ngay!`);
+        }
+      });
+    }
+
+    // H. Action: Quét ảnh khác
+    document.getElementById('btn-vision-scan-another')?.addEventListener('click', () => {
+      const resBox = document.getElementById('vision-result-container');
+      if (resBox) resBox.style.display = 'none';
+      triggerVisionUpload();
     });
 
-    if(dropZone) dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        this.processUploadedImage(e.dataTransfer.files[0]);
-      }
+    // I. Action: Xem 3D Mini
+    document.getElementById('btn-vision-preview-mini3d')?.addEventListener('click', () => {
+      this.switchDockWorkspaceTab('dock-pane-3d');
     });
 
-    if(fileInput) fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        this.processUploadedImage(e.target.files[0]);
-      }
-    });
-
+    // Legacy sample buttons
     sampleBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -570,6 +731,20 @@ class ChillAIApp {
         this.simulateSampleScan(sampleType);
       });
     });
+
+    // Cập nhật trạng thái badge ban đầu
+    const badge = document.getElementById('vision-engine-badge');
+    if (badge) {
+      if (this.geminiApiKey) {
+        badge.textContent = '⚡ Cloud AI (Gemini)';
+        badge.style.background = '#0284c7';
+        badge.style.borderColor = '#38bdf8';
+      } else {
+        badge.textContent = '🧠 AI Heuristic Mộc';
+        badge.style.background = '#047857';
+        badge.style.borderColor = '#10b981';
+      }
+    }
   }
 
   processUploadedImage(file) {
@@ -577,21 +752,96 @@ class ChillAIApp {
     reader.onload = async (e) => {
       const dataUrl = e.target.result;
 
+      // Đảm bảo mở pane vision
+      this.switchDockWorkspaceTab('dock-pane-vision');
+
+      // Hiện spinner quét ảnh
+      const spinner = document.getElementById('vision-scanning-indicator') || document.getElementById('scan-loading-spinner');
+      const resBox = document.getElementById('vision-result-container');
+      if (spinner) spinner.style.display = 'flex';
+      if (resBox) resBox.style.display = 'none';
+
       // Nếu người dùng đã cài Gemini API Key -> Gửi lên Cloud AI phân tích thật
       if (this.geminiApiKey) {
         await this.scanWithGeminiVision(dataUrl);
       } else {
-        // Nếu chưa cài Key: Hiển thị thông báo Toast và dùng mẫu mô phỏng sẵn
-        this.showMiniToast('Đang quét ảnh mẫu Demo (Cài Gemini API Key để quét ảnh thật)', 'info', 4000);
-        this.detectFurnitureAI(dataUrl, 'desk');
+        // Nếu chưa có key -> Chạy cỗ máy Heuristic Mộc chuyên sâu tức thì!
+        this.runSmartHeuristicVision(dataUrl);
       }
     };
     reader.readAsDataURL(file);
   }
 
-  // --- GOOGLE GEMMA 4 / GEMINI VISION CLOUD AI CALL ---
+  // Cỗ máy Heuristic phân tích ảnh nội thất mộc chuẩn Việt Nam (Offline / Zero-latency)
+  runSmartHeuristicVision(dataUrl) {
+    const spinner = document.getElementById('vision-scanning-indicator');
+    if (spinner) spinner.style.display = 'flex';
+
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth || 800;
+      const h = img.naturalHeight || 600;
+      const ratio = h / w;
+
+      let type = 'cabinet';
+      let name = 'Tủ Quần Áo Đứng Module 3 Cánh';
+      let category = 'Tủ quần áo (Wardrobe)';
+      let defL = 1200;
+      let defW = 600;
+      let defH = 1800;
+      let doors = 3;
+      let drawers = 2;
+      let material = 'oak';
+
+      if (ratio >= 1.2) {
+        // Dáng đứng cao -> Tủ áo đứng
+        type = 'cabinet';
+        name = 'Tủ Quần Áo Đứng Chuẩn Xưởng CNC (3 Cánh 2 Ngăn Kéo)';
+        category = 'Tủ quần áo (Wardrobe)';
+        defL = 1200; defW = 600; defH = 1800;
+        doors = 3; drawers = 2; material = 'oak';
+      } else if (ratio <= 0.65) {
+        // Dáng ngang dài thấp -> Kệ Tivi
+        type = 'shelf';
+        name = 'Kệ Tivi Hiện Đại Phong Cách Bắc Âu';
+        category = 'Kệ sách / Tủ trang trí (Bookshelf)';
+        defL = 1600; defW = 400; defH = 550;
+        doors = 0; drawers = 2; material = 'walnut';
+      } else if (ratio > 0.65 && ratio < 0.95) {
+        // Dáng bàn làm việc
+        type = 'desk';
+        name = 'Bàn Làm Việc Gỗ Sồi Chân Sắt Hộp';
+        category = 'Bàn làm việc (Desk / Work Table)';
+        defL = 1200; defW = 600; defH = 750;
+        doors = 0; drawers = 1; material = 'oak';
+      } else {
+        // Dáng vuông -> Tủ bếp hoặc tủ giày đa năng
+        type = 'cabinet';
+        name = 'Tủ Đa Năng 2 Cánh Melamine Hiện Đại';
+        category = 'Tủ quần áo (Wardrobe)';
+        defL = 1000; defW = 500; defH = 1100;
+        doors = 2; drawers = 1; material = 'white_melamine';
+      }
+
+      if (spinner) spinner.style.display = 'none';
+      this.detectFurnitureAI(dataUrl, type, name, category, defL, defW, defH, doors, drawers);
+      this.showMiniToast(`✓ Đã phân tích ảnh bằng Cỗ Máy Heuristic Nội Thất (${name})!`, 'success', 3500);
+    };
+
+    img.onerror = () => {
+      if (spinner) spinner.style.display = 'none';
+      this.detectFurnitureAI(dataUrl, 'cabinet', 'Tủ Quần Áo Chuẩn Xưởng CNC', 'Tủ quần áo (Wardrobe)', 1200, 600, 1800, 3, 2);
+    };
+
+    img.src = dataUrl;
+  }
+
+  // --- GOOGLE GEMINI VISION CLOUD AI CALL ---
   async getBestGeminiEndpoint() {
-    const target = (this.geminiModel && !this.geminiModel.includes('gemma4')) ? this.geminiModel : 'gemini-3.5-flash';
+    let target = 'gemini-2.0-flash';
+    if (this.geminiModel && !this.geminiModel.includes('gemma4') && !this.geminiModel.includes('3.5')) {
+      target = this.geminiModel;
+    }
     return `https://generativelanguage.googleapis.com/v1beta/models/${target}:generateContent`;
   }
 
@@ -638,18 +888,16 @@ class ChillAIApp {
   }
 
   async scanWithGeminiVision(dataUrl) {
-    const spinner = document.getElementById('scan-loading-spinner');
+    const spinner = document.getElementById('vision-scanning-indicator') || document.getElementById('scan-loading-spinner');
     const content = document.getElementById('drop-zone-content');
 
     try {
-      if (spinner && content) {
-        spinner.style.display = 'flex';
-        content.style.display = 'none';
-      }
+      if (spinner) spinner.style.display = 'flex';
+      if (content) content.style.display = 'none';
 
       if (this.avatar) {
         this.avatar.setEmotion('thinking');
-        this.avatar.addMessage('bot', 'Đang gửi ảnh lên Google Gemma 4 AI để nhận diện kết cấu và kích thước... Đợi mình khoảng 1 giây nhé! ✨');
+        this.avatar.addMessage('bot', 'Đang gửi ảnh lên Google Gemini Vision để nhận diện kết cấu và bóc tách ván mộc... Đợi mình một xíu nhé! ✨');
       }
 
       // Trích xuất mime_type và chuỗi base64 thuần
@@ -659,9 +907,9 @@ class ChillAIApp {
       const base64Data = match[2];
 
       const prompt = `
-Bạn là chuyên gia thiết kế kiến trúc nội thất và kỹ sư bóc tách gỗ công nghiệp hàng đầu.
+Bạn là chuyên gia thiết kế kiến trúc nội thất và kỹ sư bóc tách gỗ công nghiệp hàng đầu Việt Nam.
 Hãy quan sát kỹ bức ảnh này và phân tích món đồ nội thất chính trong ảnh.
-Xác định loại vật thể và ước lượng kích thước tiêu chuẩn thực tế (tính bằng milimet - mm) phù hợp nhân trắc học.
+Xác định loại vật thể và ước lượng kích thước tiêu chuẩn thực tế (tính bằng milimet - mm) phù hợp nhân trắc học ngành mộc.
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON HỢP LỆ (không có markdown giải thích thừa, không bọc dấu backtick, không có chữ json):
 {
@@ -679,14 +927,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON HỢP LỆ (không
   "door_material": "same_as_body"
 }
 Quy tắc kích thước và bóc tách kết cấu từ ảnh:
-- "type": chỉ chọn 1 trong 5 loại: "cabinet", "desk", "shelf", "bed", "kitchen_cabinet".
-- ĐẶC BIỆT KHI LÀ TỦ QUẦN ÁO ("cabinet"): Kích thước tiêu chuẩn nhân trắc học mặc định BẮT BUỘC là Dài 1200mm (1m2), Rộng/Sâu 600mm, Cao 1800mm (1m8) (defLength: 1200, defWidth: 600, defHeight: 1800).
-- "doors": Nếu là tủ áo, hãy đếm chính xác số cánh cửa (mặc định 3 cánh).
-- "drawers": Đếm chính xác số hộc ngăn kéo (mặc định 2 ngăn kéo).
-- "kitchen_shape": Nếu là tủ bếp, xác định hình dáng tủ bếp là chữ "I" hay chữ "L".
-- "has_upper" / "has_lower": Nếu là tủ bếp, xác định xem ảnh có tủ bếp trên (true/false) và tủ bếp dưới (true/false) hay không.
-- "backsplash_color": Nếu là tủ bếp, xác định màu của mặt kính ốp tường (ví dụ: "green_glass", "white", "black"...).
-- "material": Chọn đúng màu vật liệu thấy trong ảnh: "oak" (vân sồi sáng), "walnut" (óc chó), "white_melamine" (trắng).
+- "type": chỉ chọn 1 trong các loại: "cabinet" (tủ áo/tủ giày/tủ đứng), "desk" (bàn làm việc/bàn ăn), "shelf" (kệ tivi/kệ sách), "bed" (giường), "kitchen_cabinet" (tủ bếp).
+- ĐẶC BIỆT KHI LÀ TỦ QUẦN ÁO ("cabinet"): Kích thước tiêu chuẩn nhân trắc học mặc định BẮT BUỘC là Dài 1200mm, Rộng/Sâu 600mm, Cao 1800mm (hoặc 1600/1800/2000mm nếu tủ lớn).
+- "doors": Nếu là tủ áo, hãy đếm chính xác số cánh cửa (2, 3, 4 cánh).
+- "drawers": Đếm chính xác số hộc ngăn kéo (0, 2, 4 ngăn kéo).
+- "material": Chọn đúng màu vật liệu thấy trong ảnh: "oak" (vân sồi sáng), "walnut" (óc chó), "white_melamine" (trắng), "dark_melamine" (ghi đậm).
 - "door_material": Cánh tủ cùng màu thân thì "same_as_body", trắng thì "white_melamine".
 - "leg_style": chỉ chọn: "metal_frame", "wooden_legs", "panel_legs".
 `;
@@ -708,24 +953,28 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
         'x-goog-api-key': this.geminiApiKey
       };
 
-      // 1. Lấy endpoint tốt nhất
+      // 1. Thử gọi endpoint tốt nhất
       let targetEndpoint = await this.getBestGeminiEndpoint();
+      if (!targetEndpoint.includes('?key=') && this.geminiApiKey) {
+        targetEndpoint += `?key=${encodeURIComponent(this.geminiApiKey)}`;
+      }
+
       let response = await fetch(targetEndpoint, {
         method: 'POST',
         headers: reqHeaders,
         body: requestBody
       });
 
-      // 2. Nếu model ban đầu bị lỗi (not found hoặc rate limit), tự động thử danh sách model dự phòng
+      // 2. Nếu model ban đầu bị lỗi, tự động thử danh sách model dự phòng
       if (!response.ok) {
         const fallbackCandidates = [
-          'models/gemini-3.5-flash',
-          'models/gemini-3.8-flash',
-          'models/gemini-3.5-flash-lite'
+          'models/gemini-2.0-flash',
+          'models/gemini-1.5-flash',
+          'models/gemini-1.5-pro'
         ];
 
         for (const modelCandidate of fallbackCandidates) {
-          const fallbackEndpoint = `https://generativelanguage.googleapis.com/v1beta/${modelCandidate}:generateContent`;
+          const fallbackEndpoint = `https://generativelanguage.googleapis.com/v1beta/${modelCandidate}:generateContent?key=${encodeURIComponent(this.geminiApiKey)}`;
           if (fallbackEndpoint === targetEndpoint) continue;
 
           console.log(`Đang thử model dự phòng: ${modelCandidate}`);
@@ -744,7 +993,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `Lỗi máy chủ Google AI / Gemma 4 (HTTP ${response.status})`);
+        throw new Error(errJson.error?.message || `Lỗi máy chủ Google AI / Gemini (HTTP ${response.status})`);
       }
 
       const resData = await response.json();
@@ -754,17 +1003,13 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       // Bóc tách chính xác khối JSON đầu tiên bằng thuật toán đếm ngoặc cân bằng
       let jsonStr = this.extractJsonObject(rawText);
       if (!jsonStr) {
-        // Fallback: Thử lấy chuỗi giữa { và }
         const match = rawText.match(/\{[\s\S]*?\}/);
         jsonStr = match ? match[0] : rawText;
       }
 
-      // Xóa các dấu phẩy thừa trước dấu đóng ngoặc (trailing comma) nếu có
       jsonStr = jsonStr.replace(/,\s*([\}\]])/g, '$1').trim();
-
       const parsed = JSON.parse(jsonStr);
 
-      // Trích xuất số cánh và ngăn kéo với cơ chế thông minh
       let doors = parsed.doors;
       if (!doors && parsed.name) {
         const m = parsed.name.match(/(\d+)\s*cánh/i);
@@ -781,15 +1026,6 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
       let doorMaterial = parsed.door_material || 'same_as_body';
 
-      // Cập nhật sẵn các trường tinh chỉnh vào giao diện
-      if (parsed.thickness) document.getElementById('select-thickness').value = parsed.thickness;
-      if (parsed.material) document.getElementById('select-material').value = parsed.material;
-      if (parsed.leg_style) document.getElementById('select-leg-style').value = parsed.leg_style;
-      if (document.getElementById('input-doors')) document.getElementById('input-doors').value = doors;
-      if (document.getElementById('input-drawers')) document.getElementById('input-drawers').value = drawers;
-      if (document.getElementById('select-door-material')) document.getElementById('select-door-material').value = doorMaterial;
-
-      // Kích thước chuẩn xưởng mộc theo yêu cầu của anh Huy: Dài 1200mm, Rộng 600mm, Cao 1800mm
       let finalL = parsed.defLength || 1200;
       let finalW = parsed.defWidth || 600;
       let finalH = parsed.defHeight || 1800;
@@ -806,7 +1042,6 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
         }
       }
 
-      // Hiển thị kết quả vào khối nhận diện
       this.detectFurnitureAI(
         dataUrl,
         parsed.type || 'cabinet',
@@ -819,39 +1054,19 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
         drawers,
         doorMaterial
       );
-      
-      if (parsed.type === 'kitchen_cabinet') {
-        this.currentModel.kitchen_shape = parsed.kitchen_shape || "L";
-        this.currentModel.has_upper = parsed.has_upper !== false;
-        this.currentModel.has_lower = parsed.has_lower !== false;
-        this.currentModel.backsplash_color = parsed.backsplash_color || "green_glass";
-        
-        let kitchenDetails = `Kiểu: Chữ ${this.currentModel.kitchen_shape.toUpperCase()}`;
-        if (this.currentModel.has_upper && this.currentModel.has_lower) kitchenDetails += " | Có tủ trên & dưới";
-        else if (this.currentModel.has_upper) kitchenDetails += " | Chỉ có tủ trên";
-        else if (this.currentModel.has_lower) kitchenDetails += " | Chỉ có tủ dưới";
-        kitchenDetails += ` | Kính ốp: ${this.currentModel.backsplash_color} (cao 600-650mm)`;
-        
-        const specsEl = document.getElementById('default-specs-display');
-        if (specsEl) specsEl.textContent += ` | ${kitchenDetails}`;
-        
-        this.update3DAndCAM();
-      }
 
       if (this.avatar) {
         this.avatar.setEmotion('excited');
-        this.avatar.addMessage('bot', `✨ Google Gemma 4 AI đã phân tích xong: <strong>${parsed.name}</strong> với kích thước chuẩn ${parsed.defLength}x${parsed.defWidth}x${parsed.defHeight}mm!`);
+        this.avatar.addMessage('bot', `✨ Google Gemini Vision đã phân tích xong: <strong>${parsed.name}</strong> với kích thước chuẩn ${finalL}x${finalW}x${finalH}mm!`);
       }
 
     } catch (err) {
-      console.error('Lỗi Gemma 4 Vision:', err);
-      this.showMiniToast(`Không thể nhận diện bằng AI: ${err.message}. Đang dùng dữ liệu mẫu.`, 'warning', 4000);
-      this.detectFurnitureAI(dataUrl, 'desk');
+      console.warn('Lỗi Cloud Gemini Vision, chuyển sang Heuristic Mộc:', err);
+      this.showMiniToast(`Cloud AI: ${err.message}. Tự động phân tích bằng AI Heuristic mộc!`, 'warning', 4500);
+      this.runSmartHeuristicVision(dataUrl);
     } finally {
-      if (spinner && content) {
-        spinner.style.display = 'none';
-        content.style.display = 'block';
-      }
+      if (spinner) spinner.style.display = 'none';
+      if (content) content.style.display = 'block';
     }
   }
 
@@ -862,33 +1077,53 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
         category: 'Bàn làm việc (Desk / Work Table)',
         type: 'desk',
         defLength: 1200, defWidth: 600, defHeight: 750,
-        img: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=300&q=80'
+        doors: 0, drawers: 1,
+        img: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&q=80'
       },
       cabinet: {
-        name: 'Tủ quần áo 2 cánh Melamine tối giản',
+        name: 'Tủ quần áo 3 cánh 2 ngăn kéo Melamine',
         category: 'Tủ quần áo (Wardrobe)',
         type: 'cabinet',
         defLength: 1200, defWidth: 600, defHeight: 1800,
-        img: 'https://images.unsplash.com/photo-1558997519-83ea9252def8?w=300&q=80'
+        doors: 3, drawers: 2,
+        img: 'https://images.unsplash.com/photo-1558997519-83ea9252def8?w=400&q=80'
+      },
+      tv_stand: {
+        name: 'Kệ tivi hiện đại phong cách Bắc Âu',
+        category: 'Kệ sách / Tủ trang trí (Bookshelf)',
+        type: 'shelf',
+        defLength: 1600, defWidth: 400, defHeight: 550,
+        doors: 0, drawers: 2,
+        img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&q=80'
+      },
+      kitchen: {
+        name: 'Hệ tủ bếp chữ L hiện đại Acrylic An Cường',
+        category: 'Tủ bếp (Kitchen Cabinet)',
+        type: 'kitchen_cabinet',
+        defLength: 2400, defWidth: 600, defHeight: 2200,
+        doors: 4, drawers: 2,
+        img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=400&q=80'
       },
       shelf: {
         name: 'Kệ sách trang trí 3 tầng Scandinavian',
         category: 'Kệ sách / Tủ trang trí (Bookshelf)',
         type: 'shelf',
         defLength: 1000, defWidth: 350, defHeight: 1200,
-        img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=300&q=80'
+        doors: 0, drawers: 0,
+        img: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&q=80'
       },
       bed: {
         name: 'Giường ngủ thông minh kiểu Nhật (Japandi Bed)',
         category: 'Giường ngủ (Bed)',
         type: 'bed',
         defLength: 1800, defWidth: 2000, defHeight: 400,
-        img: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=300&q=80'
+        doors: 0, drawers: 2,
+        img: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=400&q=80'
       }
     };
 
-    const s = samples[type] || samples.desk;
-    this.detectFurnitureAI(s.img, s.type, s.name, s.category, s.defLength, s.defWidth, s.defHeight);
+    const s = samples[type] || samples.cabinet;
+    this.detectFurnitureAI(s.img, s.type, s.name, s.category, s.defLength, s.defWidth, s.defHeight, s.doors, s.drawers);
   }
 
   detectFurnitureAI(imageSrc, type, name = 'Bàn làm việc gỗ sồi', category = 'Bàn làm việc', defL = 1200, defW = 600, defH = 750, doors = 2, drawers = 0, doorMaterial = 'same_as_body') {
@@ -907,6 +1142,37 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
       this.currentModel.material = document.getElementById('select-material').value || 'oak';
     }
 
+    // Cập nhật giao diện Xưởng Quét Ảnh 2D -> 3D (Vision Studio)
+    const visionImg = document.getElementById('dock-vision-img-preview');
+    if (visionImg) visionImg.src = imageSrc;
+
+    const visionName = document.getElementById('vision-detected-name');
+    if (visionName) visionName.textContent = name;
+
+    const visionDesc = document.getElementById('vision-detected-desc');
+    if (visionDesc) {
+      let desc = `Kích thước: ${defL} x ${defW} x ${defH}mm | Ván 17.5mm`;
+      if (type === 'cabinet' || type === 'wardrobe') desc += ` | ${doors} cánh, ${drawers} ngăn kéo`;
+      visionDesc.textContent = desc;
+    }
+
+    const vL = document.getElementById('vision-input-length');
+    if (vL) vL.value = defL;
+    const vW = document.getElementById('vision-input-width');
+    if (vW) vW.value = defW;
+    const vH = document.getElementById('vision-input-height');
+    if (vH) vH.value = defH;
+
+    const vDoors = document.getElementById('vision-select-doors');
+    if (vDoors) vDoors.value = doors || 3;
+    const vDrawers = document.getElementById('vision-select-drawers');
+    if (vDrawers) vDrawers.value = drawers !== undefined ? drawers : 2;
+
+    const vResBox = document.getElementById('vision-result-container');
+    if (vResBox) vResBox.style.display = 'flex';
+    const vScanSpinner = document.getElementById('vision-scanning-indicator');
+    if (vScanSpinner) vScanSpinner.style.display = 'none';
+
     // Build 3 smart presets for this detected furniture
     this.currentPresets = this.getPresetsForType(type);
     if (this.currentPresets && this.currentPresets.length > 0) {
@@ -920,9 +1186,12 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
     this.currentPresetIndex = 0;
 
     // Update input fields
-    document.getElementById('input-length').value = defL;
-    document.getElementById('input-width').value = defW;
-    document.getElementById('input-height').value = defH;
+    const elLength = document.getElementById('input-length');
+    if (elLength) elLength.value = defL;
+    const elWidth = document.getElementById('input-width');
+    if (elWidth) elWidth.value = defW;
+    const elHeight = document.getElementById('input-height');
+    if (elHeight) elHeight.value = defH;
     if (document.getElementById('input-doors')) document.getElementById('input-doors').value = doors;
     if (document.getElementById('input-drawers')) document.getElementById('input-drawers').value = drawers;
     if (document.getElementById('select-door-material')) document.getElementById('select-door-material').value = doorMaterial;
@@ -937,7 +1206,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
     if (this.avatar) {
       this.avatar.setEmotion('excited');
-      this.avatar.addMessage('bot', `✨ AI đã nhận diện món đồ: <strong>${name}</strong>!<br>Đang áp dụng <em>Phương án 1 (Mặc định ${defL}x${defW}x${defH}mm)</em>. Bạn có thể bấm <strong>[▶ Tiếp]</strong> trên thanh tùy chọn đen để đổi mẫu, hoặc bấm <strong>[2. Tùy Chỉnh]</strong> để tự do sửa số đo nhé!`);
+      this.avatar.addMessage('bot', `✨ AI đã nhận diện món đồ: <strong>${name}</strong>!<br>Kích thước chuẩn: ${defL}x${defW}x${defH}mm. Anh Huy có thể tinh chỉnh số đo và bấm <strong>[🚀 SINH MÔ HÌNH 3D]</strong> để đưa vào SketchUp ngay nhé!`);
     }
   }
 
@@ -4872,7 +5141,7 @@ Quy tắc kích thước và bóc tách kết cấu từ ảnh:
 
     // F. TAB QUÉT ẢNH MẪU AI
     const triggerImageUpload = () => {
-      const mainInput = document.getElementById('image-upload');
+      const mainInput = document.getElementById('vision-file-input') || document.getElementById('image-upload');
       if (mainInput) mainInput.click();
     };
     document.getElementById('dock-vision-dropzone')?.addEventListener('click', triggerImageUpload);
